@@ -1,6 +1,8 @@
-# Climate Hack-tion: Build for 2035 (EU & MLAI Climate Hackathon 2026)
+# TerraGrid 3D 🛰️🏙️
+> **Satellite-Borne Urban Microclimate, Thermal & Emissions Digital Twin for City Councils**  
+> *Developed for Climate Hack-tion: Build for 2035 (EU & MLAI Climate Hackathon 2026)*
 
-> **A premier 60-hour regional climate hackathon bringing together students from Australia, New Zealand, the Pacific Islands, and the European Union to build practical, scalable climate solutions ahead of COP31.**
+> ℹ️ **Project Name Note:** *"TerraGrid 3D"* is currently our working project title and repository name for the hackathon ahead of COP31; it is subject to change as team deliberations finalize.
 
 [![Funded by European Union](https://img.shields.io/badge/Funded%20by-European%20Union-blue.svg)](https://eeas.europa.eu/delegations/australia_en)
 [![Platform Junction](https://img.shields.io/badge/Platform-HackJunction-orange.svg)](https://hackjunction.app/hackathons/climate-hack-tion)
@@ -13,7 +15,7 @@
 1. [Overview & Strategic Context](#overview--strategic-context)
 2. [Key Event Milestones & Timeline](#key-event-milestones--timeline)
 3. [Eligibility & Team Status (Team of 4)](#eligibility--team-status-team-of-4)
-4. [Our Project: 3D Satellite Urban Digital Twin (Name TBD)](#our-project-3d-satellite-urban-digital-twin-name-tbd)
+4. [Our Project: TerraGrid 3D (Working Title)](#our-project-terragrid-3d-working-title)
 5. [The 5 COP31 Priority Tracks](#the-5-cop31-priority-tracks)
 6. [Submission Deliverables & Format (Deck & Looping GIFs)](#submission-deliverables--format-deck--looping-gifs)
 7. [Judging & Evaluation System (Gavel)](#judging--evaluation-system-gavel)
@@ -66,9 +68,9 @@ All hacking, submission, and review activities are conducted online.
 
 ---
 
-## 🏙️ Our Project: 3D Satellite Urban Digital Twin (Name TBD)
+## 🏙️ Our Project: TerraGrid 3D (Working Title)
 
-> **Status:** Project Name is currently **TBD (Under Discussion)**.
+> ℹ️ **Project Name Note:** *"TerraGrid 3D"* is our working project title and repository name for the Climate Hack-tion hackathon ahead of COP31. It is subject to change as team deliberations finalize.
 
 ### Core Vision
 An interactive, browser-based 3D digital twin of municipal cityscapes designed specifically for **Local Government Councils, Urban Planners, and Disaster Response Units** across Australia, New Zealand, and Pacific Island nations.

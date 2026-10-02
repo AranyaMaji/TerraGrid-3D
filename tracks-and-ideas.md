@@ -59,7 +59,7 @@ Methane ($CH_4$) possesses over 80 times the warming potential of $CO_2$ over a 
 Pacific Island nations and Australasian coastal cities face immediate physical risks: sea-level rise, king tides, severe tropical cyclones, bushfires, and extreme urban heat islands. Urban structures must become energy-efficient and climate-resilient.
 
 ### High-Impact Project Ideas
-1. **3D Multi-Layer Urban Climate & Thermal Digital Twin (Selected Focus — Name TBD):**
+1. **TerraGrid 3D (Working Title — Subject to Change):**
    * *Problem:* Uninsulated dark roofs, dense asphalt, and lack of tree cover elevate inner-city temperatures by 4–8°C across Western Sydney and Pacific cities, driving heatstroke and grid brownouts, while industrial HVAC and waste smoke trap harmful particulates over residential areas.
    * *Solution:* An interactive 3D digital twin rendering OpenStreetMap 3D buildings overlaid with 4 Copernicus satellite intelligence layers:
      * 🔴 **Surface Thermal Heat:** Sentinel-3 SLSTR surface temperature anomalies.
