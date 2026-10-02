@@ -18,15 +18,19 @@ A centralized directory of official platforms, community channels, datasets, API
 
 ## 🏛️ Organisers & Key Contacts
 
-* **Primary Funder:** European Union Delegation to Australia
-  * *Website:* [eeas.europa.eu/delegations/australia](https://www.eeas.europa.eu/delegations/australia_en)
-  * *Program:* EU Foreign Policy Instruments (FPI) Technical Support Facility.
-  * *Diplomatic Co-Missions:* EU Delegation to New Zealand, EU Delegation for the Pacific (Suva, Fiji).
-* **Implementation Partner:** GDSI Limited (Global Development Solutions International)
-  * *Lead Contact:* Shelly Amir
-  * *Email:* `shelly.amir@gdsi.ie`
-* **AI & Community Partner:** MLAI (Machine Learning & Artificial Intelligence Australia)
+* **Primary Diplomatic Sponsors:**
+  * **European Union Delegation to Australia (Canberra)**
+    * *Website:* [eeas.europa.eu/delegations/australia](https://www.eeas.europa.eu/delegations/australia_en)
+    * *Head of Delegation:* **H.E. Gabriele Visentin** (EU Ambassador to Australia)
+  * **European Union Delegation for the Pacific (Suva, Fiji)**
+    * *Head of Delegation:* **H.E. Barbara Plinkert** (EU Ambassador to the Pacific)
+  * **European Union Delegation to New Zealand (Wellington)**
+  * *Funding Instrument:* EU Foreign Policy Instruments (FPI) Technical Support Facility.
+* **Implementation Agency:** **GDSI Limited (Global Development Support International, Ireland)**
+  * *Lead Coordinator:* Shelly Amir (`shelly.amir@gdsi.ie`)
+* **AI & Community Co-Host:** **MLAI (Machine Learning & Artificial Intelligence Australia)**
   * *Website:* [mlai.au](https://mlai.au)
+  * *Community Luma:* [luma.com/mlai](https://luma.com/mlai) (Hosted virtual Team Formation Mixer on Tuesday, 29 September 2026)
   * *Focus:* Grassroots AI builder network, startup incubators, technical workshops across Australia.
 
 ---

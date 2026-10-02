@@ -1,4 +1,4 @@
-# Climate Hack-tion: EU & MLAI Climate Hackathon 2026
+# Climate Hack-tion: Build for 2035 (EU & MLAI Climate Hackathon 2026)
 
 > **A premier 60-hour regional climate hackathon bringing together students from Australia, New Zealand, the Pacific Islands, and the European Union to build practical, scalable climate solutions ahead of COP31.**
 
@@ -17,7 +17,7 @@
 5. [Submission Deliverables & Format](#submission-deliverables--format)
 6. [Judging & Evaluation System (Gavel)](#judging--evaluation-system-gavel)
 7. [Prizes & Recognition](#prizes--recognition)
-8. [Organisers, Partners & Contacts](#organisers-partners--contacts)
+8. [Organisers, Diplomatic Patrons & Contacts](#organisers-diplomatic-patrons--contacts)
 9. [Documentation Directory](#documentation-directory)
 
 ---
@@ -131,20 +131,30 @@ Judging is performed via **Gavel**, an open-source pairwise comparison voting sy
 
 ## 🏆 Prizes & Recognition
 
-* **Total Cash Prize Pool:** **AUD $10,000+** distributed across top overall winners and individual track winners.
-* **Diplomatic & Global Exposure:** Winning teams featured in European Union Delegation and COP31 youth engagement showcases.
-* **Industry & Mentorship Access:** Direct networking opportunities with mentors from academia, European climate institutes, Australian venture capital, and energy transition leaders.
+The total prize pool exceeds **AUD $10,000+** distributed as follows:
+
+* 🥇 **1st Place (Overall Champion):** **AUD $6,000**
+* 🥈 **2nd Place (Runner-Up):** **AUD $3,000**
+* 🎖️ **Category / Track / People’s Choice Awards:** **AUD $1,000+** (awarded for standout regional impact, peer favorite, and category excellence).
+* 🌍 **Diplomatic & Global Exposure:** Winning teams featured in European Union Delegation showcases and COP31 youth engagement platforms.
+* 🚀 **Industry & Mentorship Access:** Direct networking opportunities with mentors from academia, European climate institutes, Australian venture capital, and energy transition leaders.
 
 ---
 
-## 🤝 Organisers, Partners & Contacts
+## 🤝 Organisers, Diplomatic Patrons & Contacts
 
-* **Primary Funder & Lead:** **European Union Delegation to Australia**, in coordination with EU Missions in New Zealand and Fiji / Pacific.
-* **Implementation Agency:** **GDSI Limited** (under the EU Foreign Policy Instruments Technical Support Facility).
-  * *Contact Person:* Shelly Amir (`shelly.amir@gdsi.ie`)
-* **Community & AI Partner:** **MLAI (Machine Learning & Artificial Intelligence Australia)**
+* **Primary Diplomatic Sponsors:**
+  * **European Union Delegation to Australia** (Canberra)
+    * *Diplomatic Patron:* **H.E. Gabriele Visentin** (EU Ambassador to Australia)
+  * **European Union Delegation for the Pacific** (Suva, Fiji)
+    * *Diplomatic Patron:* **H.E. Barbara Plinkert** (EU Ambassador to the Pacific)
+  * **European Union Delegation to New Zealand** (Wellington)
+* **Funding Instrument:** EU Foreign Policy Instruments (FPI) Technical Support Facility.
+* **Implementation Agency:** **GDSI Limited** (Global Development Support International, Ireland)
+  * *Lead Project Coordinator:* Shelly Amir (`shelly.amir@gdsi.ie`)
+* **Community & AI Co-Host:** **MLAI (Machine Learning & Artificial Intelligence Australia)**
   * *Website:* [mlai.au](https://mlai.au)
-  * *Luma Community:* [luma.com/mlai](https://luma.com/mlai)
+  * *Luma Community & Mixers:* [luma.com/mlai](https://luma.com/mlai) (Hosted Pre-Hack Team Formation Mixer on 29 Sept 2026)
 * **Hackathon Platform:** **Junction Oy** ([hackjunction.app](https://hackjunction.app))
 * **Official Community Discord:** [discord.gg/gasmaDwDXY](https://discord.gg/gasmaDwDXY)
 
