@@ -59,10 +59,16 @@ Methane ($CH_4$) possesses over 80 times the warming potential of $CO_2$ over a 
 Pacific Island nations and Australasian coastal cities face immediate physical risks: sea-level rise, king tides, severe tropical cyclones, bushfires, and extreme urban heat islands. Urban structures must become energy-efficient and climate-resilient.
 
 ### High-Impact Project Ideas
-1. **Urban Heat Island Resilience Planner:**
-   * *Problem:* Urban heat can elevate inner-city temperatures by 4–8°C, endangering vulnerable populations and spiking AC power consumption.
-   * *Solution:* Geospatial analysis dashboard fusing thermal satellite imagery (Landsat / Sentinel-3) with urban tree canopy data to simulate the cooling impact of green corridors, reflective roofs, and tree plantings.
-   * *Stack:* Rasterio, GeoPandas, Copernicus Sentinel-3 SLSTR, Mapbox GL.
+1. **3D Multi-Layer Urban Climate & Thermal Digital Twin (Selected Focus — Name TBD):**
+   * *Problem:* Uninsulated dark roofs, dense asphalt, and lack of tree cover elevate inner-city temperatures by 4–8°C across Western Sydney and Pacific cities, driving heatstroke and grid brownouts, while industrial HVAC and waste smoke trap harmful particulates over residential areas.
+   * *Solution:* An interactive 3D digital twin rendering OpenStreetMap 3D buildings overlaid with 4 Copernicus satellite intelligence layers:
+     * 🔴 **Surface Thermal Heat:** Sentinel-3 SLSTR surface temperature anomalies.
+     * 💨 **Smoke & Aerosol Plumes:** Sentinel-5P TROPOMI particulate/CO exhaust dispersion.
+     * 🌳 **Tree Canopy Deficit:** Sentinel-2 NDVI vegetation vs. barren asphalt.
+     * ⚡ **Solar Rooftop Potential:** CAMS Solar Irradiance + roof area clean energy conversion.
+     * 🏥 **Vulnerable Population Index:** Proximity to aged care, schools, and hospitals.
+   * *Action Simulation:* Interactive "Cool Roof & Solar Retrofit" simulator calculating localized temperature drop (-4.2°C), peak AC grid reduction (-18%), and annual dollar savings.
+   * *Stack:* MapLibre GL / Deck.gl 3D extrusions, Copernicus CDS API, GeoJSON/vector tiles, PPT with embedded 60 FPS looping GIFs.
 2. **Pacific Coastal Flood & King Tide Early Warning System:**
    * *Problem:* Low-lying atoll nations (Tuvalu, Kiribati, Marshall Islands) need hyperlocal flood forecasting that combines sea-level anomalies, bathymetry, and tide gauges.
    * *Solution:* Machine-learning surge model providing 72-hour flood vulnerability maps and SMS alerts for atoll councils.

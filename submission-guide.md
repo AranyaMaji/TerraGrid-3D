@@ -25,12 +25,12 @@ Climate Hack-tion employs **Gavel** (`climate-hack-tion-gavel-56ef231b1d62.herok
 
 Complete these items before **Sunday, 4 Oct 2026, 21:00 AEDT (10:00 UTC)**:
 
-- [ ] **Junction Team Status:** All 3–5 team members are registered on Junction and joined to the team page.
-- [ ] **Track Selected:** Confirmed alignment with 1 of the 5 COP31 tracks.
+- [ ] **Junction Team Status:** All 4 team members registered on Junction and joined to the team page (satisfying the 3–5 member rule).
+- [ ] **Track Selected:** Confirmed alignment with Track 3: Resilient Cities & Buildings (COP31 Priority Area).
 - [ ] **Public GitHub / GitLab Repository:** Clean commits, open license (MIT/Apache), clear README.
-- [ ] **Live Deployed Prototype:** Deployed on Vercel, Streamlit, Cloudflare, Render, or Hugging Face.
-- [ ] **Demo Video (2–3 Minutes):** Uploaded to YouTube (Unlisted or Public) or Vimeo with audio verified.
-- [ ] **Junction Project Description:** Formatted with Markdown, screenshots, architecture diagram, and links.
+- [ ] **Presentation Deck & Visuals:** Complete slide deck (PPT/PDF) with embedded high-resolution looping GIFs of 3D globe and city building simulations.
+- [ ] **Demo Video (2–3 Minutes):** High-velocity screen recording walkthrough uploaded to YouTube (Unlisted or Public) or Vimeo.
+- [ ] **Junction Project Description:** Formatted with Markdown, GIF previews, architecture diagram, and links.
 - [ ] **Discord Submission Confirmation:** Confirm in the official Discord (`#announcements` or `#submissions`).
 
 ---

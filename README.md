@@ -12,13 +12,14 @@
 ## 📌 Table of Contents
 1. [Overview & Strategic Context](#overview--strategic-context)
 2. [Key Event Milestones & Timeline](#key-event-milestones--timeline)
-3. [Eligibility & Team Formation Rules](#eligibility--team-formation-rules)
-4. [The 5 COP31 Priority Tracks](#the-5-cop31-priority-tracks)
-5. [Submission Deliverables & Format](#submission-deliverables--format)
-6. [Judging & Evaluation System (Gavel)](#judging--evaluation-system-gavel)
-7. [Prizes & Recognition](#prizes--recognition)
-8. [Organisers, Diplomatic Patrons & Contacts](#organisers-diplomatic-patrons--contacts)
-9. [Documentation Directory](#documentation-directory)
+3. [Eligibility & Team Status (Team of 4)](#eligibility--team-status-team-of-4)
+4. [Our Project: 3D Satellite Urban Digital Twin (Name TBD)](#our-project-3d-satellite-urban-digital-twin-name-tbd)
+5. [The 5 COP31 Priority Tracks](#the-5-cop31-priority-tracks)
+6. [Submission Deliverables & Format (Deck & Looping GIFs)](#submission-deliverables--format-deck--looping-gifs)
+7. [Judging & Evaluation System (Gavel)](#judging--evaluation-system-gavel)
+8. [Prizes & Recognition](#prizes--recognition)
+9. [Organisers, Diplomatic Patrons & Contacts](#organisers-diplomatic-patrons--contacts)
+10. [Documentation Directory](#documentation-directory)
 
 ---
 
@@ -52,22 +53,60 @@ All hacking, submission, and review activities are conducted online.
 
 ---
 
-## 👥 Eligibility & Team Formation Rules
+## 👥 Eligibility & Team Status (Team of 4)
 
 ### 1. Participant Eligibility
 * **Age Requirement:** Must be 18 years or older at the start of the event.
-* **Student Status:** Must be currently enrolled in an accredited University or TAFE / Polytechnic / Tertiary institution in:
-  * **Australia**
-  * **New Zealand**
-  * **Pacific Island Nations & Territories** (including Fiji, Cook Islands, Federated States of Micronesia, Kiribati, Nauru, Niue, Palau, Republic of the Marshall Islands, Samoa, Tonga, Tuvalu, Solomon Islands, Vanuatu, Papua New Guinea).
-  * **European Union (EU) Member States**.
+* **Student Status:** Must be currently enrolled in an accredited University or TAFE / Polytechnic / Tertiary institution in Australia, New Zealand, Pacific Island Nations, or EU Member States.
 * **Recent Graduates:** Eligible if course requirements have been completed but the formal graduation ceremony has not yet taken place.
-* **Citizens Abroad:** Citizens of Australia, New Zealand, or eligible Pacific nations currently studying abroad remain eligible upon verification.
 
-### 2. Team Composition Rules
-* **Team Size:** Between **3 and 5 participants** per team.
-* **EU Student Rule:** EU students **must join teams led by students from Australia, New Zealand, or the Pacific Islands**. Purely EU-only teams are **not allowed**.
-* **Diversity Recommendation:** Teams combining technical engineering (Full-stack, AI/ML, Cloud), domain knowledge (Climate Science, Renewable Energy, Marine Biology), and storytelling (UX Design, Product, Business) historically perform strongest in Junction hackathons.
+### 2. Team Status
+* **Team Structure:** We are competing as a **team of 4 members**, fulfilling all official Junction requirements (mandatory 3–5 participants).
+* **Collaboration Model:** Agile cross-functional team collaborating across technical implementation, geospatial data modeling, economic research, and presentation deliverables.
+
+---
+
+## 🏙️ Our Project: 3D Satellite Urban Digital Twin (Name TBD)
+
+> **Status:** Project Name is currently **TBD (Under Discussion)**.
+
+### Core Vision
+An interactive, browser-based 3D digital twin of municipal cityscapes designed specifically for **Local Government Councils, Urban Planners, and Disaster Response Units** across Australia, New Zealand, and Pacific Island nations.
+
+Instead of flat, disconnected 2D charts, the platform renders extruded 3D buildings from OpenStreetMap and drapes multi-spectral European Space Agency (Copernicus) satellite intelligence over rooftops, industrial zones, and residential neighborhoods.
+
+### The 4 Core Satellite Intelligence Layers
+1. 🔴 **Surface Thermal Heat Layer:**
+   * *Data Source:* **Copernicus Sentinel-3 (SLSTR)**
+   * *Function:* Isolates hyper-local urban heat islands (UHI), highlighting uninsulated dark rooftops, asphalt parking lots, and heat-trapping industrial blocks glowing **neon red/orange (+6°C to +8°C above ambient)**.
+2. 💨 **Smoke & Aerosol Plumes Layer:**
+   * *Data Source:* **Copernicus Sentinel-5P (TROPOMI)**
+   * *Function:* Traces particulate matter, carbon monoxide ($CO$), and industrial HVAC exhaust plumes drifting across suburban residential blocks and school zones.
+3. 🌳 **Tree Canopy & Vegetation Deficit Layer:**
+   * *Data Source:* **Copernicus Sentinel-2 (NDVI Vegetation Index)**
+   * *Function:* Renders green shaded corridors vs. barren concrete deserts, proving the inverse relationship between lack of tree canopy and localized surface heat spikes.
+4. ⚡ **Solar Rooftop Potential Layer:**
+   * *Data Source:* **Copernicus CAMS Solar Irradiance** + Building roof flat-area calculation.
+   * *Function:* Highlights the hottest unshaded roofs glowing in **bright solar gold**, calculating instant photovoltaic clean energy potential (turning heat traps into clean energy assets).
+* *(Bonus Vulnerability Layer:* 🏥 **Vulnerable Population Heat-Risk Overlay** mapping schools, childcare centers, and aged care facilities trapped inside severe heat pockets).*
+
+### The Council "Magic Moment" & Intervention Simulator
+Councils can select any high-heat precinct and toggle **"Deploy Cool Roof & Canopy Retrofit"**:
+* The 3D buildings dynamically shift from burning red to cooling cyan/green.
+* Live Council KPI metrics recalculate:
+  * 🌡️ **-4.2°C** localized surface temperature drop
+  * ⚡ **-18%** peak summer air conditioning grid demand
+  * ☀️ **+320 MWh/year** clean rooftop solar unlocked
+  * 💰 **\$48,000 / year** energy savings for the precinct
+* One-click action: **"Export Council Urban Heat Mitigation Plan (PDF)"**.
+
+### Primary Deliverable Strategy
+* **High-Impact Presentation Deck:** A polished slide deck (Canva/PPT/Figma) featuring **embedded high-resolution looping GIFs** demonstrating:
+  1. *Macro View:* 3D globe rotating with regional thermal anomalies across Oceania.
+  2. *City View:* Smooth camera fly-in down to extruded 3D buildings with heat and smoke layers.
+  3. *Action Simulation:* Toggling cool roof retrofits and watching temperatures and council ROI metrics update in real time.
+* **Pitch Video (2 Minutes):** A punchy, high-velocity screen recording walkthrough walking through the crisis, the 3D digital twin, the Copernicus data integration, and the council ROI.
+* **Public GitHub Repository:** Clean code, architecture documentation, and sample geospatial payloads.
 
 ---
 
@@ -107,10 +146,10 @@ Projects must be submitted through the **Junction Platform** before the deadline
 1. **Project Title & Elevator Pitch:** A crisp 1–2 sentence summary explaining the solution and its target impact.
 2. **Track Categorisation:** Select one of the 5 official COP31 tracks.
 3. **Problem Statement & Solution Description:** Clear markdown writeup articulating the real-world climate problem, technical architecture, and scalability path.
-4. **Working Demo / Interactive Prototype:**
-   * Live deployed web or mobile application (e.g. Vercel, Streamlit, Cloudflare, Hugging Face Spaces), OR
-   * Fully interactive clickable mockup (Figma, Framer) showcasing UX workflows.
-5. **Video Pitch (2–3 Minutes):** High-impact demonstration walking through the problem, the working solution, the technology used, and real-world viability.
+4. **Working Prototype Visuals / Presentation Deck:**
+   * High-polish presentation deck (PPT/Canva/Figma) featuring **embedded 60 FPS looping GIFs** demonstrating the 3D globe, extruded city buildings, thermal/smoke layers, and cool-roof simulation workflows.
+   * Optional live deployed viewer or video screen recordings showing interactive controls.
+5. **Video Pitch (2–3 Minutes):** High-impact demonstration walking through the problem, the 3D digital twin walkthrough, the Copernicus satellite technology used, and the council ROI.
 6. **Code Repository:** Public GitHub or GitLab repository containing clean code, architecture diagram, license, and reproduction instructions (`README.md`).
 
 👉 *See [submission-guide.md](submission-guide.md) for step-by-step checklist, video script template, and GitHub project layout.*
