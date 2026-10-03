@@ -183,6 +183,17 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .levers button { padding: 7px 4px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap; }
 .levers button:hover { background: var(--page); }
 .levers button.on { border-color: var(--teal); background: #e7f5f4; color: var(--teal); font-weight: 600; }
+.ai { display: flex; gap: 10px; width: 100%; margin-top: 12px; padding: 8px 10px; border-radius: 8px; border: 1px solid #e3dcfb; background: linear-gradient(135deg, #f3f7ff, #f8f3ff); text-align: left; }
+.ai:hover { border-color: #a855f7; }
+.ai > svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.ai > div { min-width: 0; flex: 1; }
+.ai-h { font-size: 13px; font-weight: 600; color: var(--ink); }
+.ai-h span { float: right; color: #7c3aed; font-weight: 600; }
+.ai.on .ai-h span { color: var(--muted); font-weight: 500; }
+.ai ol { margin: 2px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.ai li { margin-top: 1px; }
+.ai li b { color: var(--ink); font-weight: 600; }
+.optimized .ai { display: none; }
 .cov input { accent-color: var(--teal); }
 .cov { display: block; margin-top: 12px; font-size: 15px; font-weight: 500; }
 .cov b { float: right; }

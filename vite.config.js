@@ -17,12 +17,28 @@ const tunnel = {
   },
 }
 
-// POST /api/brief: optimizer facts in, three-section council brief out. Key stays server-side.
+// POST /api/brief: optimizer facts in, three-section council brief out. POST /api/rank: per-measure totals in,
+// top 3 measures with a reason each out. Key stays server-side; the model orders and explains, never invents numbers.
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite'
-const brief = {
-  name: 'gemini-brief',
+const PROMPTS = {
+  brief: (facts) => `You write a one-page business case for a city council officer pitching a cooling budget to councillors (COP31 framing welcome).
+Use ONLY the facts below; quote their numbers exactly, invent no new figures. Plain, confident, specific. No markdown.
+Return JSON {"hazard": string, "plan": string, "roi": string}, each 2-3 sentences, max 60 words:
+- hazard: who is exposed to what heat and air quality right now, and where.
+- plan: what the budget funds, where, and why these roofs beat a uniform rollout. If measure_order is given, present the measures in that order.
+- roi: payback, peak grid demand cut, and health/equity outcome.
+Facts: ${facts}`,
+  rank: (facts) => `You advise a city council on which building retrofit measures to fund first in one suburb.
+Each measure below comes with totals computed over the suburb's buildings. Pick the best 3, best first, weighing payback, yearly saving,
+buildings reached and vulnerable buildings reached (schools, health, aged care nearby, older residents) against the suburb's heat and people.
+Use ONLY these facts; quote their numbers exactly, invent no new figures. No markdown.
+Return JSON {"top": [{"key": string, "why": string}]} with exactly 3 items; key is a measure key from the facts; why is one short phrase, max 10 words, specific to this suburb.
+Facts: ${facts}`,
+}
+const gemini = {
+  name: 'gemini',
   configureServer(server) {
-    server.middlewares.use('/api/brief', async (req, res) => {
+    for (const route in PROMPTS) server.middlewares.use(`/api/${route}`, async (req, res) => {
       const send = (code, obj) => { res.statusCode = code; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(obj)) }
       const key = process.env.GEMINI_API_KEY
       // cloudflared stamps every tunnelled request; keep the paid key local-only
@@ -31,18 +47,11 @@ const brief = {
       if (!key) return send(503, { error: 'GEMINI_API_KEY not set' })
       let body = ''
       for await (const c of req) body += c
-      const prompt = `You write a one-page business case for a city council officer pitching a cooling budget to councillors (COP31 framing welcome).
-Use ONLY the facts below; quote their numbers exactly, invent no new figures. Plain, confident, specific. No markdown.
-Return JSON {"hazard": string, "plan": string, "roi": string}, each 2-3 sentences, max 60 words:
-- hazard: who is exposed to what heat and air quality right now, and where.
-- plan: what the budget funds, where, and why these roofs beat a uniform rollout.
-- roi: payback, peak grid demand cut, and health/equity outcome.
-Facts: ${body}`
       try {
         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: PROMPTS[route](body) }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
         })
         const j = await r.json()
         if (!r.ok) return send(502, { error: j.error?.message || r.status })
@@ -56,5 +65,5 @@ Facts: ${body}`
 
 export default {
   server: { port: 5173, strictPort: true, allowedHosts: ['preview.amsham.net'] },
-  plugins: [tunnel, brief],
+  plugins: [tunnel, gemini],
 }

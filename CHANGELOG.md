@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 13: "AI recommends" block in the scenario card. Gemini (`/api/rank`) orders the top 3 measures per suburb from computed totals with a short reason each; click applies the mix to the lever chips; the brief follows that order. Fallback ranks by saving per $.
 - 2026-10-04 — Item 12b: teammate's program merged onto items 10–12 as the Retrofit program; offer letters and the owner popup quote each building's best fix, capex and saving from the energy model; Public view hides the priority score and confidence dots, and tells owners of offered buildings they qualify.
 - 2026-10-04 — Item 7c: cool roof program. Public | Council toggle; council sends coded offer letters to the optimizer's funded roofs, owners apply from the public map with the code or a rates number, stages (Offered → Verified) show as roof caps and a pipeline card.
 - 2026-10-04 — docs: item 12b, integration plan and blast radius for teammate PR #1 (cool roof program).

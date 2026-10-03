@@ -249,7 +249,8 @@ Shared blast radius (check all of these on every item):
   - Done when: in Chrome, Council → Optimize → Send letters (letters show best fix + correct $) → Public → click that
     building → Apply with the code → Council shows Enrolled; slider drags still re-optimize; no console errors; all 5 cities load.
 
-- [ ] **13. AI picks the measures per suburb (Gemini)** (~30 min)
+- [x] **13. AI picks the measures per suburb (Gemini)** (~30 min)
+  - Done 2026-10-04: `/api/rank` shares the `/api/brief` handler (one `gemini` plugin, prompt per route). Totals per measure are summed over the precinct without the 60% cap or budget. Block sits above the lever chips, hidden once optimized; result cached per city+precinct. Brief lists measures in the AI order (`measure_order`). Fallback verified in Chrome (CBD: Smart controls › Tree canopy › Insulation; Westmead puts Tree canopy first); live Gemini path needs the key in the dev-server env.
   - New `POST /api/rank` beside `/api/brief` in `vite.config.js` (same key handling, same tunnel guard). Input: precinct
     facts + per-measure computed totals (saved $/yr, capex, payback, buildings reached, residents near). Output JSON:
     ordered top 3 measures, one-line reason each. AI orders and explains; it never invents numbers (same rule as brief).

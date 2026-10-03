@@ -913,6 +913,7 @@ function openScenario() {
   document.body.classList.add('scenario');
   draw({ ...ZERO });
   animateTo(target());
+  recommend();
 }
 
 function closeScenario() {
@@ -1021,12 +1022,57 @@ $('s-reset').onclick = () => {
   animateTo({ ...ZERO });
 };
 $('s-opt').onclick = optimize;
+const levChanged = () => {
+  for (const b of $('levers').children) b.classList.toggle('on', lev.has(b.dataset.m));
+  $('s-ai').classList.toggle('on', !!rec && lev.size === rec.length && rec.every((t) => lev.has(t.key)));
+  if (picks) optimize(); else animateTo(target(), 500);
+};
 $('levers').onclick = (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   if (!lev.delete(b.dataset.m)) lev.add(b.dataset.m);
-  b.classList.toggle('on', lev.has(b.dataset.m));
-  if (picks) optimize(); else animateTo(target(), 500);
+  levChanged();
+};
+
+// ---- AI picks the measures: per-measure totals over the precinct → Gemini (/api/rank) orders the top 3 and says why ----
+// It only orders and explains the computed numbers. Fallback (no key / offline) = best saving per $.
+let rec = null;
+const recs = new Map();
+async function recommend() {
+  const name = selected.name, key = `${CITY.key}:${name}`;
+  rec = recs.get(key) ?? null;
+  if (rec) return showRec();
+  $('ai-list').innerHTML = '<li>Weighing six measures…</li>';
+  $('s-ai').classList.remove('on');
+  const m = Object.keys(MEASURES).map((k) => {
+    let cap = 0, kwh = 0, n = 0, v = 0;
+    for (const f of scnB) { const [c, e] = retrofit(f.properties, k); if (c > 0) cap += c, kwh += e, n++, v += f.properties.nV >= 0.5; }
+    const usd = kwh * CITY['kwh$'];
+    return { key: k, name: MEASURES[k].name, saved_per_yr: money(usd), capex: money(cap), payback_yrs: +(cap / (usd || 1)).toFixed(1),
+      useful_life_yrs: MEASURES[k].life, buildings_reached: n, vulnerable_buildings_reached: v, r: usd / (cap || 1) };
+  }).filter((x) => x.buildings_reached);
+  const canned = [...m].sort((a, b) => b.r - a.r).map((x) => ({ key: x.key, why: `${x.saved_per_yr}/yr, ${x.payback_yrs}-yr payback` }));
+  let top = [];
+  try {
+    const r = await fetch('/api/rank', { method: 'POST', body: JSON.stringify({
+      city: CITY.name, suburb: name, roof_surface: layerRow('heat', selected)?.slice(1).join(', '), residents: selected.population,
+      age65_pct: selected.age65_pct, schools: $('p-schools').textContent, aged_care: $('p-aged').textContent, measures: m.map(({ r, ...x }) => x) }) });
+    if (r.ok) top = (await r.json()).top ?? [];
+  } catch {}
+  top = top.filter((t, i) => m.some((x) => x.key === t?.key) && t.why && top.findIndex((u) => u?.key === t.key) === i).slice(0, 3);
+  for (const c of canned) if (top.length < 3 && !top.some((t) => t.key === c.key)) top.push(c);
+  recs.set(key, top);
+  if (selected?.name === name && document.body.classList.contains('scenario')) rec = top, showRec();
+}
+function showRec() {
+  $('ai-list').innerHTML = rec.map((t) => `<li title="${esc(t.why)}"><b>${MEASURES[t.key].name}</b> · ${esc(t.why)}</li>`).join('');
+  $('s-ai').classList.toggle('on', lev.size === rec.length && rec.every((t) => lev.has(t.key)));
+}
+$('s-ai').onclick = () => {
+  if (!rec) return;
+  lev.clear();
+  for (const t of rec) lev.add(t.key);
+  levChanged();
 };
 // ---- Council brief: optimizer facts → Gemini (/api/brief), canned text if no key or offline ----
 async function makeBrief() {
@@ -1036,12 +1082,14 @@ async function makeBrief() {
   const { x, res, chosen, spent } = last, area = chosen.reduce((a, c) => a + c.f.properties.area, 0);
   // Energy = the scenario's own sums over the funded buildings; ~10 W/m² peak cut per funded roof, ~$180/yr avoided heat-health cost per protected resident.
   const energy = target().usd, health = res * 180, peak = area * 0.01 / 1000;
+  const ord = (k) => { const i = rec?.findIndex((t) => t.key === k) ?? -1; return i < 0 ? 9 : i; }; // AI ranking sets the plan's order
   const f = {
     city: CITY.name, precinct: selected.name, air_temp_c: live && (live.t + (selected.offset || 0)).toFixed(1),
     vs_airport_station_c: live && (live.t + (selected.offset || 0) - live.ref).toFixed(1), roof_surface: layerRow('heat', selected)?.slice(1).join(', '),
     pm2_5: aq && (aq.pm2_5 + plumeAt(mid(ringOf(selected.name)))).toFixed(1), residents: selected.population, age65_pct: selected.age65_pct,
     schools: $('p-schools').textContent, aged_care: $('p-aged').textContent,
-    budget: `$${(spent / 1e6).toFixed(2)}M`, measures: [...lev].map((k) => MEASURES[k].name).join(', '), buildings_funded: chosen.length, roof_area_m2: Math.round(area),
+    budget: `$${(spent / 1e6).toFixed(2)}M`, measures: [...lev].sort((a, b) => ord(a) - ord(b)).map((k) => MEASURES[k].name).join(', '),
+    measure_order: rec?.filter((t) => lev.has(t.key)).map((t) => `${MEASURES[t.key].name} (${t.why})`).join('; '), buildings_funded: chosen.length, roof_area_m2: Math.round(area),
     cooling_per_dollar_vs_uniform: `${x.toFixed(1)}x`, vulnerable_residents_protected: res,
     annual_benefit: `$${Math.round((energy + health) / 1000)}k (energy $${Math.round(energy / 1000)}k, health $${Math.round(health / 1000)}k)`,
     payback_years: (spent / (energy + health)).toFixed(1), peak_demand_cut_mw: peak.toFixed(2),
