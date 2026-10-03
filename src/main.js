@@ -10,20 +10,20 @@ maplibregl.setWorkerUrl(workerUrl);
 // precincts and POIs carry a `city` key. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
 const CITIES = [
   { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
-    ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
-    tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, population: 64700 },
+    ghi: 1790, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
+    tree_cover_pct: 12, age65_pct: 18, population: 64700 },
   { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
-    ghi: 1600, surf: 41, plume: { at: [144.928, -37.824], name: 'Port of Melbourne' },
-    tree_cover_pct: 12, age65_pct: 8, schools: 12, aged_care: 6, population: 111900 },
+    ghi: 1600, surf: 41, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
+    tree_cover_pct: 12, age65_pct: 8, population: 111900 },
   { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
-    ghi: 1000, surf: 33, plume: { at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' },
-    tree_cover_pct: 14, age65_pct: 11, schools: 18, aged_care: 9, population: 53100 },
+    ghi: 1000, surf: 33, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
+    tree_cover_pct: 14, age65_pct: 11, population: 53100 },
   { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
-    ghi: 1800, plume: { at: [151.181, -33.866], name: 'Rozelle Interchange stacks' },
-    tree_cover_pct: 15, age65_pct: 10, schools: 9, aged_care: 8, population: 46000 },
+    ghi: 1800, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
+    tree_cover_pct: 15, age65_pct: 10, population: 46000 },
   { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
-    ghi: 1950, surf: 39, plume: { at: [178.4325, -18.1285], name: 'Walu Bay industrial' },
-    tree_cover_pct: 20, age65_pct: 6, schools: 22, aged_care: 4, population: 93900 },
+    ghi: 1950, surf: 39, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
+    tree_cover_pct: 20, age65_pct: 6, population: 93900 },
 ];
 let CITY = CITIES.find((c) => c.key === new URLSearchParams(location.search).get('city')) ?? CITIES[0];
 const OCEANIA = [150, -25];
@@ -145,7 +145,7 @@ function goCity(c, at, name) {
   buildings = [];
   for (const s of ['bld', 'trees', 'precincts']) map.getSource(s)?.setData(EMPTY);
   markers.forEach((m) => m.remove());
-  plumeMarker?.remove();
+  plumeMarkers.forEach((m) => m.remove());
   liveTemp();
   map.easeTo({ zoom: 2.2, pitch: 0, bearing: 0, duration: 2000, essential: true });
   map.once('moveend', async () => {
@@ -306,7 +306,7 @@ async function loadCity() {
   buildings = []; lstMed = 0;
   landsatP ??= sampler('/data/lst-landsat-gray.png');
   placesP ??= Promise.all([json('/data/precincts.geojson'), json('/data/pois.geojson')]);
-  const [gj, raw, [pre, pois]] = await Promise.all([json(`/data/buildings-${c.key}.geojson`), landsatP, placesP]);
+  const [gj, raw, [pre, all]] = await Promise.all([json(`/data/buildings-${c.key}.geojson`), landsatP, placesP]);
   if (seq !== loadSeq) return; // switched again mid-load
 
   const sample = (lon, lat) => { const v = raw(lon, lat); return v == null ? null : LANDSAT.t0 + v * (LANDSAT.t1 - LANDSAT.t0); };
@@ -331,13 +331,11 @@ async function loadCity() {
 
   precincts = pre.features.filter((f) => f.properties.city === c.key);
   map.getSource('precincts').setData({ type: 'FeatureCollection', features: precincts });
-  markers.forEach((m) => m.remove());
-  markers = pois.features.filter((f) => f.properties.city === c.key).map((f) =>
-    new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map));
-  plumeMarker?.remove();
-  plumeMarker = new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${c.plume.name}</span>Emission source · plume toward ${c.name}`), anchor: 'bottom' })
-    .setLngLat(c.plume.at).addTo(map);
-  plumeMarker.getElement().style.display = on.has('smoke') ? '' : 'none';
+  pois = all.features.filter((f) => f.properties.city === c.key);
+  showPins();
+  plumeMarkers.forEach((m) => m.remove());
+  plumeMarkers = c.plumes.map(({ at, name }) => new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${name}</span>Emission source`), anchor: 'bottom' }).setLngLat(at).addTo(map));
+  plumeMarkers.forEach((m) => (m.getElement().style.display = on.has('smoke') ? '' : 'none'));
 
   treesP = null;
   map.getSource('trees').setData(EMPTY);
@@ -415,7 +413,7 @@ function applyLayers() {
   for (const id of OVERLAYS) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis(id).visibility);
   if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor());
   for (const id of greens) map.setPaintProperty(id, 'fill-color', on.has('canopy') ? '#1f6f3f' : C.green);
-  if (plumeMarker) plumeMarker.getElement().style.display = on.has('smoke') ? '' : 'none';
+  plumeMarkers.forEach((m) => (m.getElement().style.display = on.has('smoke') ? '' : 'none'));
   cancelAnimationFrame(plumeAnim);
   if (on.has('smoke')) plumeAnim = requestAnimationFrame(plumeFrame);
   for (const b of document.querySelectorAll('#layers button')) b.classList.toggle('on', on.has(b.dataset.k));
@@ -473,27 +471,30 @@ function addTrees() {
   });
 }
 
-// Plume axis from the source toward and past the city centre; offsets in lat-degree units (east scaled by k).
-function plumeAxis() {
-  const [x0, y0] = CITY.plume.at, [x1, y1] = CITY.center, k = Math.cos((y0 * Math.PI) / 180);
-  const ex = (x1 - x0) * k, ny = y1 - y0, len = Math.hypot(ex, ny), L = len * 1.8;
-  return { x0, y0, k, dx: ex / len, dy: ny / len, L, W: L * 0.18 };
+// One wind for every source: from the main source toward the city centre (so it crosses the CBD), offsets in lat-degree
+// units (east scaled by k). Main plume runs 1.8x that distance; smaller sites get a short ~1.3 km plume at half strength.
+function plumeAxes() {
+  const [x0, y0] = CITY.plumes[0].at, [x1, y1] = CITY.center, k = Math.cos((y0 * Math.PI) / 180);
+  const ex = (x1 - x0) * k, ny = y1 - y0, len = Math.hypot(ex, ny), dx = ex / len, dy = ny / len;
+  return CITY.plumes.map(({ at: [x, y] }, i) => { const L = i ? 0.012 : len * 1.8; return { x0: x, y0: y, k, dx, dy, L, W: L * 0.18, q: i ? 15 : 30 }; });
 }
 
-// Plume's PM2.5 contribution (µg/m³) at a point: strongest near the source, thinning downwind and off-axis.
+// Plumes' PM2.5 contribution (µg/m³) at a point: strongest near each source, thinning downwind and off-axis.
 function plumeAt([lon, lat]) {
-  const { x0, y0, k, dx, dy, L, W } = plumeAxis();
-  const ex = (lon - x0) * k, ny = lat - y0, a = (ex * dx + ny * dy) / L, w = -ex * dy + ny * dx;
-  return a <= 0 || a >= 1 ? 0 : 30 * (1 - a) * Math.exp(-((w / (a * W)) ** 2));
+  return plumeAxes().reduce((sum, { x0, y0, k, dx, dy, L, W, q }) => {
+    const ex = (lon - x0) * k, ny = lat - y0, a = (ex * dx + ny * dy) / L, w = -ex * dy + ny * dx;
+    return sum + (a <= 0 || a >= 1 ? 0 : q * (1 - a) * Math.exp(-((w / (a * W)) ** 2)));
+  }, 0);
 }
 
-// Stateless particles: each loops along the axis, widening as it ages.
-const PLUME = Array.from({ length: 260 }, () => [Math.random() * 2 - 1, Math.random()]);
-let plumeAnim = 0, plumeMarker = null;
+// Stateless particles: each loops along its source's axis, widening as it ages. First 260 belong to the main source.
+const PLUME = Array.from({ length: 420 }, () => [Math.random() * 2 - 1, Math.random()]);
+let plumeAnim = 0, plumeMarkers = [];
 function plumeFrame(now) {
-  const { x0, y0, k, dx, dy, L, W } = plumeAxis();
+  const axes = plumeAxes();
   const features = PLUME.map(([r, ph], i) => {
-    const a = (now / 14000 + ph) % 1, s = a * L, w = (r + 0.25 * Math.sin(a * 9 + i)) * a * W;
+    const j = i < 260 || axes.length < 2 ? 0 : 1 + (i % (axes.length - 1)), { x0, y0, k, dx, dy, L, W } = axes[j];
+    const a = (now / (j ? 9000 : 14000) + ph) % 1, s = a * L, w = (r + 0.25 * Math.sin(a * 9 + i)) * a * W;
     return { type: 'Feature', properties: { a }, geometry: { type: 'Point', coordinates: [x0 + (dx * s - dy * w) / k, y0 + dy * s + dx * w] } };
   });
   map.getSource('plume')?.setData({ type: 'FeatureCollection', features });
@@ -508,7 +509,7 @@ const ICON = {
   school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',
 };
-let precincts = [], selected = null, label = null, live = null, aq = null, buildings = [], lstAt = () => null, lstMed = 0;
+let precincts = [], pois = [], selected = null, label = null, live = null, aq = null, buildings = [], lstAt = () => null, lstMed = 0;
 
 function pin(cls, text, icon = '', more = '') {
   const el = document.createElement('div');
@@ -521,7 +522,27 @@ function pin(cls, text, icon = '', more = '') {
 function poiMore({ name, kind, street }, [lon, lat]) {
   const t = lstAt(lon, lat), d = t - lstMed;
   const heat = t == null ? '' : `<b class="${d > 0 ? 'hot' : 'cool'}">${t.toFixed(1)}°C surface · ${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs avg</b>`;
-  return `<span class="pin-name">${name}</span>${kind} · ${street}${heat}`;
+  return `<span class="pin-name">${name}</span>${[kind, street].filter(Boolean).join(' · ')}${heat}`;
+}
+
+// Facilities in the selected precinct, else the whole city box (pois are baked per box).
+const poisHere = () => (selected ? pois.filter((f) => inside(f.geometry.coordinates, ringOf(selected.name))) : pois);
+
+// Every pin inside a selected precinct; otherwise a spread-out dozen (greedy, >= 1/6 box width apart, types alternating).
+function showPins() {
+  let list = poisHere();
+  if (!selected) {
+    const gap = (CITY.box[2] - CITY.box[0]) / 6, k = Math.cos((CITY.center[1] * Math.PI) / 180), by = (t) => list.filter((f) => f.properties.type === t);
+    const [a, b] = [by('school'), by('aged')], mixed = Array.from({ length: Math.max(a.length, b.length) }, (_, i) => [b[i], a[i]]).flat().filter(Boolean);
+    list = [];
+    for (const f of mixed) {
+      const [x, y] = f.geometry.coordinates;
+      if (list.length < 12 && list.every(({ geometry: { coordinates: [u, v] } }) => Math.hypot((x - u) * k, y - v) > gap * k)) list.push(f);
+    }
+  }
+  markers.forEach((m) => m.remove());
+  markers = list.map((f) => new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' })
+    .setLngLat(f.geometry.coordinates).addTo(map));
 }
 
 function addPrecinctLayers() {
@@ -575,6 +596,7 @@ function select(name) {
       .setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
     map.fitBounds(b, { padding: 140, pitch: 55, bearing: -20, maxZoom: 16.5, duration: 1600 });
   }
+  showPins();
   renderPanel();
 }
 $('p-close').onclick = () => select(null);
@@ -584,8 +606,9 @@ document.body.classList.add('far');
 function renderPanel() {
   const p = selected ?? CITY;
   $('p-name').textContent = p.name;
-  $('p-schools').textContent = p.schools;
-  $('p-aged').textContent = p.aged_care;
+  const here = poisHere();
+  $('p-schools').textContent = here.filter((f) => f.properties.type === 'school').length;
+  $('p-aged').textContent = here.filter((f) => f.properties.type === 'aged').length;
   $('p-pop').textContent = `${(p.population / 1000).toFixed(1)}k`;
   $('p-age').textContent = `${p.age65_pct}%`;
   // Every layer's metric is always shown, whether or not it is on the map. Icon/colour from the toolbar chip.

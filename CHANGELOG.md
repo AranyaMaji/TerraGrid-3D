@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Item 6b: real OSM schools + aged care baked for every city; panel counts them per precinct/city, pins spread out (or all inside a selected precinct). Second real emission source per city sharing the wind.
 - 2026-10-03 — Item 6c: address search (Photon suggestions); an address in a modelled city switches to it, selects its precinct and drops an address pin.
 - 2026-10-03 — Click any building: popup with its name or street address, suburb, roof °C vs average, height, solar MWh/yr and coordinates.
 

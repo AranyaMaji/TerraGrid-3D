@@ -112,7 +112,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     city's 7 MB of buildings mid-flight. Fly flat with the old city cleared, load + tilt up on landing.
   - Done (owner's idea): pull back to the globe, load there (building layers minzoom 12, so no render cost), dive in flat, tilt on landing. Worst frame 950 → 158 ms, p95 25 → 8.5 ms.
 
-- [ ] **6b. Real POIs in every city, sidebar counts from them** (owner-raised 2026-10-03)
+- [x] **6b. Real POIs in every city, sidebar counts from them** (owner-raised 2026-10-03)
+  - Done 2026-10-03: Overpass was down, so `scripts/fetch-pois.mjs` bakes from Nominatim's [tag] search (160 POIs). OSM aged-care tagging is sparse (London/Suva 0). Rerun via Overpass later if counts look thin. Added one real secondary emission site per city (not Suva), same wind, short plume.
   - Pins only exist in Parramatta. Bake all named schools + aged care per city box from Overpass
     (`scripts/fetch-pois.mjs`, curl). Panel Schools / Aged care = real count inside the selected precinct (or box).
     Pins: a spread-out subset when nothing is selected, every pin inside the precinct when one is.
