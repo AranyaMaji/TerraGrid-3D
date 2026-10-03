@@ -151,8 +151,9 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
 
 - [ ] **9. Capture mode + repo polish** (~25 min)
   - Key `c` hides chrome and runs a cinematic path: globe spin → fly-in → orbit precinct → scenario apply. For recording.
-  - New root `README.md`: project pitch, GIF/screens, architecture diagram (mermaid), data sources, run instructions, licence (MIT).
+  - [x] New root `README.md`: project pitch, architecture diagram (mermaid), data sources & attribution table, run instructions, licence (MIT).
   - Video shot list in `docs/VIDEO.md`.
+
 
 ## Not doing
 
