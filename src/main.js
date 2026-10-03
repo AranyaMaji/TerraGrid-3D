@@ -8,20 +8,21 @@ maplibregl.setWorkerUrl(workerUrl);
 
 // Everything location-specific lives here. Buildings: data/buildings-<key>.geojson (scripts/fetch-buildings.mjs);
 // precincts and POIs carry a `city` key. `co2`: grid t CO₂ per MWh. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
+// `warm`: °C/yr trend in summer daily max, 1995–2050, mean of 7 CMIP6 HighResMIP models (Open-Meteo Climate API).
 const CITIES = [
-  { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.177, -33.946], refName: 'Sydney Airport station',
+  { key: 'parramatta', warm: 0.019, place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.177, -33.946], refName: 'Sydney Airport station',
     ghi: 1790, kwh$: 0.30, co2: 0.66, cur: '$', cool: 1, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
     tree_cover_pct: 12, age65_pct: 18, population: 64700 },
-  { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.843, -37.669], refName: 'Melbourne Airport station',
+  { key: 'melbourne', warm: 0.027, place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.843, -37.669], refName: 'Melbourne Airport station',
     ghi: 1600, surf: 41, kwh$: 0.29, co2: 0.79, cur: '$', cool: 0.7, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
     tree_cover_pct: 12, age65_pct: 8, population: 111900 },
-  { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [-0.454, 51.470], refName: 'Heathrow station',
+  { key: 'london', warm: 0.035, place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [-0.454, 51.470], refName: 'Heathrow station',
     ghi: 1000, surf: 33, kwh$: 0.25, co2: 0.2, cur: '£', cool: 0.35, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
     tree_cover_pct: 14, age65_pct: 11, population: 53100 },
-  { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.177, -33.946], refName: 'Sydney Airport station',
+  { key: 'sydney', warm: 0.019, place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.177, -33.946], refName: 'Sydney Airport station',
     ghi: 1800, kwh$: 0.30, co2: 0.66, cur: '$', cool: 0.9, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
     tree_cover_pct: 15, age65_pct: 10, population: 46000 },
-  { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.559, -18.043], refName: 'Nausori Airport station',
+  { key: 'suva', warm: 0.019, place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.559, -18.043], refName: 'Nausori Airport station',
     ghi: 1950, surf: 39, kwh$: 0.42, co2: 0.5, cur: 'FJ$', cool: 1, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
     tree_cover_pct: 20, age65_pct: 6, population: 93900 },
 ];
@@ -32,6 +33,7 @@ const ENERGY = {
   retail: { eui: 300, cool: 0.28 }, school: { eui: 95, cool: 0.22 }, health: { eui: 380, cool: 0.26 },
   hotel: { eui: 270, cool: 0.27 }, industrial: { eui: 140, cool: 0.12 }, other: { eui: 0, cool: 0 },
   perC: 0.07, // extra cooling energy per °C of local roof heat
+  cdd: 0.25, // citywide cooling demand growth per °C of climate warming (cooling degree days rise faster than mean temp)
 };
 // Retrofit measures. Cost = rate × basis (roof = footprint m², floor = floor m², tree = trees planted).
 // Saving = share of the building's cooling kWh (`cool`), total kWh (`all`) and local-heat penalty (`extra`); solar offsets its own yield.
@@ -409,22 +411,19 @@ async function loadCity() {
   if (!lst.some((t) => t != null)) lst = proxyLst(gj.features, c.surf);
   gj.features.forEach((f, i) => (f.properties.lst = lst[i]));
   const sorted = lst.filter((t) => t != null).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
-  // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
-  const heat = lst.map((t, i) => t == null ? 0 :
-    Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
   const cityPois = all.features.filter((f) => f.properties.city === c.key);
   energyModel(gj.features, lst, cityPois);
   // Colour by rank of rooftop yield so the ramp spreads evenly.
   const mwh = gj.features.map(roofMWh), solar = rank(mwh);
   gj.features.forEach((f, i) => (f.properties.mwh = mwh[i]));
-  priorityInputs(gj.features, cityPois);
   map.removeFeatureState({ source: 'bld' });
   map.getSource('bld').setData(gj);
   gj.features.forEach((f, i) => {
-    map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i], solar: solar[i] });
+    map.setFeatureState({ source: 'bld', id: f.id }, { solar: solar[i] });
   });
   buildings = gj.features;
-  lstAt = sample; lstMed = med;
+  lstAt = (lon, lat) => { const t = sample(lon, lat); return t == null ? null : t + dT(); }; lstMed = med; cityPois_ = cityPois;
+  warmUp();
 
   precincts = pre.features.filter((f) => f.properties.city === c.key);
   map.getSource('precincts').setData({ type: 'FeatureCollection', features: precincts });
@@ -444,7 +443,8 @@ async function loadCity() {
 // Per-building energy: type (OSM tag, else inferred), floor area, baseline + cooling kWh, and the extra cooling
 // local heat adds: roof °C above the city's coolest 10% of roofs. Everything downstream reads these props.
 function energyModel(fs, lst, cityPois) {
-  const ref = lst.filter((t) => t != null).sort((a, b) => a - b), cool10 = ref[Math.floor(ref.length / 10)] ?? 0;
+  const ref = lst.filter((t) => t != null).sort((a, b) => a - b);
+  cool10 = ref[Math.floor(ref.length / 10)] ?? 0;
   const near = (p, m) => Math.hypot((p[0] - CITY.center[0]) * 93000, (p[1] - CITY.center[1]) * 111000) < m;
   fs.forEach((f, i) => {
     const q = f.properties, ring = f.geometry.coordinates[0];
@@ -457,10 +457,36 @@ function energyModel(fs, lst, cityPois) {
     }
     const e = ENERGY[type], floor = q.area * (q.levels || Math.max(1, Math.round(q.height / 3.2)));
     const kwh = floor * e.eui, cool = kwh * Math.min(0.6, e.cool * (CITY.cool ?? 1));
-    Object.assign(q, { seed: i, osm: q.type, type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool_kwh: Math.round(cool),
-      extra_kwh: Math.round(cool * ENERGY.perC * Math.max(0, (lst[i] ?? cool10) - cool10)) });
+    Object.assign(q, { seed: i, osm: q.type, type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool0: cool, lst0: q.lst });
   });
 }
+
+// ---- Future projection: Now / 2030 / 2050. Every roof warms by the city's CMIP6 trend; cooling demand grows ENERGY.cdd per °C,
+// and the local-heat penalty is still measured against today's coolest 10% of roofs. Everything downstream reads lst / cool_kwh / extra_kwh.
+let year = 2026, cool10 = 0, cityPois_ = [];
+const dT = () => (year - 2026) * CITY.warm;
+function warmUp() {
+  const d = dT();
+  for (const f of buildings) {
+    const q = f.properties;
+    q.lst = q.lst0 == null ? null : q.lst0 + d;
+    q.cool_kwh = Math.round(q.cool0 * (1 + ENERGY.cdd * d));
+    q.extra_kwh = Math.round(q.cool_kwh * ENERGY.perC * Math.max(0, (q.lst0 ?? cool10) + d - cool10));
+    // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
+    map.setFeatureState({ source: 'bld', id: f.id }, { heat: q.lst == null ? 0 : Math.max(-1, Math.min(1, ((q.lst - lstMed) / 1.5) * Math.min(1, 20 / (q.height || 8)))) });
+  }
+  priorityInputs(buildings, cityPois_);
+}
+function setYear(y) {
+  year = y;
+  for (const b of document.querySelectorAll('#year button')) b.classList.toggle('on', +b.dataset.y === y);
+  if (!buildings.length) return;
+  warmUp();
+  applyLayers(); // legend, panel, priority colours
+  if (document.body.classList.contains('scenario')) { if (picks) optimize(); animateTo(target()); }
+  if (document.body.classList.contains('compare')) renderCompare();
+}
+document.querySelectorAll('#year button').forEach((b) => (b.onclick = () => setYear(+b.dataset.y)));
 
 // Percentile rank 0..1 of each value.
 function rank(v) {
@@ -493,7 +519,7 @@ function roofMWh(f) {
 const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#3b2a12', 0.5, '#b45309', 0.85, '#f59e0b', 1, '#fde68a'];
 const LAYERS = {
   heat: { ids: ['lst', 'landsat'],
-    legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? lstMed.toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
+    legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? (lstMed + dT()).toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
   smoke: { ids: ['smoke', 'plume'],
     legend: ['Aerosol optical depth', '#fef3c7, #f59e0b 50%, #7c2d12', 'Clear', 'Smoky', () => 'NASA MODIS · CAMS'] },
   canopy: { ids: ['canopy', 'ndvi', 'trees'],
@@ -813,12 +839,12 @@ function renderPanel() {
       `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></div>`;
   }).join('');
   if (!live) return;
-  const t = live.t + (p.offset || 0), d = t - live.ref;
+  const t = live.t + (p.offset || 0) + dT(), d = t - live.ref - dT();
   $('temp').textContent = `${t.toFixed(1)}°C`;
   $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.refName}`;
   $('delta').classList.toggle('cool', d < 0);
   const usd = (selected ? within(ringOf(selected.name)) : buildings).reduce((s, f) => s + (f.properties.extra_kwh || 0), 0) * CITY['kwh$'];
-  $('extra').textContent = buildings.length ? `${CITY.cur}${(Math.round(usd / 100) * 100).toLocaleString()} / yr extra cooling from local heat` : '';
+  $('extra').textContent = buildings.length ? `${CITY.cur}${(Math.round(usd / 100) * 100).toLocaleString()} / yr extra cooling ${year > 2026 ? `by ${year}` : 'from local heat'}` : '';
 }
 
 // ---- Compare areas: every precinct ranked by extra cooling $, roof heat or vulnerable residents ----
@@ -836,7 +862,7 @@ function compare(open) {
 }
 function renderCompare() {
   // Same sums as the panel: extra cooling as in renderPanel, vulnerable = 65+ residents + the optimizer's per-facility headcounts.
-  if (cmpRows?.city !== CITY.key || cmpRows.n !== buildings.length) cmpRows = { city: CITY.key, n: buildings.length, rows: precincts.map(({ properties: p, geometry: g }) => {
+  if (cmpRows?.city !== CITY.key || cmpRows.n !== buildings.length || cmpRows.year !== year) cmpRows = { city: CITY.key, n: buildings.length, year, rows: precincts.map(({ properties: p, geometry: g }) => {
     const ring = g.coordinates[0], b = within(ring), by = {};
     for (const f of b) if (f.properties.best) by[f.properties.best] = (by[f.properties.best] || 0) + f.properties.best_usd;
     const t = b.map((f) => f.properties.lst).filter((v) => v != null).sort((x, y) => x - y);

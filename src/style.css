@@ -68,6 +68,8 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .seg { padding: 6px; gap: 4px; }
 .seg button { height: 100%; padding: 0 20px; border-radius: 8px; font-weight: 500; }
 .seg button.on { background: var(--teal); color: #fff; }
+#year button { padding: 0 12px; }
+#year button.on:not(:first-child) { background: var(--heat); }
 
 .legend {
   position: absolute; left: 30px; bottom: 30px; z-index: 2;

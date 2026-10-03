@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 15: Now / 2030 / 2050 toggle warms roofs by each city's CMIP6 trend; heat colours, extra cooling cost, scenario payback and area ranking all follow the year.
 - 2026-10-04 — Item 14: "Compare areas" tab ranks every precinct by extra cooling cost, roof heat or vulnerable residents, with best measure; row click selects the precinct.
 - 2026-10-04 — Item 13b: optimizer fills by score per $ and compares against a uniform rollout over reachable buildings only, so "× per $ vs uniform" is never below 1× (Parramatta CBD AI mix 0.9× → 6.1×).
 - 2026-10-04 — fix: Gemini model 2.5-flash-lite → 3.5-flash-lite (2.5 retired for new keys; live brief and ranking now work).

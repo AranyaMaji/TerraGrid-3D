@@ -272,7 +272,8 @@ Shared blast radius (check all of these on every item):
     fills by rank. 4–5 precincts per city, so no paging.
   - Done when: ranking reads at a glance and clicking a row lands on that precinct.
 
-- [ ] **15. Future projection: Now / 2030 / 2050** (~30 min)
+- [x] **15. Future projection: Now / 2030 / 2050** (~30 min)
+  - Done 2026-10-04: per-city `warm` °C/yr = linear trend in summer daily max 1995–2050, mean of 7 CMIP6 HighResMIP models (Open-Meteo Climate API), baked into `CITIES` (Parramatta/Sydney/Suva 0.019, Melbourne 0.027, London 0.035; Sydney CBD reuses Parramatta, API rate-limited). Roofs warm by ΔT, cooling demand +25%/°C (`ENERGY.cdd`, degree-day effect), local-heat penalty still vs today's coolest 10%. 2050: Parramatta extra cooling $21.8M → $30.5M, % roofs hot 11 → 23%, CBD scenario payback 3.2 → 3.0 yrs. 2030 is a barely visible +0.08 °C (honest trend). Seen once: MapLibre `_onEaseFrame` exception when scripted clicks interrupted a camera flight; not from this change.
   - Segmented toggle near 2D/3D. Warming per city from Open-Meteo Climate API (CMIP6, keyless; verify endpoint and
     models first) baked as a ΔT per year into `CITIES`, fallback fixed ΔT per city if the API is awkward.
   - Shifts: building heat colour (add ΔT before the ramp), extra cooling cost headline, scenario savings and payback
