@@ -37,7 +37,7 @@ so render at opacity ~0.5 under buildings; the per-building heat is our own deri
 ## 4b. Landsat surface temperature (100 m, keyless) — Microsoft Planetary Computer
 - STAC search: `POST https://planetarycomputer.microsoft.com/api/stac/v1/search` with `collections:["landsat-c2-l2"]`, point, datetime, `eo:cloud_cover < 10`.
 - Rendered crop (works; per-tile endpoint 504'd): `.../api/data/v1/item/bbox/{w},{s},{e},{n}/{W}x{H}.png?collection=landsat-c2-l2&item={id}&assets=lwir11&rescale={lo},{hi}&colormap_name=inferno&nodata=0`.
-- DN → °C: `DN*0.00341802 + 149 - 273.15`. Used by `scripts/fetch-landsat.sh`.
+- DN → °C: `DN*0.00341802 + 149 - 273.15`. Used by `scripts/fetch-landsat.py`.
 
 ## 5. Overpass (one-off fetch, commit the GeoJSON; do not call at runtime)
 - `POST https://overpass-api.de/api/interpreter`, body:

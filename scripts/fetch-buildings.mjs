@@ -1,7 +1,7 @@
 // One-off: Overpass → data/buildings-parramatta.geojson. Run: node scripts/fetch-buildings.mjs
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 
-const [S, W, N, E] = [-33.835, 150.980, -33.795, 151.030];
+const [S, W, N, E] = [-33.850, 150.955, -33.785, 151.045]; // ~8 x 7 km: CBD, Westmead, Harris Park, North Parramatta
 const q = `[out:json][timeout:90];
 (way["building"](${S},${W},${N},${E});
  way["building:part"](${S},${W},${N},${E});

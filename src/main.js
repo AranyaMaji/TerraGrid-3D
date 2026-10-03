@@ -98,9 +98,10 @@ function setMode3d(on, animate = true) {
 b2.onclick = () => setMode3d(false);
 b3.onclick = () => setMode3d(true);
 
-// ---- Surface heat: GIBS LST drape + per-building derived heat (illustrative) ----
+// ---- Surface heat: GIBS LST drape + per-building Landsat heat ----
+// Diverging: -1 = 1.5 °C cooler than the local median, +1 = 1.5 °C hotter (matches .ramp.div in style.css).
 const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'heat'], 0],
-  0, C.bld, 0.35, '#7a5a2e', 0.55, '#f59e0b', 0.8, '#e5484d', 1, '#fecdd3'];
+  -1, '#22d3ee', -0.4, '#0f8b85', 0, '#3a4458', 0.4, '#f59e0b', 0.7, '#e5484d', 1, '#fecdd3'];
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const lstUrl = (d, z = '{z}', y = '{y}', x = '{x}') =>
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_8Day_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
@@ -114,8 +115,8 @@ async function latestLstDate() {
   return day(16);
 }
 
-// Landsat scene bounds; the greyscale copy encodes 35..50 °C as 0..255.
-const LANDSAT = { w: 150.90, e: 151.10, n: -33.73, s: -33.90, t0: 35, t1: 50 };
+// Landsat mosaic bounds (scripts/fetch-landsat.py); the greyscale copy encodes 35..50 °C as 0..255.
+const LANDSAT = { w: 150.70, e: 151.35, n: -33.55, s: -34.10, t0: 35, t1: 50 };
 
 // Returns (lon, lat) → surface °C (null outside the scene / no data).
 async function landsatSampler() {
@@ -139,17 +140,20 @@ async function addHeatLayers() {
   map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day · Landsat: USGS via Microsoft Planetary Computer' });
   map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 10, 0.5, 11, 0] , 'raster-resampling': 'linear' } }, 'building-3d');
   // 100 m Landsat scene (baked by scripts/fetch-landsat.sh) takes over from 1 km MODIS at city zoom.
-  map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: [[150.90, -33.73], [151.10, -33.73], [151.10, -33.90], [150.90, -33.90]] });
+  map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: [[LANDSAT.w, LANDSAT.n], [LANDSAT.e, LANDSAT.n], [LANDSAT.e, LANDSAT.s], [LANDSAT.w, LANDSAT.s]] });
   map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
 
   const [gj, sample] = await Promise.all([fetch('/data/buildings-parramatta.geojson').then((r) => r.json()), landsatSampler()]);
-  // Building colour = Landsat surface temp at its footprint (vertex mean), so overlapping parts match.
-  const heat = gj.features.map((f) => {
+  // Building colour = Landsat surface temp at its footprint (vertex mean) vs the scene's building median.
+  const lst = gj.features.map((f) => {
     const ring = f.geometry.coordinates[0], n = ring.length;
-    const t = sample(ring.reduce((a, p) => a + p[0], 0) / n, ring.reduce((a, p) => a + p[1], 0) / n);
-    f.properties.lst = t;
-    return t == null ? 0 : (t - 42) / 6; // 42..48 °C spans the ramp (buildings' 5th..95th percentile is 42.6..47.0)
+    return (f.properties.lst = sample(ring.reduce((a, p) => a + p[0], 0) / n, ring.reduce((a, p) => a + p[1], 0) / n));
   });
+  const sorted = lst.filter((t) => t != null).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
+  // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
+  const heat = lst.map((t, i) => t == null ? 0 :
+    Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
+  document.getElementById('lst-med').textContent = `${med.toFixed(1)}°C`;
 
   map.addSource('bld', { type: 'geojson', data: gj, attribution: '© OpenStreetMap contributors' });
   map.addLayer({
