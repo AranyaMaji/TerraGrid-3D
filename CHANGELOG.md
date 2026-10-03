@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 14: "Compare areas" tab ranks every precinct by extra cooling cost, roof heat or vulnerable residents, with best measure; row click selects the precinct.
 - 2026-10-04 — Item 13b: optimizer fills by score per $ and compares against a uniform rollout over reachable buildings only, so "× per $ vs uniform" is never below 1× (Parramatta CBD AI mix 0.9× → 6.1×).
 - 2026-10-04 — fix: Gemini model 2.5-flash-lite → 3.5-flash-lite (2.5 retired for new keys; live brief and ranking now work).
 - 2026-10-04 — Item 13: "AI recommends" block in the scenario card. Gemini (`/api/rank`) orders the top 3 measures per suburb from computed totals with a short reason each; click applies the mix to the lever chips; the brief follows that order. Fallback ranks by saving per $.

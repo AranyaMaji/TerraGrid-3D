@@ -193,7 +193,7 @@ function restartIntro() {
   setTimeout(flyIn, 4000);
 }
 
-document.getElementById('explore').onclick = flyIn;
+document.getElementById('explore').onclick = () => (compare(false), flyIn());
 document.getElementById('demo').onclick = restartIntro;
 
 // City switch: flyTo's zoom-out arc takes it up to the globe and back down; data swaps in while it flies.
@@ -438,6 +438,7 @@ async function loadCity() {
   map.getSource('trees').setData(EMPTY);
   applyLayers(); // also recolours walls for the new city's priority scores
   renderProgram();
+  compare(false);
 }
 
 // Per-building energy: type (OSM tag, else inferred), floor area, baseline + cooling kWh, and the extra cooling
@@ -718,7 +719,7 @@ function showPins() {
 function addPrecinctLayers() {
   const sel = ['boolean', ['feature-state', 'sel'], false];
   map.addSource('precincts', { type: 'geojson', data: EMPTY, promoteId: 'name' });
-  map.addLayer({ id: 'precinct-fill', type: 'fill', source: 'precincts', paint: { 'fill-color': '#0f8b85', 'fill-opacity': ['case', sel, 0.3, 0.06] } }, 'bld-heat');
+  map.addLayer({ id: 'precinct-fill', type: 'fill', source: 'precincts', paint: { 'fill-color': '#0f8b85', 'fill-opacity': ['case', sel, 0.3, ['coalesce', ['feature-state', 'rk'], 0.06]] } }, 'bld-heat');
   // Outline drawn over the buildings so it reads in 3D, like the design.
   map.addLayer({ id: 'precinct-line', type: 'line', source: 'precincts', layout: { 'line-join': 'round' },
     paint: { 'line-color': ['case', sel, '#0f8b85', '#94a3b8'], 'line-width': ['case', sel, 4, 1.2], 'line-opacity': ['case', sel, 1, 0.6] } });
@@ -775,6 +776,7 @@ function flyToBuilding(f) {
 }
 
 function select(name) {
+  if (name) compare(false);
   if (name === selected?.name) return;
   closeScenario();
   if (selected) map.setFeatureState({ source: 'precincts', id: selected.name }, { sel: false });
@@ -818,6 +820,47 @@ function renderPanel() {
   const usd = (selected ? within(ringOf(selected.name)) : buildings).reduce((s, f) => s + (f.properties.extra_kwh || 0), 0) * CITY['kwh$'];
   $('extra').textContent = buildings.length ? `${CITY.cur}${(Math.round(usd / 100) * 100).toLocaleString()} / yr extra cooling from local heat` : '';
 }
+
+// ---- Compare areas: every precinct ranked by extra cooling $, roof heat or vulnerable residents ----
+let cmpRows = null;
+function compare(open) {
+  if (!open && !document.body.classList.contains('compare')) return;
+  document.body.classList.toggle('compare', open);
+  $('explore').classList.toggle('active', !open);
+  $('compare').classList.toggle('active', open);
+  if (!open) return precincts.forEach((p) => map.setFeatureState({ source: 'precincts', id: p.properties.name }, { rk: null }));
+  select(null);
+  const pts = precincts.flatMap((p) => p.geometry.coordinates[0]), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  if (pts.length) map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: 120, pitch: 45, bearing: -20, duration: 1600 });
+  renderCompare();
+}
+function renderCompare() {
+  // Same sums as the panel: extra cooling as in renderPanel, vulnerable = 65+ residents + the optimizer's per-facility headcounts.
+  if (cmpRows?.city !== CITY.key || cmpRows.n !== buildings.length) cmpRows = { city: CITY.key, n: buildings.length, rows: precincts.map(({ properties: p, geometry: g }) => {
+    const ring = g.coordinates[0], b = within(ring), by = {};
+    for (const f of b) if (f.properties.best) by[f.properties.best] = (by[f.properties.best] || 0) + f.properties.best_usd;
+    const t = b.map((f) => f.properties.lst).filter((v) => v != null).sort((x, y) => x - y);
+    const fac = pois.filter((f) => inside(f.geometry.coordinates, ring)).reduce((a, f) => a + (f.properties.type === 'school' ? 450 : 80), 0);
+    return { name: p.name, usd: b.reduce((s, f) => s + (f.properties.extra_kwh || 0), 0) * CITY['kwh$'], heat: t[t.length >> 1] ?? lstMed,
+      vul: Math.round((p.population * p.age65_pct) / 100) + fac, best: Object.keys(by).sort((x, y) => by[y] - by[x])[0] };
+  }) };
+  const k = $('c-sort').querySelector('.on').dataset.s, rows = [...cmpRows.rows].sort((a, b) => b[k] - a[k]);
+  const vs = rows.map((r) => r[k]), hi = Math.max(...vs), lo = k === 'heat' ? Math.min(...vs) - (hi - Math.min(...vs) || 1) / 3 : 0;
+  const fmt = { usd: money, heat: (v) => `${v.toFixed(1)}°C`, vul: (v) => `${(v / 1000).toFixed(1)}k` };
+  $('c-list').innerHTML = rows.map((r, i) => `<li data-n="${r.name}" style="--w:${Math.round((100 * (r[k] - lo)) / (hi - lo || 1))}%"><span class="c-rk">${i + 1}</span>` +
+    `<div><b>${r.name}</b><small>${[k !== 'usd' && `${fmt.usd(r.usd)}/yr`, k !== 'heat' && `${fmt.heat(r.heat)} roofs`, k !== 'vul' && `${fmt.vul(r.vul)} vulnerable`,
+      r.best && MEASURES[r.best].name].filter(Boolean).join(' · ')}</small></div>` +
+    `<span class="c-v">${fmt[k](r[k])}</span></li>`).join('');
+  rows.forEach((r, i) => map.setFeatureState({ source: 'precincts', id: r.name }, { rk: Math.max(0.06, 0.32 - 0.07 * i) }));
+}
+$('compare').onclick = () => compare(true);
+$('c-sort').onclick = (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $('c-sort').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  renderCompare();
+};
+$('c-list').onclick = (e) => { const li = e.target.closest('li'); if (li) select(li.dataset.n); };
 
 // Panel row for a map layer: [label, value, sub-line] for the selected precinct (or the whole city).
 function layerRow(k, p) {

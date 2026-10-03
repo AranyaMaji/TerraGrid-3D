@@ -265,7 +265,8 @@ Shared blast radius (check all of these on every item):
   - Fix options: greedy by score ÷ cost (classic knapsack heuristic; keeps x ≥ 1 in practice), or define x on $ saved per $ instead of score. Check the top-5 list and map pulse still look sensible, all 5 cities, a few mixes and budgets.
   - Done when: x ≥ 1 for every precinct/mix/budget tried, brief wording reads right.
 
-- [ ] **14. Suburb ranking ("Compare areas" tab, currently dead)** (~25 min)
+- [x] **14. Suburb ranking ("Compare areas" tab, currently dead)** (~25 min)
+  - Done 2026-10-04: tab deselects, swaps the layer rows/tiles for a ranked list (bar = share of top value), sort chips Cooling cost / Roof heat / Vulnerable. Vulnerable = 65+ residents + 450/school + 80/aged care (optimizer headcounts). Best measure = biggest summed best-fix saving. Precinct fills tinted by rank. Row click or any precinct select returns to Explore. Verified Parramatta + London in Chrome.
   - Tab opens a ranked list in the panel: every precinct in the city by extra cooling $/yr, with roof °C, vulnerable
     residents and best measure. Sort toggle (cost / heat / vulnerable). Row click → `select()`. Optional: tint precinct
     fills by rank. 4–5 precincts per city, so no paging.

@@ -13,7 +13,7 @@
     <div class="logo">TerraGrid 3D</div>
     <nav class="tabs">
       <button class="tab active" id="explore">Explore</button>
-      <button class="tab">Compare areas</button>
+      <button class="tab" id="compare">Compare areas</button>
       <button class="tab">Scenarios</button>
     </nav>
     <div class="nav-right">
@@ -66,6 +66,11 @@
       <div class="big" id="temp">--.-°C</div>
       <div class="delta" id="delta">&nbsp;</div>
       <div class="extra" id="extra"></div>
+      <section class="cmp">
+        <div class="eyebrow">Rank areas by</div>
+        <div class="levers" id="c-sort"><button class="on" data-s="usd">Cooling cost</button><button data-s="heat">Roof heat</button><button data-s="vul">Vulnerable</button></div>
+        <ol class="cmp-list" id="c-list"></ol>
+      </section>
       <div class="lrows" id="lrows"></div>
 
       <div class="stats">
