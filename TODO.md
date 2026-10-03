@@ -138,11 +138,22 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     Done: Nominatim reverse at click time (no re-bake); name kept only for buildings/venues, else street address.
   - Precinct stats derived from the map where possible (buildings count, hottest roofs share, solar) instead of static props.
 
-- [ ] **7. AI: "Ask the twin"** (~30 min)
-  - Vite `configureServer` middleware `POST /api/ask` → Gemini (`GEMINI_API_KEY` env). Prompt includes current city,
-    precinct stats, live temp/air quality, available actions. Model returns JSON `{answer, action?: {type:'flyTo'|'select'|'layer'|'scenario', ...}}`.
-    UI runs the action and types the answer out. Fallback: canned Q&A if no key.
-  - Demo query: "Which precinct puts the most aged-care residents in extreme heat, and what would canopy do?"
+- [ ] **7a. Budget optimizer: "which roofs get the money"** (~30 min, owner-approved 2026-10-03, replaces "Ask the twin" chatbot)
+  - Pitch chain (one beat per competitor): hazard (FortyGuard) → which roofs (Satellite Vu) → budgeted what-if with
+    equity (UrbanFootprint) → bankable brief (ClimateView, item 7b). User = council officer with $2M to justify.
+  - Headline delta reworded as "vs airport station" (hyperlocal-vs-airport framing).
+  - Scenario card: budget slider $0.5M–$5M + "Optimize" button. Plain JS, call it an optimizer (not ML).
+    Score = roof °C over median × roof area × 1/(d + 100 m) to nearest school/aged care; greedy fill by fixed $/m² cool roof.
+  - Chosen roofs pulse teal. Panel: "N× more cooling per $ vs uniform rollout" (computed vs even spread, same budget),
+    "N vulnerable residents protected", top 5 targets (click → fly to building).
+  - Done when: moving the budget + Optimize visibly picks/pulses roofs and the metrics + list update, verified in Chrome.
+
+- [ ] **7b. Gemini business case** (~25 min)
+  - Vite `configureServer` middleware `POST /api/brief` → Gemini (`GEMINI_API_KEY` env; check current model id first).
+    Input: city, precinct, live temp/PM2.5, 65+ %, schools/aged care, budget, optimizer metrics, top targets.
+    Output 3 sections: hazard, funded intervention plan, ROI (payback, peak grid demand, health/equity). COP31 framing OK.
+  - Renders in the panel and in the "Export council brief" print view. Canned fallback if no key / offline.
+  - Done when: the brief generates, shows in the panel and prints cleanly. Video ends on this printed artifact.
 
 - [ ] **8. Arduino DS18B20 ground sensor** (~20 min)
   - `arduino/sensor.ino`: Uno R3 + DS18B20 (OneWire + DallasTemperature libs), prints `°C` as one number per line at 9600.
