@@ -217,7 +217,8 @@ Shared blast radius (check all of these on every item):
     missing (metered energy). Small dot badges in the popup and list; score shows a ± band when inputs are estimated.
   - Done when: moving a weight reorders the list and recolours the map; popup shows type, best measure, payback, badges.
 
-- [ ] **12b. Integrate teammate PR #1 (item 7c, cool roof program) onto items 10–12** (~45 min, do FIRST: every later item touches optimize/popup, so conflicts only grow)
+- [x] **12b. Integrate teammate PR #1 (item 7c, cool roof program) onto items 10–12** (~45 min, do FIRST: every later item touches optimize/popup, so conflicts only grow)
+  - Done 2026-10-04: merged locally (5cf1f44, teammate commits kept), then one fix commit. Letters and the public popup name the building's best fix and its capex/saving (falls back to the chosen measures' plan when no single fix pays back). `ex` restored in `optimize()`. Program renamed Retrofit program, stage label Installed (key stays `coated` so saved status survives). Prototype notes moved to README "Production path". Public hides priority and confidence dots. Not pushed: PR #1 stays open until the owner says push.
   - PR: `tiasella1802-alt:teammate-changes`, 2 commits (1a3a97c, f0d185d), branched from e6d82a7. Fetched locally as `pr-1`.
     Adds Public | Council nav toggle, offer letters with CP-#### codes, owner apply form, stage caps
     (Offered → Applied → Enrolled → Coated → Verified), pipeline card `#prog`, status in localStorage `tg-program`.

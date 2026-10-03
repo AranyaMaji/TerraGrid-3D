@@ -375,7 +375,7 @@ async function addHeatLayers() {
   map.addLayer({ id: 'picks', type: 'fill-extrusion', source: 'picks', minzoom: 12, paint: {
     'fill-extrusion-color': '#2dd4bf', 'fill-extrusion-base': ['+', ['get', 'height'], 0.8], 'fill-extrusion-height': ['+', ['get', 'height'], 4],
   } });
-  // Cool roof program: a cap coloured by each enrolled roof's stage (coated = white, like the coating itself). Council view only.
+  // Retrofit program: a cap coloured by each enrolled roof's stage (installed = white). Council view only.
   map.addSource('program', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'program', type: 'fill-extrusion', source: 'program', minzoom: 12, layout: { visibility: view === 'council' ? 'visible' : 'none' }, paint: {
     'fill-extrusion-color': ['match', ['get', 'st'], ...Object.entries(STAGES).flatMap(([k, [, c]]) => [k, c]), '#fff'],
@@ -937,6 +937,9 @@ function optimize() {
     for (const p of pois) { const e = dist(c, p.geometry.coordinates); if (!near || e < d) d = e, near = p.properties.name; }
     return { f, c, d, near, cost: plan(f.properties)[0], s: score(f.properties) };
   }).sort((a, b) => b.s - a.s);
+  // ex = roof °C over the precinct median (offer letters quote it).
+  const t = scnB.map((f) => f.properties.lst).filter((v) => v != null).sort((a, b) => a - b), med = t[t.length >> 1] ?? lstMed;
+  for (const c of cand) c.ex = Math.max(0, (c.f.properties.lst ?? med) - med);
   let left = budget();
   const chosen = [];
   for (const c of cand) if (c.cost > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
@@ -1063,20 +1066,22 @@ async function makeBrief() {
 }
 $('s-export').onclick = makeBrief;
 
-// ---- Cool roof program: council offers → owner applies → coated → verified ----
+// ---- Retrofit program: council offers → owner applies → installed → verified ----
 // Council view sends offer letters (one-time code per roof) to the optimizer's funded roofs. Public view lets an owner
 // click their building and apply with that code (enrolled at once) or a rates number (applied; council confirms ownership).
 // Both views share one status list, kept in this browser for the demo. In production the council view sits behind a
 // staff login, letters go to owners from the rates system, and payment waits for an installer invoice + the next Landsat pass.
-const STAGES = { offered: ['Offered', '#f59e0b'], applied: ['Applied', '#a78bfa'], enrolled: ['Enrolled', '#38bdf8'], coated: ['Coated', '#f8fafc'], verified: ['Verified', '#22c55e'] };
-const NEXT = { applied: ['Confirm ownership', 'enrolled'], enrolled: ['Mark coated', 'coated'], coated: ['Verify with satellite', 'verified'] };
+const STAGES = { offered: ['Offered', '#f59e0b'], applied: ['Applied', '#a78bfa'], enrolled: ['Enrolled', '#38bdf8'], coated: ['Installed', '#f8fafc'], verified: ['Verified', '#22c55e'] };
+const NEXT = { applied: ['Confirm ownership', 'enrolled'], enrolled: ['Mark installed', 'coated'], coated: ['Verify with satellite', 'verified'] };
 const MINE = { applied: 'The council will confirm you own this property against its rates records before any work.',
-  enrolled: "You're enrolled. The council will book a licensed installer.", coated: 'Coating done. Waiting for the next satellite pass to confirm.',
+  enrolled: "You're enrolled. The council will book a licensed installer.", coated: 'Work done. Waiting for the next satellite pass to confirm.',
   verified: 'Verified: satellite data shows your roof running cooler.' };
 let prog = {}, view = 'council', letters = [], li = 0, open = null; // open: stage whose roof list the card shows
 try { prog = JSON.parse(localStorage.getItem('tg-program')) ?? {}; } catch {}
 const pk = (id) => `${CITY.key}:${id}`;
-const saving = (f) => Math.round(f.properties.area * SAVE).toLocaleString();
+// Best fix per building from the energy model; falls back to the chosen measures' plan if nothing pays back alone.
+const fix = (q) => q.best ? [MEASURES[q.best].name, q.best_cap, q.best_usd] : ['Retrofit', ...plan(q).map((v, i) => (i ? v * CITY['kwh$'] : v))];
+const saving = (f) => Math.round(fix(f.properties)[2]).toLocaleString();
 
 function saveProg() {
   try { localStorage.setItem('tg-program', JSON.stringify(prog)); } catch {}
@@ -1090,7 +1095,7 @@ function renderProgram() {
   map.getSource('program')?.setData({ type: 'FeatureCollection', features: here.map((f) => ({ ...f, properties: { ...f.properties, st: st(f) } })) });
   const n = (k) => here.filter((f) => st(f) === k).length;
   const list = here.filter((f) => st(f) === open).sort((a, b) => (prog[pk(b.id)].t ?? 0) - (prog[pk(a.id)].t ?? 0));
-  $('prog').innerHTML = '<div class="prog-row"><b>Cool roof program</b>' + Object.entries(STAGES).map(([k, [t, c]]) =>
+  $('prog').innerHTML = '<div class="prog-row"><b>Retrofit program</b>' + Object.entries(STAGES).map(([k, [t, c]]) =>
     `<button data-s="${k}" class="${k === open ? 'on' : ''}${k === 'applied' && n(k) ? ' todo' : ''}" style="--c:${c}">${t} <em>${n(k)}</em></button>`).join('') + '</div>' +
     (open ? `<ol class="prog-list">${list.map((f) => {
       const r = prog[pk(f.id)], t = f.properties.lst;
@@ -1115,11 +1120,11 @@ function progHtml(f) {
     if (!r) return '';
     return `<div class="bp-prog">${badge([STAGES[r.st][0], r.code, r.via && `via ${r.via}`].filter(Boolean).join(' · '))}` +
       (NEXT[r.st] ? `<button class="bp-btn" data-act="next">${NEXT[r.st][0]}</button>` : '') +
-      (r.st === 'verified' ? '<div class="bp-note">Simulated in this prototype. In production, payment waits for the installer\'s invoice and the next Landsat pass showing this roof cooler.</div>' : '') + '</div>';
+      '</div>';
   }
   if (r?.mine) return `<div class="bp-prog">${badge(`Your application: ${STAGES[r.st][0]}`)}<div class="bp-note">${MINE[r.st]}</div></div>`;
-  return `<div class="bp-prog"><div class="bp-q">A cool roof could save about <b>$${saving(f)}/yr</b> on cooling this building.</div>` +
-    '<button class="bp-btn" data-act="apply">Apply for a funded cool roof</button>' +
+  return `<div class="bp-prog"><div class="bp-q">${fix(f.properties)[0]} could save about <b>${CITY.cur}${saving(f)}/yr</b> on energy for this building.</div>` +
+    '<button class="bp-btn" data-act="apply">Apply for a funded retrofit</button>' +
     '<form class="bp-form" hidden novalidate><input name="email" type="email" placeholder="Your email" autocomplete="email">' +
     '<input name="code" placeholder="Letter code (CP-1234) or rates number" autocomplete="off"><div class="bp-err"></div>' +
     '<button class="bp-btn">Submit application</button></form></div>';
@@ -1179,8 +1184,9 @@ function showLetter(i) {
   $('l-hot').textContent = CITY.surf
     ? `Our heat model estimates your roof runs ${c.ex.toFixed(1)}°C hotter than nearby roofs in summer.`
     : `Satellite data (Landsat 8) shows your roof reached ${f.properties.lst.toFixed(1)}°C on ${LANDSAT.day}, ${c.ex.toFixed(1)}°C hotter than nearby roofs.`;
-  $('l-fund').textContent = `The council will fund a reflective coating for your ${Math.round(f.properties.area).toLocaleString()} m² roof ` +
-    `(about $${Math.round(c.cost / 1000).toLocaleString()}k) at no cost to you. It could save around $${saving(f)} a year on cooling` +
+  const [m, cap] = fix(f.properties);
+  $('l-fund').textContent = `The council will fund ${m.toLowerCase()} for your building (about ${CITY.cur}${Math.round(cap / 1000).toLocaleString()}k) ` +
+    `at no cost to you. It could save around ${CITY.cur}${saving(f)} a year on energy` +
     (c.near && c.d < 400 ? ` and help keep ${c.near}, ${Math.round(c.d)} m away, cooler during heatwaves.` : '.');
   $('l-code').textContent = r.code;
   $('l-n').textContent = `Letter ${li + 1} of ${letters.length}`;

@@ -194,6 +194,17 @@ npm run preview
 
 ---
 
+## Production path
+
+The retrofit program (offer letters, owner applications, stage tracking) keeps its status in the browser for the demo.
+In production:
+
+- Letters go to the owner's address from the council's rates records, and ownership is confirmed before any work or payment.
+- The council view sits behind a staff login.
+- Payment waits for the installer's invoice and the next Landsat pass showing the roof running cooler.
+
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

@@ -265,8 +265,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .pub-hint { display: none; margin-top: auto; padding: 14px 16px; border-radius: 8px; background: #e7f5f4; font-size: 15px; line-height: 1.45; }
 .public .pub-hint { display: block; }
 .public .panel > .cta, .public .prog { display: none !important; }
+.public .bp-prio, .public .conf { display: none; } /* owners see no ranking or confidence */
 
-/* Cool roof program: pipeline counts on the map, status in the building popup, offer letters */
+/* Retrofit program: pipeline counts on the map, status in the building popup, offer letters */
 .prog { position: absolute; left: 30px; top: 92px; z-index: 2; padding: 8px 10px 8px 16px;
   background: var(--panel); border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; }
 .prog[hidden] { display: none; }
@@ -312,7 +313,6 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .l-code { margin: 18px 0; padding: 14px 16px; border-radius: 8px; background: #e7f5f4; font-size: 13px; color: #475569; }
 .l-code b { font-size: 24px; letter-spacing: .06em; color: var(--teal); margin-left: 8px; }
 .l-code span { display: block; margin-top: 6px; }
-.letter .l-foot { font-size: 12px; color: var(--muted); }
 .l-nav { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 14px; font-size: 13px; color: var(--muted); }
 .l-nav .ghost.sm { margin-left: auto; }
 
