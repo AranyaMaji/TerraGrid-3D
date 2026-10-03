@@ -3,6 +3,7 @@
 One line per shipped TODO item. Newest first.
 
 - 2026-10-04 — docs: item 12b, integration plan and blast radius for teammate PR #1 (cool roof program).
+- 2026-10-04 — docs: round 2 TODO (energy model, retrofit measures, priority map, AI ranking, suburb ranking, projections).
 
 - 2026-10-04 — Item 12: "Priority" layer chip colours buildings by retrofit priority (savings, payback, vulnerable people, heat); three weight sliders recolour live and re-rank the optimizer; top-5 list shows address, type, best measure, $/yr, payback; popup adds type, best fix, payback, priority ± band and measured/estimated/missing badges.
 - 2026-10-04 — Item 11: six retrofit measure chips (cool roofs, trees, solar, insulation, HVAC, controls); scenario KPIs are now real sums over the precinct's buildings (saved/yr, payback, capex, MWh, CO₂, buildings reached); optimizer prices each building by the chosen measures.
@@ -51,4 +52,3 @@ One line per shipped TODO item. Newest first.
 - 2026-10-03 — Item 2: committed Parramatta OSM buildings (3,462) with derived per-building heat via feature-state, NASA GIBS MODIS LST drape (latest available date), live Open-Meteo temperature vs coastal Sydney in the panel.
 - 2026-10-03 — Item 1: Vite + MapLibre scaffold, dark-recoloured liberty style on a spinning globe, auto fly-in to Parramatta 3D buildings, static light UI shell (nav, search, layer select, 2D/3D, legend, side panel).
 - 2026-10-03 — Planning: session rules (CLAUDE.md/AGENTS.md), TODO build order, verified API notes, research docs moved to docs/hackathon, design reference saved.
-- docs: round 2 TODO (energy model, retrofit measures, priority map, AI ranking, suburb ranking, projections)
