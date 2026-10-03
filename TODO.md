@@ -231,11 +231,11 @@ Shared blast radius (check all of these on every item):
       $Xk", so it's wrong when the best fix is HVAC or insulation. Letter should name `MEASURES[q.best].name`, `q.best_cap`, `q.best_usd`.
     - `saving(f)` = area × $3.2 contradicts the energy model. Use `q.best_usd` (letter + public popup).
     - Program is cool-roof-only but optimizer funds any measure. Rename to "Retrofit program", stage "Coated" → "Installed"
-      (decision for owner; recommended: rename). Keep white cap for Installed.
+      (owner approved 2026-10-04). Keep white cap for Installed.
     - Owner rule: UI has no "simulated"/"prototype" text. Strip the `bp-note` verified line and the letter's `l-foot`
       (move both to README "Production path").
     - Public view: hide the scenario (PR does) and the priority score/± band in the popup (owners shouldn't see a ranking).
-      Keep the confidence dots? Owner call, recommended hide in Public.
+      Hide the confidence dots in Public too (owner approved 2026-10-04).
     - Layering: program cap and picks cap share base height+0.8. PR's `fresh` filter keeps them apart; check it survived
       the merge. Priority wall colours + program caps + solar caps: check no z-fight at z17.
   - Nav room: Public | Council now sits in nav-right; item 15's Now/2030/2050 toggle goes over the map (near 2D/3D), not the nav.
