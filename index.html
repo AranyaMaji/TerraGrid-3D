@@ -94,10 +94,9 @@
           <div><div class="eyebrow">Cooling scenario</div><div class="scn-where" id="s-where"></div></div>
           <button class="ghost sm" id="s-reset">Reset</button>
         </div>
-        <div class="levers">
-          <label><input type="checkbox" id="s-roofs" checked /> Cool roofs</label>
-          <label><input type="checkbox" id="s-trees" checked /> Tree canopy</label>
-          <label><input type="checkbox" id="s-solar" checked /> Rooftop solar</label>
+        <div class="levers" id="levers">
+          <button class="on" data-m="roofs">Cool roofs</button><button class="on" data-m="trees">Tree canopy</button><button class="on" data-m="solar">Rooftop solar</button>
+          <button class="on" data-m="insul">Insulation</button><button class="on" data-m="hvac">Efficient HVAC</button><button class="on" data-m="ctrl">Smart controls</button>
         </div>
         <div class="bud">
           <label class="cov">Budget <b id="s-bud-v">$2.0M</b>
@@ -119,10 +118,12 @@
           <h3>Return on investment</h3><p id="b-roi"></p>
         </div>
         <div class="kpis">
-          <div><div class="kpi-v cool" id="k-t">−0.0°C</div><div class="kpi-l">Surface temperature</div></div>
-          <div><div class="kpi-v cool" id="k-ac">−0%</div><div class="kpi-l">Peak AC demand</div></div>
-          <div><div class="kpi-v" id="k-mwh">+0</div><div class="kpi-l">MWh/yr solar</div></div>
-          <div><div class="kpi-v" id="k-usd">$0k</div><div class="kpi-l">Saved per year</div></div>
+          <div><div class="kpi-v cool" id="k-usd">$0k</div><div class="kpi-l">Saved per year</div></div>
+          <div><div class="kpi-v" id="k-pay">0.0 yrs</div><div class="kpi-l">Payback</div></div>
+          <div><div class="kpi-v" id="k-capex">$0k</div><div class="kpi-l">Capital cost</div></div>
+          <div><div class="kpi-v cool" id="k-mwh">0</div><div class="kpi-l">MWh/yr saved</div></div>
+          <div><div class="kpi-v cool" id="k-co2">0</div><div class="kpi-l">t CO₂/yr avoided</div></div>
+          <div><div class="kpi-v" id="k-n">0</div><div class="kpi-l">Buildings reached</div></div>
         </div>
         <button class="cta" id="s-export">Export council brief (PDF)</button>
       </section>

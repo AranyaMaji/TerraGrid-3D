@@ -174,21 +174,26 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .scn { display: none; }
 .scenario .scn { display: block; }
 .scenario .stats, .scenario .panel > .cta { display: none; }
-.scn { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 20px; }
+.scn { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
+.scenario .lrow-s { display: none; }
+.scenario .lrow { padding: 5px 14px; }
 .scn-h { display: flex; align-items: center; gap: 12px; }
 .scn-where { font-size: 18px; font-weight: 600; margin-top: 2px; }
-.levers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-.levers label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; }
-.levers label:has(:checked) { border-color: var(--teal); background: #e7f5f4; }
-.levers input, .cov input { accent-color: var(--teal); }
-.cov { display: block; margin-top: 18px; font-size: 15px; font-weight: 500; }
+.levers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+.levers button { padding: 7px 4px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.levers button:hover { background: var(--page); }
+.levers button.on { border-color: var(--teal); background: #e7f5f4; color: var(--teal); font-weight: 600; }
+.cov input { accent-color: var(--teal); }
+.cov { display: block; margin-top: 12px; font-size: 15px; font-weight: 500; }
 .cov b { float: right; }
 .cov input { width: 100%; margin-top: 8px; }
-.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin-top: 20px; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 14px; margin-top: 14px; }
+.kpis .kpi-v { font-size: 24px; }
+.kpis .kpi-l { font-size: 13px; }
 .kpi-v { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .kpi-v.cool { color: var(--teal); }
 .kpi-l { font-size: 14px; color: var(--muted); }
-.scn .cta { margin-top: 24px; }
+.scn .cta { margin-top: 14px; }
 .bud { display: flex; align-items: flex-end; gap: 14px; }
 .bud .cov { flex: 1; }
 .opt-btn { height: 38px; padding: 0 16px; border-radius: 8px; border: 1.5px solid var(--teal); color: var(--teal); font-size: 15px; font-weight: 600; }

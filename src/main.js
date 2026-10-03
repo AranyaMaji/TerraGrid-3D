@@ -7,22 +7,22 @@ import './style.css';
 maplibregl.setWorkerUrl(workerUrl);
 
 // Everything location-specific lives here. Buildings: data/buildings-<key>.geojson (scripts/fetch-buildings.mjs);
-// precincts and POIs carry a `city` key. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
+// precincts and POIs carry a `city` key. `co2`: grid t CO₂ per MWh. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
 const CITIES = [
   { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.177, -33.946], refName: 'Sydney Airport station',
-    ghi: 1790, kwh$: 0.30, cur: '$', cool: 1, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
+    ghi: 1790, kwh$: 0.30, co2: 0.66, cur: '$', cool: 1, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
     tree_cover_pct: 12, age65_pct: 18, population: 64700 },
   { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.843, -37.669], refName: 'Melbourne Airport station',
-    ghi: 1600, surf: 41, kwh$: 0.29, cur: '$', cool: 0.7, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
+    ghi: 1600, surf: 41, kwh$: 0.29, co2: 0.79, cur: '$', cool: 0.7, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
     tree_cover_pct: 12, age65_pct: 8, population: 111900 },
   { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [-0.454, 51.470], refName: 'Heathrow station',
-    ghi: 1000, surf: 33, kwh$: 0.25, cur: '£', cool: 0.35, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
+    ghi: 1000, surf: 33, kwh$: 0.25, co2: 0.2, cur: '£', cool: 0.35, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
     tree_cover_pct: 14, age65_pct: 11, population: 53100 },
   { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.177, -33.946], refName: 'Sydney Airport station',
-    ghi: 1800, kwh$: 0.30, cur: '$', cool: 0.9, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
+    ghi: 1800, kwh$: 0.30, co2: 0.66, cur: '$', cool: 0.9, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
     tree_cover_pct: 15, age65_pct: 10, population: 46000 },
   { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.559, -18.043], refName: 'Nausori Airport station',
-    ghi: 1950, surf: 39, kwh$: 0.42, cur: 'FJ$', cool: 1, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
+    ghi: 1950, surf: 39, kwh$: 0.42, co2: 0.5, cur: 'FJ$', cool: 1, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
     tree_cover_pct: 20, age65_pct: 6, population: 93900 },
 ];
 // Energy use by building type: EUI kWh per m² floor per year (NABERS/CBECS-style medians), cooling share of it
@@ -33,6 +33,25 @@ const ENERGY = {
   hotel: { eui: 270, cool: 0.27 }, industrial: { eui: 140, cool: 0.12 }, other: { eui: 0, cool: 0 },
   perC: 0.07, // extra cooling energy per °C of local roof heat
 };
+// Retrofit measures. Cost = rate × basis (roof = footprint m², floor = floor m², tree = trees planted).
+// Saving = share of the building's cooling kWh (`cool`), total kWh (`all`) and local-heat penalty (`extra`); solar offsets its own yield.
+const MEASURES = {
+  roofs: { name: 'Cool roofs', types: 'house apartment office retail school health hotel industrial', basis: 'roof', rate: 45, cool: 0.15, extra: 0.6, life: 20 },
+  trees: { name: 'Tree canopy', types: 'house apartment school health retail', basis: 'tree', rate: 900, cool: 0.12, life: 40, max: 15 },
+  solar: { name: 'Rooftop solar', types: 'house apartment office retail school health hotel industrial', basis: 'roof', rate: 180, solar: 1, life: 25 },
+  insul: { name: 'Insulation', types: 'house apartment school retail', basis: 'roof', rate: 35, cool: 0.2, all: 0.05, life: 30 },
+  hvac: { name: 'Efficient HVAC', types: 'apartment office retail school health hotel', basis: 'floor', rate: 60, cool: 0.3, life: 15 },
+  ctrl: { name: 'Smart controls', types: 'office retail school health hotel', basis: 'floor', rate: 8, all: 0.08, life: 10 },
+};
+for (const m of Object.values(MEASURES)) m.types = new Set(m.types.split(' '));
+// One building, one measure: [capex, kWh/yr saved]. Trees: one per 150 m² of footprint, low-rise only.
+function retrofit(q, k) {
+  const m = MEASURES[k];
+  if (!m.types.has(q.type) || (k === 'trees' && q.height > 15)) return [0, 0];
+  const n = { roof: q.area, floor: q.floor, tree: Math.min(m.max, Math.ceil(q.area / 150)) }[m.basis];
+  const top = m.basis === 'floor' ? 1 : Math.min(1, (2 * q.area) / (q.floor || 1)); // roofs and trees only reach the top two floors
+  return [n * m.rate, m.solar ? q.mwh * 1000 : top * ((m.cool ?? 0) * q.cool_kwh + (m.all ?? 0) * q.kwh + (m.extra ?? 0) * q.extra_kwh)];
+}
 const OSM_TYPE = {
   house: 'house detached semidetached_house terrace bungalow hut cabin farm', apartment: 'apartments residential dormitory',
   office: 'office commercial government civic public', retail: 'retail supermarket shop restaurant pub cafe fast_food bar kiosk marketplace',
@@ -744,11 +763,15 @@ function layerRow(k, p) {
   return ['Rooftop solar', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`, `${a.length.toLocaleString()} roofs · ≈ ${Math.round(m / 6).toLocaleString()} homes`];
 }
 
-// ---- Scenario simulator: levers cool the selected precinct's buildings; KPIs count up ----
-// Headline numbers are for 50% coverage with all levers on; scale linearly with coverage.
-// Coverage = share of the precinct's roof area the budget buys at a flat cool-roof price.
-const ZERO = { cool: 0, t: 0, ac: 0, mwh: 0, usd: 0 };
-const COST = 45; // $/m² cool-roof coating, installed
+// ---- Scenario simulator: chosen measures on the precinct's buildings; KPIs are sums over them and count up ----
+const ZERO = { cool: 0, mwh: 0, usd: 0, capex: 0, pay: 0, n: 0, co2: 0 };
+const lev = new Set(Object.keys(MEASURES));
+// Chosen measures on one building: [capex, kWh/yr saved]; demand savings capped at 60% of its use, solar on top.
+function plan(q) {
+  let c = 0, e = 0, pv = 0;
+  for (const k of lev) { const [a, b] = retrofit(q, k); c += a; if (k === 'solar') pv += b; else e += b; }
+  return [c, Math.min(e, 0.6 * q.kwh) + pv];
+}
 let cur = { ...ZERO }, ids = [], anim = 0, scnB = [], picks = null, pulse = 0, last = null;
 const budget = () => $('s-bud').value * 1e6;
 
@@ -766,23 +789,26 @@ const ringOf = (name) => precincts.find((p) => p.properties.name === name).geome
 const within = (ring) => buildings.filter((f) => f.geometry.coordinates[0].some((p) => inside(p, ring)));
 
 function target() {
-  const area = scnB.reduce((a, f) => a + f.properties.area, 0);
-  const k = Math.min(100, (100 * budget()) / (COST * area || 1)) / 50, roofs = +$('s-roofs').checked, trees = +$('s-trees').checked, solar = +$('s-solar').checked;
-  const ac = 18 * k * (roofs + trees) / 2, mwh = 320 * k * solar;
-  return {
-    cool: (picks ? 1 : Math.min(1, k)) * (0.45 * roofs + 0.45 * trees + 0.1 * solar),
-    t: 4.2 * k * (0.45 * roofs + 0.55 * trees), ac, mwh,
-    usd: 48000 * (0.6 * ac / 18 + 0.4 * mwh / 320),
-  };
+  // Optimizer off: the budget funds the best saving-per-$ buildings first.
+  let list = picks ? picks.map((c) => c.f) : scnB, capex = 0, kwh = 0, n = 0, left = budget();
+  const rows = list.map((f) => plan(f.properties)).filter(([c]) => c > 0);
+  if (!picks) rows.sort((a, b) => b[1] / b[0] - a[1] / a[0]);
+  for (const [c, e] of rows) if (picks || c <= left) capex += c, kwh += e, n++, left -= c;
+  const usd = kwh * CITY['kwh$'];
+  return { cool: n ? (picks ? 1 : 0.4 + (0.6 * n) / rows.length) : 0, mwh: kwh / 1000, usd, capex,
+    pay: usd ? capex / usd : 0, n, co2: (kwh / 1000) * CITY.co2 };
 }
 
+const money = (v) => `${CITY.cur}${v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : `${Math.round(v / 1000)}k`}`;
 function draw(s) {
   cur = s;
   for (const id of ids) map.setFeatureState({ source: 'bld', id }, { cool: s.cool });
-  $('k-t').textContent = `−${s.t.toFixed(1)}°C`;
-  $('k-ac').textContent = `−${Math.round(s.ac)}%`;
-  $('k-mwh').textContent = `+${Math.round(s.mwh)}`;
-  $('k-usd').textContent = `$${Math.round(s.usd / 1000)}k`;
+  $('k-usd').textContent = money(s.usd);
+  $('k-pay').textContent = `${s.pay.toFixed(1)} yrs`;
+  $('k-capex').textContent = money(s.capex);
+  $('k-mwh').textContent = Math.round(s.mwh).toLocaleString();
+  $('k-co2').textContent = Math.round(s.co2).toLocaleString();
+  $('k-n').textContent = Math.round(s.n).toLocaleString();
 }
 
 function animateTo(to, ms = 1500) {
@@ -818,7 +844,7 @@ function closeScenario() {
 
 // ---- Budget optimizer: which roofs get the money ----
 // Score = roof °C over the precinct median × roof area / (distance to nearest school or aged care + 100 m).
-// Greedy fill in score order at COST $/m² until the budget runs out. "× per $" compares against spending
+// Greedy fill in score order at each building's cost for the chosen measures until the budget runs out. "× per $" compares against spending
 // the same budget evenly over every roof in the precinct (uniform rollout), on the same score.
 function optimize() {
   if (!scnB.length) return;
@@ -830,12 +856,12 @@ function optimize() {
     const c = mid(f.geometry.coordinates[0]);
     let d = 500, near = null;
     for (const p of pois) { const e = dist(c, p.geometry.coordinates); if (!near || e < d) d = e, near = p.properties.name; }
-    const ex = Math.max(0, (f.properties.lst ?? med) - med), cost = f.properties.area * COST;
+    const ex = Math.max(0, (f.properties.lst ?? med) - med), cost = plan(f.properties)[0];
     return { f, c, d, near, ex, cost, s: (ex * f.properties.area) / (d + 100) };
   }).sort((a, b) => b.s - a.s);
   let left = budget();
   const chosen = [];
-  for (const c of cand) if (c.s > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
+  for (const c of cand) if (c.s > 0 && c.cost > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
   const sum = (l, k) => l.reduce((a, c) => a + c[k], 0);
   const x = (sum(chosen, 's') / (budget() - left || 1)) / (sum(cand, 's') / (sum(cand, 'cost') || 1));
 
@@ -859,7 +885,7 @@ function optimize() {
   $('o-top').innerHTML = chosen.slice(0, 5).map((c, i) =>
     `<li data-i="${i}"><div><b>${c.near ? `Near ${esc(c.near)}` : 'Roof'}</b>` +
     `<span>+${c.ex.toFixed(1)}°C · ${Math.round(c.d)} m</span></div>` +
-    `<em>$${Math.round(c.cost / 1000)}k</em></li>`).join('');
+    `<em>${money(c.cost)}</em></li>`).join('');
   cancelAnimationFrame(pulse);
   const beat = (now) => {
     map.setPaintProperty('picks', 'fill-extrusion-color', `hsl(173, 80%, ${45 + 25 * (0.5 + 0.5 * Math.sin(now / 250))}%)`);
@@ -895,20 +921,27 @@ $('s-reset').onclick = () => {
   animateTo({ ...ZERO });
 };
 $('s-opt').onclick = optimize;
+$('levers').onclick = (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (!lev.delete(b.dataset.m)) lev.add(b.dataset.m);
+  b.classList.toggle('on', lev.has(b.dataset.m));
+  if (picks) optimize(); else animateTo(target(), 500);
+};
 // ---- Council brief: optimizer facts → Gemini (/api/brief), canned text if no key or offline ----
 async function makeBrief() {
   if (document.body.classList.contains('briefed')) return window.print();
   if (!picks) optimize();
   if (!last) return;
   const { x, res, chosen, spent } = last, area = chosen.reduce((a, c) => a + c.f.properties.area, 0);
-  // Benefit model: ~$3.2/m²/yr AC energy saved under a cool roof, ~10 W/m² peak cut, ~$180/yr avoided heat-health cost per protected resident.
-  const energy = area * 3.2, health = res * 180, peak = area * 0.01 / 1000;
+  // Energy = the scenario's own sums over the funded buildings; ~10 W/m² peak cut per funded roof, ~$180/yr avoided heat-health cost per protected resident.
+  const energy = target().usd, health = res * 180, peak = area * 0.01 / 1000;
   const f = {
     city: CITY.name, precinct: selected.name, air_temp_c: live && (live.t + (selected.offset || 0)).toFixed(1),
     vs_airport_station_c: live && (live.t + (selected.offset || 0) - live.ref).toFixed(1), roof_surface: layerRow('heat', selected)?.slice(1).join(', '),
     pm2_5: aq && (aq.pm2_5 + plumeAt(mid(ringOf(selected.name)))).toFixed(1), residents: selected.population, age65_pct: selected.age65_pct,
     schools: $('p-schools').textContent, aged_care: $('p-aged').textContent,
-    budget: `$${(spent / 1e6).toFixed(2)}M`, roofs_funded: chosen.length, roof_area_m2: Math.round(area),
+    budget: `$${(spent / 1e6).toFixed(2)}M`, measures: [...lev].map((k) => MEASURES[k].name).join(', '), buildings_funded: chosen.length, roof_area_m2: Math.round(area),
     cooling_per_dollar_vs_uniform: `${x.toFixed(1)}x`, vulnerable_residents_protected: res,
     annual_benefit: `$${Math.round((energy + health) / 1000)}k (energy $${Math.round(energy / 1000)}k, health $${Math.round(health / 1000)}k)`,
     payback_years: (spent / (energy + health)).toFixed(1), peak_demand_cut_mw: peak.toFixed(2),
@@ -922,7 +955,7 @@ async function makeBrief() {
   } catch {}
   b ??= {
     hazard: `${f.precinct} is at ${f.air_temp_c}°C today, and its hottest roofs run up to ${chosen[0]?.ex.toFixed(1)}°C over the local median. ${f.residents.toLocaleString()} residents live here, ${f.age65_pct}% aged 65+, alongside ${f.schools} schools and ${f.aged_care} aged-care sites.`,
-    plan: `${f.budget} funds cool-roof coatings on ${f.roofs_funded} roofs (${f.roof_area_m2.toLocaleString()} m²), chosen for heat, size and proximity to schools and aged care. That delivers ${f.cooling_per_dollar_vs_uniform} more cooling per dollar than a uniform rollout.`,
+    plan: `${f.budget} funds ${f.measures.toLowerCase()} on ${f.buildings_funded} buildings (${f.roof_area_m2.toLocaleString()} m² of roof), chosen for heat, size and proximity to schools and aged care. That delivers ${f.cooling_per_dollar_vs_uniform} more cooling per dollar than a uniform rollout.`,
     roi: `The program returns ${f.annual_benefit} a year, paying back in ${f.payback_years} years. It cuts peak grid demand by ${f.peak_demand_cut_mw} MW and protects ${res.toLocaleString()} vulnerable residents through the hottest weeks.`,
   };
   $('b-hazard').textContent = b.hazard; $('b-plan').textContent = b.plan; $('b-roi').textContent = b.roi;

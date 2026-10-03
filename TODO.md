@@ -189,7 +189,8 @@ Shared blast radius (check all of these on every item):
     Fits in the space of one lrow; do not add a tile.
   - Done when: number changes per precinct and per city, looks plausible (Parramatta CBD in the $100k–$1M range), panel fits.
 
-- [ ] **11. Retrofit measures in the scenario: energy saved, cost, payback, buildings reached** (~45 min)
+- [x] **11. Retrofit measures in the scenario: energy saved, cost, payback, buildings reached** (~45 min)
+  - Done 2026-10-04: `MEASURES` + `retrofit()` in main.js; roof measures and trees only reach the top two floors (else towers paid back in months). Without Optimize the budget funds best saving-per-$ buildings first. 6 KPIs: saved/yr, payback, capex, MWh/yr, t CO₂/yr (per-city `co2` grid factor, replaced the always-~0% "precinct energy"), buildings reached. Parramatta CBD, $2M, all on: $580k/yr, 3.4 yrs, 13 buildings. Panel ~90 px over at 855 px tall, fits at 1080p.
   - `MEASURES`: cool roofs, tree canopy, rooftop solar, insulation, efficient HVAC, smart controls. Each: applies-to types,
     cost basis ($/m² roof | $/m² floor | $/tree), % saving of cooling or total kWh, useful life.
   - Levers: replace the 3 checkboxes with 6 compact toggle chips (same style as the layer chips, saves height).
