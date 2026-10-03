@@ -1048,7 +1048,7 @@ async function recommend() {
     let cap = 0, kwh = 0, n = 0, v = 0;
     for (const f of scnB) { const [c, e] = retrofit(f.properties, k); if (c > 0) cap += c, kwh += e, n++, v += f.properties.nV >= 0.5; }
     const usd = kwh * CITY['kwh$'];
-    return { key: k, name: MEASURES[k].name, saved_per_yr: money(usd), capex: money(cap), payback_yrs: +(cap / (usd || 1)).toFixed(1),
+    return { key: k, name: MEASURES[k].name, saved_per_yr: money(usd), capex: money(cap), payback_yrs: (cap / (usd || 1)).toFixed(1),
       useful_life_yrs: MEASURES[k].life, buildings_reached: n, vulnerable_buildings_reached: v, r: usd / (cap || 1) };
   }).filter((x) => x.buildings_reached);
   const canned = [...m].sort((a, b) => b.r - a.r).map((x) => ({ key: x.key, why: `${x.saved_per_yr}/yr, ${x.payback_yrs}-yr payback` }));
@@ -1091,7 +1091,7 @@ async function makeBrief() {
     budget: `$${(spent / 1e6).toFixed(2)}M`, measures: [...lev].sort((a, b) => ord(a) - ord(b)).map((k) => MEASURES[k].name).join(', '),
     measure_order: rec?.filter((t) => lev.has(t.key)).map((t) => `${MEASURES[t.key].name} (${t.why})`).join('; '), buildings_funded: chosen.length, roof_area_m2: Math.round(area),
     cooling_per_dollar_vs_uniform: `${x.toFixed(1)}x`, vulnerable_residents_protected: res,
-    annual_benefit: `$${Math.round((energy + health) / 1000)}k (energy $${Math.round(energy / 1000)}k, health $${Math.round(health / 1000)}k)`,
+    annual_benefit: `${money(energy + health)} (energy ${money(energy)}, health ${money(health)})`,
     payback_years: (spent / (energy + health)).toFixed(1), peak_demand_cut_mw: peak.toFixed(2),
     priority_weights: [...document.querySelectorAll('[data-w]')].map((s) => `${s.parentNode.firstChild.textContent.trim()} ${s.previousElementSibling.textContent}`).join(', '),
     top_targets: [...$('o-top').children].map((li) => li.innerText.replace(/\n/g, ' · ')).join('; '),

@@ -22,7 +22,7 @@ const tunnel = {
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
 const PROMPTS = {
   brief: (facts) => `You write a one-page business case for a city council officer pitching a cooling budget to councillors (COP31 framing welcome).
-Use ONLY the facts below; quote their numbers exactly, invent no new figures. Plain, confident, specific. No markdown.
+Use ONLY the facts below; quote their numbers exactly as written (e.g. "$1.2M", "1.0 years"), invent no new figures, use correct singular/plural. Plain, confident, specific. No markdown.
 Return JSON {"hazard": string, "plan": string, "roi": string}, each 2-3 sentences, max 60 words:
 - hazard: who is exposed to what heat and air quality right now, and where.
 - plan: what the budget funds, where, and why these roofs beat a uniform rollout. If measure_order is given, present the measures in that order.
@@ -31,7 +31,7 @@ Facts: ${facts}`,
   rank: (facts) => `You advise a city council on which building retrofit measures to fund first in one suburb.
 Each measure below comes with totals computed over the suburb's buildings. Pick the best 3, best first, weighing payback, yearly saving,
 buildings reached and vulnerable buildings reached (schools, health, aged care nearby, older residents) against the suburb's heat and people.
-Use ONLY these facts; quote their numbers exactly, invent no new figures. No markdown.
+Use ONLY these facts; quote their numbers exactly as written (e.g. "$1.2M", "1.0 years"), invent no new figures, use correct singular/plural. No markdown.
 Return JSON {"top": [{"key": string, "why": string}]} with exactly 3 items; key is a measure key from the facts; why is one short phrase, max 10 words, specific to this suburb.
 Facts: ${facts}`,
 }
