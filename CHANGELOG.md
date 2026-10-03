@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Docs: documented Discord announcements learnings and timeline updates in docs/hackathon/discord-learnings.md.
 - 2026-10-04 — Preview tunnel (`preview.amsham.net`) runs only with the dev server; `/api/brief` refuses tunnelled requests so the Gemini key stays local-only.
 - 2026-10-03 — Item 7b: "Export council brief" drafts a hazard / funded plan / ROI brief via Gemini (`POST /api/brief` Vite middleware, key from `GEMINI_API_KEY`), canned fallback offline; shows in the panel and prints as a clean one-pager.
 
