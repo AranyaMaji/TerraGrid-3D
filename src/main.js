@@ -1123,7 +1123,7 @@ function progHtml(f) {
       '</div>';
   }
   if (r?.mine) return `<div class="bp-prog">${badge(`Your application: ${STAGES[r.st][0]}`)}<div class="bp-note">${MINE[r.st]}</div></div>`;
-  return `<div class="bp-prog"><div class="bp-q">${fix(f.properties)[0]} could save about <b>${CITY.cur}${saving(f)}/yr</b> on energy for this building.</div>` +
+  return `<div class="bp-prog">${r?.st === 'offered' ? badge('This building qualifies for a fully funded energy retrofit. Got a letter? Enter its code.') : ''}<div class="bp-q">${fix(f.properties)[0]} could save about <b>${CITY.cur}${saving(f)}/yr</b> on energy for this building.</div>` +
     '<button class="bp-btn" data-act="apply">Apply for a funded retrofit</button>' +
     '<form class="bp-form" hidden novalidate><input name="email" type="email" placeholder="Your email" autocomplete="email">' +
     '<input name="code" placeholder="Letter code (CP-1234) or rates number" autocomplete="off"><div class="bp-err"></div>' +
