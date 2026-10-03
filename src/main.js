@@ -9,19 +9,19 @@ maplibregl.setWorkerUrl(workerUrl);
 // Everything location-specific lives here. Buildings: data/buildings-<key>.geojson (scripts/fetch-buildings.mjs);
 // precincts and POIs carry a `city` key. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
 const CITIES = [
-  { key: 'parramatta', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
+  { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
     ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
     tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, population: 64700 },
-  { key: 'melbourne', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
+  { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
     ghi: 1600, surf: 41, plume: { at: [144.928, -37.824], name: 'Port of Melbourne' },
     tree_cover_pct: 12, age65_pct: 8, schools: 12, aged_care: 6, population: 111900 },
-  { key: 'london', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
+  { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
     ghi: 1000, surf: 33, plume: { at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' },
     tree_cover_pct: 14, age65_pct: 11, schools: 18, aged_care: 9, population: 53100 },
-  { key: 'sydney', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
+  { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
     ghi: 1800, plume: { at: [151.181, -33.866], name: 'Rozelle Interchange stacks' },
     tree_cover_pct: 15, age65_pct: 10, schools: 9, aged_care: 8, population: 46000 },
-  { key: 'suva', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
+  { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
     ghi: 1950, surf: 39, plume: { at: [178.4325, -18.1285], name: 'Walu Bay industrial' },
     tree_cover_pct: 20, age65_pct: 6, schools: 22, aged_care: 4, population: 93900 },
 ];
@@ -157,7 +157,7 @@ function goCity(c, at, name) {
   });
 }
 
-// Search: modelled cities and precincts first, then any address from Photon (OSM geocoder, keyless).
+// Search: modelled cities and precincts first (shown like any other result), then any address from Photon (OSM geocoder, keyless).
 // An address inside a city box switches to that city; elsewhere it just flies there and pins it.
 $('crumb').textContent = CITY.region;
 let addrPin = null, sugg = [], sTimer = 0, sSeq = 0;
@@ -171,18 +171,18 @@ $('search').oninput = (e) => {
   const q = e.target.value.trim(), hit = (s) => s.toLowerCase().startsWith(q.toLowerCase());
   clearTimeout(sTimer);
   sSeq++;
-  if (!q) return showSugg([]);
-  const local = [...CITIES.filter((c) => hit(c.name) || hit(c.region)).map((c) => ({ name: c.name, sub: `${c.region} · city model`, city: c })),
-    ...precincts.filter((p) => hit(p.properties.name)).map((p) => ({ name: p.properties.name, sub: `${CITY.name} · precinct`, precinct: p.properties.name }))];
-  showSugg(local);
-  if (q.length < 3) return;
+  if (q.length < 3) return showSugg([]);
+  // Name matches before region matches ("Sydney" → Sydney CBD, then Parramatta); everything appears together.
+  const local = [...CITIES.filter((c) => hit(c.name)), ...CITIES.filter((c) => !hit(c.name) && hit(c.region))].map((c) => ({ name: c.name, sub: c.place, city: c }))
+    .concat(precincts.filter((p) => hit(p.properties.name)).map((p) => ({ name: p.properties.name, sub: `${CITY.name}, ${CITY.place}`, precinct: p.properties.name })));
   const seq = sSeq;
-  sTimer = setTimeout(() => fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en`).then((r) => r.json()).then((j) => {
+  sTimer = setTimeout(() => fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=en`).then((r) => r.json()).catch(() => ({ features: [] })).then((j) => {
     if (seq !== sSeq) return;
+    const seen = new Set(local.map((s) => s.name.toLowerCase())); // our entry replaces Photon's same-named one
     showSugg([...local, ...j.features.map(({ geometry, properties: p }) => {
       const street = [p.housenumber, p.street].filter(Boolean).join(' ');
       return { name: p.name || street || p.city, sub: [p.name && street, p.district || p.city || p.county, p.country].filter(Boolean).join(', '), at: geometry.coordinates };
-    })]);
+    }).filter((s) => !seen.has(s.name.toLowerCase() + s.sub) && seen.add(s.name.toLowerCase() + s.sub) && !seen.has(s.name.toLowerCase()))].slice(0, 6));
   }).catch(() => {}), 250);
 };
 function pick(s) {
