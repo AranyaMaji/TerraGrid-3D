@@ -224,8 +224,16 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .bp-grid i { display: block; font-style: normal; font-size: 11px; color: var(--muted); }
 .bp-xy { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
 
+/* council brief replaces optimizer results once drafted */
+.brief { display: none; margin-top: 18px; }
+.briefed .brief { display: block; }
+.briefed .opt, .briefed .bud, .briefed .lrows { display: none; }
+.b-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.brief h3 { font-size: 15px; font-weight: 700; margin-top: 14px; color: var(--teal); }
+.brief p { font-size: 14px; line-height: 1.5; margin-top: 4px; }
+
 @media print {
-  .nav, .map-wrap, #s-export, #s-reset, #s-back, .crumbs .close { display: none !important; }
+  .nav, .map-wrap, .lrows, #s-export, #s-opt, #s-reset, #s-back, .crumbs .close { display: none !important; }
   body { display: block; overflow: visible; background: #fff; }
-  .panel { width: auto; border: 0; }
+  .panel { width: auto; max-width: 680px; border: 0; }
 }

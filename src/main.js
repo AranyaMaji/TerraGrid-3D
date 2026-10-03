@@ -659,7 +659,7 @@ function layerRow(k, p) {
 // Coverage = share of the precinct's roof area the budget buys at a flat cool-roof price.
 const ZERO = { cool: 0, t: 0, ac: 0, mwh: 0, usd: 0 };
 const COST = 45; // $/m² cool-roof coating, installed
-let cur = { ...ZERO }, ids = [], anim = 0, scnB = [], picks = null, pulse = 0;
+let cur = { ...ZERO }, ids = [], anim = 0, scnB = [], picks = null, pulse = 0, last = null;
 const budget = () => $('s-bud').value * 1e6;
 
 function inside([x, y], ring) {
@@ -755,6 +755,8 @@ function optimize() {
   const fac = pois.filter((p) => close(p.geometry.coordinates)).reduce((a, p) => a + (p.properties.type === 'school' ? 450 : 80), 0);
   const share = cand.filter((c) => close(c.c)).length / (cand.length || 1);
   const res = fac + Math.round(selected.population * (selected.age65_pct / 100) * share);
+  last = { x, res, chosen, spent: budget() - left };
+  document.body.classList.remove('briefed'); $('s-export').textContent = 'Export council brief (PDF)';
 
   for (const f of scnB) map.setFeatureState({ source: 'bld', id: f.id }, { cool: 0 });
   const again = !!picks;
@@ -783,7 +785,7 @@ function clearPicks() {
   cancelAnimationFrame(pulse);
   picks = null;
   map.getSource('picks')?.setData(EMPTY);
-  document.body.classList.remove('optimized');
+  document.body.classList.remove('optimized', 'briefed'); $('s-export').textContent = 'Export council brief (PDF)';
 }
 
 $('o-top').onclick = (e) => {
@@ -803,7 +805,42 @@ $('s-reset').onclick = () => {
   animateTo({ ...ZERO });
 };
 $('s-opt').onclick = optimize;
-$('s-export').onclick = () => window.print();
+// ---- Council brief: optimizer facts → Gemini (/api/brief), canned text if no key or offline ----
+async function makeBrief() {
+  if (document.body.classList.contains('briefed')) return window.print();
+  if (!picks) optimize();
+  if (!last) return;
+  const { x, res, chosen, spent } = last, area = chosen.reduce((a, c) => a + c.f.properties.area, 0);
+  // Benefit model: ~$3.2/m²/yr AC energy saved under a cool roof, ~10 W/m² peak cut, ~$180/yr avoided heat-health cost per protected resident.
+  const energy = area * 3.2, health = res * 180, peak = area * 0.01 / 1000;
+  const f = {
+    city: CITY.name, precinct: selected.name, air_temp_c: live && (live.t + (selected.offset || 0)).toFixed(1),
+    vs_airport_station_c: live && (live.t + (selected.offset || 0) - live.ref).toFixed(1), roof_surface: layerRow('heat', selected)?.slice(1).join(', '),
+    pm2_5: aq && (aq.pm2_5 + plumeAt(mid(ringOf(selected.name)))).toFixed(1), residents: selected.population, age65_pct: selected.age65_pct,
+    schools: $('p-schools').textContent, aged_care: $('p-aged').textContent,
+    budget: `$${(spent / 1e6).toFixed(2)}M`, roofs_funded: chosen.length, roof_area_m2: Math.round(area),
+    cooling_per_dollar_vs_uniform: `${x.toFixed(1)}x`, vulnerable_residents_protected: res,
+    annual_benefit: `$${Math.round((energy + health) / 1000)}k (energy $${Math.round(energy / 1000)}k, health $${Math.round(health / 1000)}k)`,
+    payback_years: (spent / (energy + health)).toFixed(1), peak_demand_cut_mw: peak.toFixed(2),
+    top_targets: chosen.slice(0, 5).map((c) => `${c.near ? `near ${c.near}` : 'roof'} +${c.ex.toFixed(1)}°C`).join('; '),
+  };
+  $('s-export').textContent = 'Drafting brief…';
+  let b;
+  try {
+    const r = await fetch('/api/brief', { method: 'POST', body: JSON.stringify(f) });
+    b = r.ok ? await r.json() : null;
+  } catch {}
+  b ??= {
+    hazard: `${f.precinct} is at ${f.air_temp_c}°C today, and its hottest roofs run up to ${chosen[0]?.ex.toFixed(1)}°C over the local median. ${f.residents.toLocaleString()} residents live here, ${f.age65_pct}% aged 65+, alongside ${f.schools} schools and ${f.aged_care} aged-care sites.`,
+    plan: `${f.budget} funds cool-roof coatings on ${f.roofs_funded} roofs (${f.roof_area_m2.toLocaleString()} m²), chosen for heat, size and proximity to schools and aged care. That delivers ${f.cooling_per_dollar_vs_uniform} more cooling per dollar than a uniform rollout.`,
+    roi: `The program returns ${f.annual_benefit} a year, paying back in ${f.payback_years} years. It cuts peak grid demand by ${f.peak_demand_cut_mw} MW and protects ${res.toLocaleString()} vulnerable residents through the hottest weeks.`,
+  };
+  $('b-hazard').textContent = b.hazard; $('b-plan').textContent = b.plan; $('b-roi').textContent = b.roi;
+  $('b-meta').textContent = `${f.city} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  $('s-export').textContent = 'Print council brief (PDF)';
+  document.body.classList.add('briefed');
+}
+$('s-export').onclick = makeBrief;
 document.querySelector('.scn').oninput = () => {
   $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
   if (picks) optimize(); else animateTo(target(), 300);
