@@ -453,17 +453,53 @@ async function addOverlays() {
     paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.8, 10, 0.6, 11, 0], 'raster-resampling': 'linear' } }, 'ndvi');
 }
 
-// 3D trees grown from the 30 m NDVI inside the building box: at most one crown per pixel, likelier and taller where greener.
+// 3D trees. Parramatta: grown from the 30 m NDVI (at most one per pixel, likelier and taller where greener).
+// Other cities (Sydney CBD's Landsat scene is cloudy): OSM mapped trees + trees/shrubs scattered in parks and woods.
 let treesP = null, ndviP = null;
-function addTrees() {
-  if (treesP || !buildings.length) return;
-  const seq = loadSeq;
-  treesP = (ndviP ??= sampler('/data/ndvi-landsat-gray.png')).then((ndvi) => {
-    if (seq !== loadSeq) return;
+const DENSITY = { wood: [1 / 70, 0], park: [1 / 300, 1 / 600], scrub: [1 / 900, 1 / 60], grass: [1 / 2500, 1 / 500] }; // [trees, shrubs] per m²
+function inRing([x, y], g) {
+  let c = false;
+  for (let i = 0, j = g.length - 1; i < g.length; j = i++) {
+    const [xi, yi] = g[i], [xj, yj] = g[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+async function treeSpots(key) {
+  const spots = []; // [lon, lat, greenness 0..1 or -1 for a shrub]
+  if (key === 'parramatta') {
+    const ndvi = await (ndviP ??= sampler('/data/ndvi-landsat-gray.png'));
     let [w, s, e, n] = [180, 90, -180, -90];
     for (const f of buildings) for (const [x, y] of f.geometry.coordinates[0]) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
     const L = LANDSAT, sx = (L.e - L.w) / L.px[0], sy = (L.n - L.s) / L.px[1];
-    const ky = 1 / 110540, kx = 1 / (111320 * Math.cos((s * Math.PI) / 180)), features = [];
+    for (let x = w; x < e; x += sx) for (let y = s; y < n; y += sy) {
+      const v = (ndvi(x, y) ?? 0) * 0.8, at = [x + Math.random() * sx, y + Math.random() * sy]; // NDVI
+      if (v >= 0.25 && v < 0.4) { if (Math.random() < 0.25) spots.push([...at, -1]); } // lightly green: shrub tufts
+      else if (v >= 0.4 && Math.random() < (v - 0.3) / 0.3) spots.push([...at, Math.min(1, (v - 0.4) / 0.25)]);
+    }
+    return spots;
+  }
+  const { features } = await fetch(`/data/green-${key}.geojson`).then((r) => r.json());
+  const kx = 111320 * Math.cos((CITY.center[1] * Math.PI) / 180), ky = 110540;
+  for (const { properties: { k }, geometry: g } of features) {
+    if (k === 'tree') { spots.push([...g.coordinates, 0.3 + 0.7 * Math.random()]); continue; }
+    const ring = g.coordinates[0], xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1]);
+    const w = Math.min(...xs), e = Math.max(...xs), s = Math.min(...ys), n = Math.max(...ys);
+    const box = (e - w) * kx * (n - s) * ky, [dt, ds] = DENSITY[k];
+    // ponytail: density applied to the bbox and rejected outside the ring, so thin diagonal parks get fewer; fine for a demo
+    for (let i = Math.min(4000, Math.round(box * (dt + ds))); i > 0; i--) {
+      const at = [w + Math.random() * (e - w), s + Math.random() * (n - s)];
+      if (inRing(at, ring)) spots.push([...at, Math.random() < dt / (dt + ds) ? 0.4 + 0.6 * Math.random() : -1]);
+    }
+  }
+  return spots;
+}
+function addTrees() {
+  if (treesP || !buildings.length) return;
+  const seq = loadSeq;
+  treesP = treeSpots(CITY.key).then((spots) => {
+    if (seq !== loadSeq) return;
+    const ky = 1 / 110540, kx = 1 / (111320 * Math.cos((CITY.center[1] * Math.PI) / 180)), features = [];
     const add = (cx, cy, r, b, h, c, sides = 8) => {
       const a0 = Math.random() * Math.PI;
       const ring = Array.from({ length: sides + 1 }, (_, i) => { const a = a0 + (i * 2 * Math.PI) / sides; return [cx + Math.cos(a) * r * kx, cy + Math.sin(a) * r * ky]; });
@@ -476,15 +512,9 @@ function addTrees() {
       { w: 0.2, tiers: [[0.5, 0.35], [0.42, 0.35], [0.25, 0.3]], trunk: 0.2, cols: ['#166534', '#14532d', '#1f6f3a'] },
       { w: 0.25, tiers: [[1.3, 0.55], [0.95, 0.45]], trunk: 0.45, cols: ['#15803d', '#2f7d32', '#3b7a2a'] },
     ];
-    for (let x = w; x < e; x += sx) for (let y = s; y < n; y += sy) {
-      const v = (ndvi(x, y) ?? 0) * 0.8; // NDVI
-      const cx = x + Math.random() * sx, cy = y + Math.random() * sy;
-      if (v >= 0.25 && v < 0.4) { // lightly green: shrub tufts
-        if (Math.random() < 0.25) add(cx, cy, 1 + Math.random(), 0, 0.8 + Math.random(), pick(['#65a30d', '#84cc16', '#6b8e23']), 6);
-        continue;
-      }
-      if (v < 0.4 || Math.random() > (v - 0.3) / 0.3) continue;
-      const g = Math.min(1, (v - 0.4) / 0.25), r = 3 + 3 * Math.random() + 2 * g, h = 7 + 3 * Math.random() + 10 * g * Math.random();
+    for (const [cx, cy, g] of spots) {
+      if (g < 0) { add(cx, cy, 1 + Math.random(), 0, 0.8 + Math.random(), pick(['#65a30d', '#84cc16', '#6b8e23']), 6); continue; }
+      const r = 3 + 3 * Math.random() + 2 * g, h = 7 + 3 * Math.random() + 10 * g * Math.random();
       let u = Math.random(), sp = SPECIES[0];
       for (const q of SPECIES) if ((u -= q.w) < 0) { sp = q; break; }
       const hs = sp === SPECIES[1] ? h * 1.4 : sp === SPECIES[2] ? h * 0.8 : h, c = pick(sp.cols);

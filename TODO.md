@@ -99,6 +99,7 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
 
 - [x] **5d. Realistic trees and flora** (later, owner-raised 2026-10-03)
   - Done 2026-10-04 without three.js (owner choice): each tree = trunk + 2–3 stacked crown tiers, species by weight (gum 55%, poplar 20%, fig 25%), per-tree colour; shrub tufts on NDVI 0.25–0.4. Still extrusions, blocky up close.
+  - Fix 2026-10-04: Sydney CBD's NDVI is cloud-noisy (trees in the harbour), other cities had none. Non-Parramatta trees now come from OSM (`node scripts/fetch-green.mjs <city>`): mapped trees + scatter in parks/woods/grass. Suva is thin (170 mapped trees, 31 areas).
   - Replace the octagon crowns with real 3D tree models (e.g. a few low-poly glTF species instanced via a
     MapLibre custom layer + three.js, or a model layer if MapLibre gains one). Vary species/size by NDVI; add shrubs/grass
     tufts on low-NDVI green. Needs a new dependency (three.js): ask first.

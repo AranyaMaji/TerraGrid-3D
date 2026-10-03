@@ -2,6 +2,8 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Trees in every city: OSM mapped trees + park/wood scatter (`scripts/fetch-green.mjs`, `data/green-*.geojson`); Sydney CBD no longer uses its cloudy NDVI, so no trees in the harbour.
+
 - 2026-10-04 — Item 5d: trees get trunks and tiered crowns in three species shapes (round gum, tall narrow, wide spreading) with varied greens, plus shrub tufts on lightly vegetated pixels. No new dependency.
 - 2026-10-04 — Docs: documented comprehensive Discord server learnings (submission fields, 30/30/20/20 rubric, video specs, AI disclosure, and mentor tips) in docs/hackathon/discord-learnings.md.
 - 2026-10-04 — Preview tunnel (`preview.amsham.net`) runs only with the dev server; `/api/brief` refuses tunnelled requests so the Gemini key stays local-only.
