@@ -611,10 +611,10 @@ function renderPanel() {
   $('p-aged').textContent = here.filter((f) => f.properties.type === 'aged').length;
   $('p-pop').textContent = `${(p.population / 1000).toFixed(1)}k`;
   $('p-age').textContent = `${p.age65_pct}%`;
-  // Every layer's metric is always shown, whether or not it is on the map. Icon/colour from the toolbar chip.
+  // Every layer's metric is always shown; rows for layers on the map are lit and carry the legend's ramp, the rest dim.
   $('lrows').innerHTML = Object.keys(LAYERS).map((k) => {
     const r = layerRow(k, p) ?? ['', '--', ''], chip = document.querySelector(`#layers [data-k=${k}]`);
-    return `<div class="lrow" style="${chip.getAttribute('style')}">${chip.querySelector('svg').outerHTML}` +
+    return `<div class="lrow${on.has(k) ? ' on' : ''}" style="${chip.getAttribute('style')};--ramp:linear-gradient(90deg, ${LAYERS[k].legend[1]})">${chip.querySelector('svg').outerHTML}` +
       `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></div>`;
   }).join('');
   if (!live) return;
@@ -630,7 +630,9 @@ function layerRow(k, p) {
   if (k === 'heat') {
     if (!buildings.length) return null;
     const t = area().map((f) => f.properties.lst).filter((v) => v != null).sort((a, b) => a - b), m = t[t.length >> 1] ?? lstMed, d = m - lstMed;
-    return ['Roof surface', `${m.toFixed(1)}°C`, selected ? `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.name} avg` : CITY.surf ? 'Summer median' : 'Landsat median'];
+    // Hot = 1°C+ above the city median, the red end of the building ramp.
+    const hot = Math.round((100 * t.filter((v) => v > lstMed + 1).length) / (t.length || 1));
+    return ['Roof surface', `${m.toFixed(1)}°C`, `${selected ? `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs avg` : CITY.surf ? 'Summer median' : 'Landsat median'} · ${hot}% roofs hot`];
   }
   if (k === 'smoke') {
     if (!aq) return null;
@@ -643,8 +645,8 @@ function layerRow(k, p) {
     return ['Tree canopy', `${p.tree_cover_pct}%`, `${Math.abs(d)} pts ${d < 0 ? 'below' : 'above'} 40% target`];
   }
   if (!buildings.length) return null;
-  const m = area().reduce((a, f) => a + f.properties.mwh, 0);
-  return ['Rooftop solar', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`, `≈ ${Math.round(m / 6).toLocaleString()} homes`];
+  const a = area(), m = a.reduce((s, f) => s + f.properties.mwh, 0);
+  return ['Rooftop solar', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`, `${a.length.toLocaleString()} roofs · ≈ ${Math.round(m / 6).toLocaleString()} homes`];
 }
 
 // ---- Scenario simulator: levers cool the selected precinct's buildings; KPIs count up ----
