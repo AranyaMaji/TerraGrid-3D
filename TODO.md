@@ -39,7 +39,13 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Fixed 2026-10-03 (verified in Chrome): 100 m Landsat 8 surface temp (9 Jan 2026, keyless via Planetary Computer, baked to `data/lst-landsat*.png`) at city zoom; building colour = Landsat temp at footprint (replaced the heuristic; stops overlapping-part stripes); tile 3D buildings hidden from z14 (they z-fought ours → coloured sides, grey roofs); building parts + multipolygons added, outlines containing parts dropped. Legend now inferno 35–50 °C matching Landsat.
   - Left: legend doesn't match MODIS's own palette at globe zoom; Landsat image edge visible around z11–12 (widen bbox if it shows in the video); panel could show the real 9 Jan surface temp (45.8 °C median) in item 3.
 
- + side panel + POI pins** (~40 min)
+- [ ] **2c. Heat readability + hide the "Parramatta-only" edges** (~30 min, owner-raised 2026-10-03, verify in Chrome)
+  - Every building looks amber/yellow: 9 Jan 2026 roofs really were 42–47 °C (median 45.8), and the 42–48 °C stretch puts the median mid-ramp, so nothing reads as "cool". Switch buildings to a diverging ramp centred on the scene median (teal/cyan = cooler than local average, red/pink = hotter), legend "°C vs Parramatta average". Keep absolute °C for the panel.
+  - Towers read cool because their colour is the 100 m Landsat pixel under them (tower shadows + river-side pixels pull it down), not the tower's own surface. Either accept and explain in "Data & methods", or blend in a small roof-area/height term so towers sit near average.
+  - 2D/zoomed-out shows a hard Landsat square around Parramatta. Fix: re-bake `scripts/fetch-landsat.sh` over Greater Sydney (e.g. 150.70,-34.10,151.35,-33.55 at ~3000 px; check the scene covers it or mosaic two rows) and feather the image edges to transparent (bake an alpha falloff, or a canvas vignette at load) so it fades into MODIS instead of ending in a square.
+  - Same problem in 3D: tile buildings are hidden from z14, so outside our 4.4 km OSM box there are NO buildings at street zoom. Either widen the OSM box, or keep tile buildings visible outside it.
+
+- [ ] **3. Precinct selection + side panel + POI pins** (~40 min)
   - `data/precincts.geojson`: 3–4 hand-drawn polygons in Parramatta (e.g. CBD, Harris Park, Westmead, North Parramatta)
     with props: name, tree_cover_pct, age65_pct, schools, aged_care (illustrative, plausible).
   - Click a precinct → teal outline + label pill (design), camera eases to it, side panel fills: name, headline temp
