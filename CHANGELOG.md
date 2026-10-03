@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Preview tunnel (`preview.amsham.net`) runs only with the dev server; `/api/brief` refuses tunnelled requests so the Gemini key stays local-only.
 - 2026-10-03 — Item 7b: "Export council brief" drafts a hazard / funded plan / ROI brief via Gemini (`POST /api/brief` Vite middleware, key from `GEMINI_API_KEY`), canned fallback offline; shows in the panel and prints as a clean one-pager.
 
 - 2026-10-03 — Item 7a: budget optimizer in the scenario card ($0.5–5M slider + Optimize): greedy cool-roof fill by heat × area × school/aged-care proximity, funded roofs pulse teal, panel shows cooling-per-$ vs uniform rollout, vulnerable residents protected, top 5 targets (click to fly). Headline delta now vs each city's airport station.
