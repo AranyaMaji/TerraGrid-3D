@@ -2,6 +2,8 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — City switch pulls back to the globe, loads there, then dives in flat and tilts on landing: worst frame 950 → 158 ms; TODO gains 6b–6d (POIs everywhere, address search, map-aware sidebar, building popup).
+
 - 2026-10-03 — Multi-city: Melbourne CBD, Central London, Sydney CBD and Suva (Fiji) alongside Parramatta, each with baked OSM buildings, heat/solar/scenario, 4–5 precincts and live Open-Meteo; search box switches city with a globe fly; fixed OSM height parsing ("12;15" no longer becomes 1215 m).
 
 - 2026-10-03 — Stat tile shows Residents per precinct instead of Days over 35°C; Sources & assumptions link removed; panel spacing grows with spare height (auto margins) and never overflows (fits down to ~760 px panel height).

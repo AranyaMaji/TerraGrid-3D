@@ -107,6 +107,30 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - City switcher in nav/search. Globe fly between cities. Reuse tile `building-3d` (no Overpass) with precinct-level
     heat tint only; Open-Meteo per city. Skip if time is short.
 
+- [x] **6a. Smooth city-to-city flight** (owner-raised 2026-10-03, verify fps in Chrome)
+  - Flight is choppy: it keeps pitch 60 the whole way (loads masses of horizon tiles) and parses/uploads the next
+    city's 7 MB of buildings mid-flight. Fly flat with the old city cleared, load + tilt up on landing.
+  - Done (owner's idea): pull back to the globe, load there (building layers minzoom 12, so no render cost), dive in flat, tilt on landing. Worst frame 950 → 158 ms, p95 25 → 8.5 ms.
+
+- [ ] **6b. Real POIs in every city, sidebar counts from them** (owner-raised 2026-10-03)
+  - Pins only exist in Parramatta. Bake all named schools + aged care per city box from Overpass
+    (`scripts/fetch-pois.mjs`, curl). Panel Schools / Aged care = real count inside the selected precinct (or box).
+    Pins: a spread-out subset when nothing is selected, every pin inside the precinct when one is.
+
+- [ ] **6c. Search any real address, anywhere** (owner-raised 2026-10-03)
+  - Geocode from the browser (Photon/Nominatim, debounced suggestions list styled like the design) → globe fly to it.
+  - Inside a baked city box: switch to that city and select the precinct containing the point, drop an address pin.
+  - Anywhere else ("live mode"): harvest the vector-tile buildings in view (`querySourceFeatures`, dedupe by id) into
+    the `bld` source with proxy heat, so heat/solar/scenario still work; panel name = place name, live Open-Meteo
+    temp + AQ at the point, ref = nearest coast/rural point (or a fixed offset); a ~1 km circle as the one "precinct";
+    runtime Overpass for POIs. Blast radius: CITY assumptions in renderPanel/layerRow/plume/crumbs/legend.
+
+- [ ] **6d. Sidebar follows the map** (owner-raised 2026-10-03: "sidebar is dumb about what's on the map")
+  - Active layers' rows highlighted/expanded, inactive ones dimmed; legend and rows agree.
+  - [ ] Click a building → small aesthetic popup: name, else address (bake OSM `name` / `addr:*` into the building
+    files; fall back to Nominatim reverse on click), coords, plus height, roof °C vs avg, solar MWh. (owner-raised)
+  - Precinct stats derived from the map where possible (buildings count, hottest roofs share, solar) instead of static props.
+
 - [ ] **7. AI: "Ask the twin"** (~30 min)
   - Vite `configureServer` middleware `POST /api/ask` → Gemini (`GEMINI_API_KEY` env). Prompt includes current city,
     precinct stats, live temp/air quality, available actions. Model returns JSON `{answer, action?: {type:'flyTo'|'select'|'layer'|'scenario', ...}}`.

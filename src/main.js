@@ -123,9 +123,22 @@ function goCity(c) {
   flown = true;
   spinning = false;
   setMode3d(true, false);
-  map.flyTo({ center: c.center, zoom: 16, pitch: 60, bearing: -20, speed: 1.1, curve: 1.8, essential: true });
+  // Pull back to the globe, load the new city up there (building layers are off below z12, so it costs no rendering),
+  // then dive in flat and tilt up on landing. A pitched flight loads masses of horizon tiles and stutters.
+  loadSeq++;
+  buildings = [];
+  for (const s of ['bld', 'trees', 'precincts']) map.getSource(s)?.setData(EMPTY);
+  markers.forEach((m) => m.remove());
+  plumeMarker?.remove();
   liveTemp();
-  loadCity();
+  map.easeTo({ zoom: 2.2, pitch: 0, bearing: 0, duration: 2000, essential: true });
+  map.once('moveend', async () => {
+    if (c !== CITY) return;
+    await loadCity();
+    if (c !== CITY) return;
+    map.flyTo({ center: c.center, zoom: 15.4, speed: 0.9, curve: 1.5, essential: true });
+    map.once('moveend', () => c === CITY && map.easeTo({ zoom: 16, pitch: 60, bearing: -20, duration: 2500 }));
+  });
 }
 
 // Search box: a city name switches city, a precinct name of the current city selects it.
@@ -210,7 +223,7 @@ async function addHeatLayers() {
 
   map.addSource('bld', { type: 'geojson', data: EMPTY, attribution: '© OpenStreetMap contributors' });
   map.addLayer({
-    id: 'bld-heat', type: 'fill-extrusion', source: 'bld',
+    id: 'bld-heat', type: 'fill-extrusion', source: 'bld', minzoom: 12,
     paint: {
       'fill-extrusion-color': wallColor(),
       'fill-extrusion-height': ['get', 'height'],
@@ -221,7 +234,7 @@ async function addHeatLayers() {
   });
   // Solar paints a thin cap on each roof only, so it mixes with the heat-coloured walls.
   map.addLayer({
-    id: 'roofs', type: 'fill-extrusion', source: 'bld', layout: vis('roofs'),
+    id: 'roofs', type: 'fill-extrusion', source: 'bld', minzoom: 12, layout: vis('roofs'),
     paint: {
       'fill-extrusion-color': SOLAR_COLOR,
       'fill-extrusion-base': ['get', 'height'],
