@@ -85,6 +85,8 @@ const features = blds.map((el) => {
       min_height: num(t.min_height) || 0,
       area: Math.round(area),
       dist_green: Math.round(Math.min(d, 2000)),
+      type: t.building && t.building !== 'yes' ? t.building : t.amenity || t.shop && 'retail' || t.office && 'office' || t.building || 'yes',
+      levels: num(t['building:levels']) || undefined,
     },
     geometry: { type: 'Polygon', coordinates: [el.geometry.map((p) => [+p.lon.toFixed(6), +p.lat.toFixed(6)])] },
   };

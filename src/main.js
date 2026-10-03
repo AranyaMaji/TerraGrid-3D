@@ -10,21 +10,37 @@ maplibregl.setWorkerUrl(workerUrl);
 // precincts and POIs carry a `city` key. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
 const CITIES = [
   { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.177, -33.946], refName: 'Sydney Airport station',
-    ghi: 1790, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
+    ghi: 1790, kwh$: 0.30, cur: '$', cool: 1, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
     tree_cover_pct: 12, age65_pct: 18, population: 64700 },
   { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.843, -37.669], refName: 'Melbourne Airport station',
-    ghi: 1600, surf: 41, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
+    ghi: 1600, surf: 41, kwh$: 0.29, cur: '$', cool: 0.7, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
     tree_cover_pct: 12, age65_pct: 8, population: 111900 },
   { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [-0.454, 51.470], refName: 'Heathrow station',
-    ghi: 1000, surf: 33, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
+    ghi: 1000, surf: 33, kwh$: 0.25, cur: '£', cool: 0.35, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
     tree_cover_pct: 14, age65_pct: 11, population: 53100 },
   { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.177, -33.946], refName: 'Sydney Airport station',
-    ghi: 1800, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
+    ghi: 1800, kwh$: 0.30, cur: '$', cool: 0.9, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
     tree_cover_pct: 15, age65_pct: 10, population: 46000 },
   { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.559, -18.043], refName: 'Nausori Airport station',
-    ghi: 1950, surf: 39, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
+    ghi: 1950, surf: 39, kwh$: 0.42, cur: 'FJ$', cool: 1, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
     tree_cover_pct: 20, age65_pct: 6, population: 93900 },
 ];
+// Energy use by building type: EUI kWh per m² floor per year (NABERS/CBECS-style medians), cooling share of it
+// in a warm-temperate climate (scaled by the city's `cool`). OSM building tags map onto these types in buildingType().
+const ENERGY = {
+  house: { eui: 110, cool: 0.18 }, apartment: { eui: 130, cool: 0.2 }, office: { eui: 210, cool: 0.32 },
+  retail: { eui: 300, cool: 0.28 }, school: { eui: 95, cool: 0.22 }, health: { eui: 380, cool: 0.26 },
+  hotel: { eui: 270, cool: 0.27 }, industrial: { eui: 140, cool: 0.12 }, other: { eui: 0, cool: 0 },
+  perC: 0.07, // extra cooling energy per °C of local roof heat
+};
+const OSM_TYPE = {
+  house: 'house detached semidetached_house terrace bungalow hut cabin farm', apartment: 'apartments residential dormitory',
+  office: 'office commercial government civic public', retail: 'retail supermarket shop restaurant pub cafe fast_food bar kiosk marketplace',
+  school: 'school kindergarten university college', health: 'hospital clinic nursing_home doctors social_facility aged',
+  hotel: 'hotel', industrial: 'industrial warehouse factory service manufacture',
+  other: 'roof shelter garage garages carport shed construction ruins bridge church place_of_worship cathedral chapel',
+};
+const TYPE_OF = Object.fromEntries(Object.entries(OSM_TYPE).flatMap(([k, v]) => v.split(' ').map((t) => [t, k])));
 let CITY = CITIES.find((c) => c.key === new URLSearchParams(location.search).get('city')) ?? CITIES[0];
 const OCEANIA = [150, -25];
 
@@ -323,6 +339,7 @@ async function loadCity() {
   // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
   const heat = lst.map((t, i) => t == null ? 0 :
     Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
+  energyModel(gj.features, lst, all.features.filter((f) => f.properties.city === c.key));
   // Colour by rank of rooftop yield so the ramp spreads evenly.
   const mwh = gj.features.map(roofMWh), solar = rank(mwh);
   map.removeFeatureState({ source: 'bld' });
@@ -347,6 +364,27 @@ async function loadCity() {
   if (on.has('canopy')) addTrees();
   renderLegend();
   renderPanel();
+}
+
+// Per-building energy: type (OSM tag, else inferred), floor area, baseline + cooling kWh, and the extra cooling
+// local heat adds: roof °C above the city's coolest 10% of roofs. Everything downstream reads these props.
+function energyModel(fs, lst, cityPois) {
+  const ref = lst.filter((t) => t != null).sort((a, b) => a - b), cool10 = ref[Math.floor(ref.length / 10)] ?? 0;
+  const near = (p, m) => Math.hypot((p[0] - CITY.center[0]) * 93000, (p[1] - CITY.center[1]) * 111000) < m;
+  fs.forEach((f, i) => {
+    const q = f.properties, ring = f.geometry.coordinates[0];
+    let type = TYPE_OF[q.type], conf = type ? 'osm' : 'inferred';
+    if (!type) {
+      const poi = cityPois.find((p) => inside(p.geometry.coordinates, ring));
+      type = poi ? (poi.properties.type === 'aged' ? 'health' : 'school')
+        : q.height > 30 ? (near(mid(ring), 800) ? 'office' : 'apartment')
+        : q.area < 60 ? 'other' : q.area < 300 ? 'house' : q.height >= 10 ? 'apartment' : 'retail';
+    }
+    const e = ENERGY[type], floor = q.area * (q.levels || Math.max(1, Math.round(q.height / 3.2)));
+    const kwh = floor * e.eui, cool = kwh * Math.min(0.6, e.cool * (CITY.cool ?? 1));
+    Object.assign(q, { type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool_kwh: Math.round(cool),
+      extra_kwh: Math.round(cool * ENERGY.perC * Math.max(0, (lst[i] ?? cool10) - cool10)) });
+  });
 }
 
 // Percentile rank 0..1 of each value.
@@ -677,6 +715,8 @@ function renderPanel() {
   $('temp').textContent = `${t.toFixed(1)}°C`;
   $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.refName}`;
   $('delta').classList.toggle('cool', d < 0);
+  const usd = (selected ? within(ringOf(selected.name)) : buildings).reduce((s, f) => s + (f.properties.extra_kwh || 0), 0) * CITY['kwh$'];
+  $('extra').textContent = buildings.length ? `${CITY.cur}${(Math.round(usd / 100) * 100).toLocaleString()} / yr extra cooling from local heat` : '';
 }
 
 // Panel row for a map layer: [label, value, sub-line] for the selected precinct (or the whole city).

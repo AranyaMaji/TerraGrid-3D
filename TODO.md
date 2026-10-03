@@ -178,7 +178,8 @@ Shared blast radius (check all of these on every item):
 `target`/`draw`/`animateTo` (scenario KPIs) · `optimize` (ranking) · `buildingPopup` · `makeBrief` facts + canned text ·
 `vite.config.js` prompt · print CSS · all 5 cities (proxy-heat cities have no Landsat: confidence differs).
 
-- [ ] **10. Energy model + "extra cooling cost from local heat" headline** (~45 min)
+- [x] **10. Energy model + "extra cooling cost from local heat" headline** (~45 min)
+  - Done 2026-10-04: OSM type/levels re-baked (Overpass up; ~70% of tags are `yes`, inferred via POI/height/area, `conf` = osm|inferred). Reference = city's coolest 10% of roofs; 7% cooling per °C. Per-city `kwh$`, `cur`, `cool` in CITIES. Parramatta CBD $557,600, Harris Park $1.22M, Southbank $3.37M, Central London £11.2M.
   - Type: OSM `building` tag. Building files don't keep it: add `type` (and `levels`) to `scripts/fetch-buildings.mjs`
     output and re-bake via curl-saved Overpass. If Overpass is down: infer (POI school/aged care inside footprint →
     that type; height > 30 m → office in CBD precincts, apartment elsewhere; else house/retail by area).
