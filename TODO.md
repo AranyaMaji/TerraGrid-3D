@@ -199,7 +199,8 @@ Shared blast radius (check all of these on every item):
   - Budget slider still caps spend; optimizer cost = chosen measure's cost, not flat $45/m².
   - Done when: toggling a measure visibly changes every KPI and payback, Optimize still pulses roofs.
 
-- [ ] **12. Retrofit priority map with adjustable weights + confidence** (~50 min, the core government feature)
+- [x] **12. Retrofit priority map with adjustable weights + confidence** (~50 min, the core government feature)
+  - Done 2026-10-04: inputs are percentile ranks; heat has a fixed 0.5 weight, sliders 0–2. Priority recolours walls (replaces heat walls while on, heat drape stays); ramp stretched over score quantiles. Moving a weight auto-runs Optimize. List names from Nominatim reverse (cached, 1/s). Best measure is mostly solar (3.5 yrs flat) or smart controls for offices (1.6 yrs). Left: optimized panel ~207 px over at 855 px tall.
   - New layer chip "Priority": buildings coloured by score (teal ramp), on top of heat. Score per building =
     w1·savings $/yr + w2·(1/payback) + w3·public/vulnerable (school, aged care, hospital, public building, 65+ share)
     + heat exposure, each normalised 0–1. Best measure per building = highest saving per $ among those it applies to.

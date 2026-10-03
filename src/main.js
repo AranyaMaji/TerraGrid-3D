@@ -52,6 +52,48 @@ function retrofit(q, k) {
   const top = m.basis === 'floor' ? 1 : Math.min(1, (2 * q.area) / (q.floor || 1)); // roofs and trees only reach the top two floors
   return [n * m.rate, m.solar ? q.mwh * 1000 : top * ((m.cool ?? 0) * q.cool_kwh + (m.all ?? 0) * q.kwh + (m.extra ?? 0) * q.extra_kwh)];
 }
+
+// ---- Retrofit priority: per-building inputs, each a 0..1 percentile rank so one outlier can't flatten the ramp ----
+// nS savings $/yr and nP 1/payback of the building's best measure (highest saving per $), nV public/vulnerable, nH roof heat.
+// Score = weighted mean; heat has a fixed weight, the other three are the scenario card sliders.
+const W = { nS: 1, nP: 1, nV: 1, nH: 0.5 };
+const score = (q) => Object.entries(W).reduce((s, [k, w]) => s + w * q[k], 0) / Object.values(W).reduce((a, b) => a + b, 0);
+const PUBLIC = new Set('government civic public townhall library community_centre fire_station police courthouse'.split(' '));
+function priorityInputs(fs, cityPois) {
+  const kx = Math.cos((CITY.center[1] * Math.PI) / 180) * 111320, ky = 110540;
+  const best = fs.map((f) => {
+    let b = { k: null, cap: 0, kwh: 0 };
+    for (const k in MEASURES) { const [c, e] = retrofit(f.properties, k); if (c > 0 && e / c > (b.kwh / b.cap || 0)) b = { k, cap: c, kwh: e }; }
+    return { ...b, usd: b.kwh * CITY['kwh$'] };
+  });
+  const nS = rank(best.map((b) => b.usd)), nP = rank(best.map((b) => (b.cap ? b.usd / b.cap : 0))), nH = rank(fs.map((f) => f.properties.lst ?? 0));
+  fs.forEach((f, i) => {
+    const q = f.properties, b = best[i], [x, y] = mid(f.geometry.coordinates[0]);
+    // Vulnerable: schools, health and aged care themselves, public buildings, then fading out to 300 m from a school or aged care; homes carry the city's 65+ share.
+    const d = Math.min(...cityPois.map((p) => Math.hypot((p.geometry.coordinates[0] - x) * kx, (p.geometry.coordinates[1] - y) * ky)));
+    const nV = q.type === 'school' || q.type === 'health' ? 1 : PUBLIC.has(q.osm) ? 0.8
+      : Math.max(0.8 * Math.max(0, 1 - d / 300), q.type === 'house' || q.type === 'apartment' ? CITY.age65_pct / 40 : 0);
+    Object.assign(q, { best: b.k, best_usd: Math.round(b.usd), best_cap: Math.round(b.cap), nS: b.k ? nS[i] : 0, nP: b.k ? nP[i] : 0, nV, nH: nH[i] });
+  });
+}
+// Where each input comes from: measured (m), estimated (e), missing (x). Roof °C is measured only inside the Landsat scene.
+const conf = (q) => [['Roof °C', CITY.surf ? 'e' : 'm'], ['Footprint', 'm'], ['Type', q.conf === 'osm' ? 'm' : 'e'], ['Floor area', 'e'], ['Energy', 'e'], ['Metered', 'x']];
+const CONF = { m: 'measured', e: 'estimated', x: 'missing' };
+const dots = (q, labels) => `<span class="conf">${conf(q).map(([l, c]) => `<i class="cf ${c}" title="${l}: ${CONF[c]}">${labels ? l : ''}</i>`).join('')}</span>`;
+// Score ± band in points: estimated inputs carry their weight's share of a ±12 pt spread (savings and payback always do: no metering).
+const band = (q) => Math.round((12 * (W.nS + W.nP + (CITY.surf ? W.nH : 0) + (q.conf === 'osm' ? 0 : W.nV))) / Object.values(W).reduce((a, b) => a + b, 0));
+let scores = [];
+const rescore = () => (scores = buildings.map((f) => score(f.properties)).sort((a, b) => a - b));
+const pct = (q) => { if (scores.length !== buildings.length) rescore(); const s = score(q); let lo = 0, hi = scores.length; while (lo < hi) { const m = (lo + hi) >> 1; if (scores[m] < s) lo = m + 1; else hi = m; } return Math.round((100 * lo) / Math.max(1, scores.length - 1)); };
+// Teal ramp stretched over the city's score quantiles, so the top 10% always stand out whatever the weights.
+function prioColor() {
+  rescore();
+  const tot = Object.values(W).reduce((a, b) => a + b, 0), e = ['/', ['+', ...Object.entries(W).map(([k, w]) => ['*', w, ['get', k]])], tot];
+  let prev = -1;
+  const at = (p) => (prev = Math.max(prev + 1e-6, scores[Math.floor(p * (scores.length - 1))] ?? p));
+  return ['interpolate', ['linear'], e, at(0.5), '#1b2a3d', at(0.8), '#0f6f6a', at(0.93), '#14b8a6', at(0.99), '#99f6e4'];
+}
+const TYPE_NAME = { house: 'House', apartment: 'Apartments', office: 'Office', retail: 'Retail', school: 'School', health: 'Health / aged care', hotel: 'Hotel', industrial: 'Industrial', other: 'Other' };
 const OSM_TYPE = {
   house: 'house detached semidetached_house terrace bungalow hut cabin farm', apartment: 'apartments residential dormitory',
   office: 'office commercial government civic public', retail: 'retail supermarket shop restaurant pub cafe fast_food bar kiosk marketplace',
@@ -247,9 +289,9 @@ b3.onclick = () => setMode3d(true);
 // Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (slate blue), 0 = average (yellow), +1 = hotter (red).
 // Scenario: feature-state `cool` 0..1 blends toward cyan (was hottest) / green (was coolest).
 const HEAT = ['coalesce', ['feature-state', 'heat'], 0];
-const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'cool'], 0],
-  0, ['interpolate', ['linear'], HEAT, -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d'],
-  1, ['interpolate', ['linear'], HEAT, -1, '#34d399', 1, '#22d3ee']];
+const coolBlend = (base) => ['interpolate', ['linear'], ['coalesce', ['feature-state', 'cool'], 0],
+  0, base, 1, ['interpolate', ['linear'], HEAT, -1, '#34d399', 1, '#22d3ee']];
+const HEAT_COLOR = coolBlend(['interpolate', ['linear'], HEAT, -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d']);
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const gibsUrl = (layer, z, d) =>
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${d}/GoogleMapsCompatible_Level${z}/{z}/{y}/{x}.png`;
@@ -343,7 +385,7 @@ const json = (u) => fetch(u).then((r) => r.json());
 let landsatP = null, placesP = null, loadSeq = 0, markers = [];
 async function loadCity() {
   const c = CITY, seq = ++loadSeq;
-  buildings = []; lstMed = 0;
+  buildings = []; lstMed = 0; scores = [];
   landsatP ??= sampler('/data/lst-landsat-gray.png');
   placesP ??= Promise.all([json('/data/precincts.geojson'), json('/data/pois.geojson')]);
   const [gj, raw, [pre, all]] = await Promise.all([json(`/data/buildings-${c.key}.geojson`), landsatP, placesP]);
@@ -358,13 +400,15 @@ async function loadCity() {
   // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
   const heat = lst.map((t, i) => t == null ? 0 :
     Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
-  energyModel(gj.features, lst, all.features.filter((f) => f.properties.city === c.key));
+  const cityPois = all.features.filter((f) => f.properties.city === c.key);
+  energyModel(gj.features, lst, cityPois);
   // Colour by rank of rooftop yield so the ramp spreads evenly.
   const mwh = gj.features.map(roofMWh), solar = rank(mwh);
+  gj.features.forEach((f, i) => (f.properties.mwh = mwh[i]));
+  priorityInputs(gj.features, cityPois);
   map.removeFeatureState({ source: 'bld' });
   map.getSource('bld').setData(gj);
   gj.features.forEach((f, i) => {
-    f.properties.mwh = mwh[i];
     map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i], solar: solar[i] });
   });
   buildings = gj.features;
@@ -380,9 +424,7 @@ async function loadCity() {
 
   treesP = null;
   map.getSource('trees').setData(EMPTY);
-  if (on.has('canopy')) addTrees();
-  renderLegend();
-  renderPanel();
+  applyLayers(); // also recolours walls for the new city's priority scores
 }
 
 // Per-building energy: type (OSM tag, else inferred), floor area, baseline + cooling kWh, and the extra cooling
@@ -401,7 +443,7 @@ function energyModel(fs, lst, cityPois) {
     }
     const e = ENERGY[type], floor = q.area * (q.levels || Math.max(1, Math.round(q.height / 3.2)));
     const kwh = floor * e.eui, cool = kwh * Math.min(0.6, e.cool * (CITY.cool ?? 1));
-    Object.assign(q, { type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool_kwh: Math.round(cool),
+    Object.assign(q, { osm: q.type, type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool_kwh: Math.round(cool),
       extra_kwh: Math.round(cool * ENERGY.perC * Math.max(0, (lst[i] ?? cool10) - cool10)) });
   });
 }
@@ -444,11 +486,14 @@ const LAYERS = {
     legend: ['Vegetation (NDVI)', '#84cc16, #22c55e 50%, #065f46', 'Sparse', 'Dense', () => 'Landsat 30 m'] },
   solar: { ids: ['roofs'],
     legend: ['Rooftop solar potential', '#3b2a12, #b45309 50%, #f59e0b 85%, #fde68a', 'Low', 'High', () => `${CITY.ghi.toLocaleString()} kWh/m²/yr`] },
+  // Priority recolours the building walls (over heat); it has no layers of its own.
+  prio: { ids: [],
+    legend: ['Retrofit priority', '#1b2a3d, #0f6f6a 40%, #14b8a6 75%, #99f6e4', 'Later', 'Fix first', () => 'savings · payback · vulnerable · heat'] },
 };
 const OVERLAYS = Object.values(LAYERS).flatMap((l) => l.ids);
 const on = new Set(['heat']);
 const vis = (id) => ({ visibility: [...on].some((k) => LAYERS[k].ids.includes(id)) ? 'visible' : 'none' });
-const wallColor = () => (on.has('heat') ? HEAT_COLOR : C.bld);
+const wallColor = () => (on.has('prio') && buildings.length ? coolBlend(prioColor()) : on.has('heat') ? HEAT_COLOR : C.bld);
 
 function renderLegend() {
   $('legend').innerHTML = Object.keys(LAYERS).filter((k) => on.has(k)).map((k) => {
@@ -673,24 +718,37 @@ function addPrecinctLayers() {
 
 // Click a building: name or street address (Nominatim reverse, filled in when it answers), coords, roof heat, solar.
 const popup = new maplibregl.Popup({ className: 'bpop', closeButton: false, maxWidth: '280px', offset: 12 });
+// Reverse geocode → { name, addr } (name = building/venue name, else street), cached by point.
+const geoCache = new Map();
+function placeName([lng, lat]) {
+  const key = `${lng.toFixed(5)},${lat.toFixed(5)}`;
+  if (!geoCache.has(key)) geoCache.set(key, fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=${lat}&lon=${lng}`).then((r) => r.json()).then((j) => {
+    // Reverse geocoding returns the nearest named object; keep its name only if it's a building or venue, not a sign or bench.
+    if (!/^(building|amenity|tourism|office|shop|leisure|historic)$/.test(j.class)) j.name = '';
+    const a = j.address ?? {}, street = [a.house_number, a.road].filter(Boolean).join(' ');
+    return { name: j.name || street, addr: [j.name ? street : '', a.suburb || a.city_district || a.city].filter(Boolean).join(', ') };
+  }).catch(() => ({ name: '', addr: '' })));
+  return geoCache.get(key);
+}
+
 function buildingPopup(e) {
   const f = buildings.find((b) => b.id === e.features[0].id);
   if (!f) return;
   const { lng, lat } = e.lngLat, p = f.properties, d = p.lst - lstMed;
   const heat = p.lst == null ? '<b>--</b>' : `<b class="${d > 0 ? 'hot' : 'cool'}">${p.lst.toFixed(1)}°C</b><i>${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs avg</i>`;
-  popup.setLngLat(e.lngLat).setHTML(`<div class="bp-name">Building</div><div class="bp-addr">&nbsp;</div>` +
+  const pay = p.best_usd ? `<b>${(p.best_cap / p.best_usd).toFixed(1)} yrs</b><i>${money(p.best_usd)}/yr</i>` : '<b>--</b>';
+  popup.setLngLat(e.lngLat).setHTML(`<div class="bp-name">${TYPE_NAME[p.type]}</div><div class="bp-addr">&nbsp;</div>` +
     `<div class="bp-grid"><div><span>Roof</span>${heat}</div><div><span>Height</span><b>${Math.round(p.height)} m</b></div>` +
-    `<div><span>Solar</span><b>${Math.round(p.mwh)}</b><i>MWh/yr</i></div></div>` +
+    `<div><span>Solar</span><b>${Math.round(p.mwh)}</b><i>MWh/yr</i></div>` +
+    `<div><span>Type</span><b>${TYPE_NAME[p.type]}</b></div><div><span>Best fix</span><b>${p.best ? MEASURES[p.best].name : '--'}</b></div><div><span>Payback</span>${pay}</div></div>` +
+    `<div class="bp-prio"><span>Retrofit priority</span><b>${pct(p)}</b><i>± ${band(p)} / 100</i></div>${dots(p, true)}` +
     `<div class="bp-xy">${Math.abs(lat).toFixed(5)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lng).toFixed(5)}° ${lng < 0 ? 'W' : 'E'}</div>`).addTo(map);
   const el = popup.getElement();
-  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=${lat}&lon=${lng}`).then((r) => r.json()).then((j) => {
-    if (popup.getElement() !== el) return;
-    // Reverse geocoding returns the nearest named object; keep its name only if it's a building or venue, not a sign or bench.
-    if (!/^(building|amenity|tourism|office|shop|leisure|historic)$/.test(j.class)) j.name = '';
-    const a = j.address ?? {}, street = [a.house_number, a.road].filter(Boolean).join(' ');
-    el.querySelector('.bp-name').textContent = j.name || street || 'Building';
-    el.querySelector('.bp-addr').textContent = [j.name ? street : '', a.suburb || a.city_district || a.city].filter(Boolean).join(', ');
-  }).catch(() => {});
+  placeName([lng, lat]).then(({ name, addr }) => {
+    if (popup.getElement() !== el || !name) return;
+    el.querySelector('.bp-name').textContent = name;
+    el.querySelector('.bp-addr').textContent = addr ? `${TYPE_NAME[p.type]} · ${addr}` : TYPE_NAME[p.type];
+  });
 }
 
 function select(name) {
@@ -724,7 +782,7 @@ function renderPanel() {
   $('p-pop').textContent = `${(p.population / 1000).toFixed(1)}k`;
   $('p-age').textContent = `${p.age65_pct}%`;
   // Every layer's metric is always shown, whether or not it is on the map. Icon/colour from the toolbar chip.
-  $('lrows').innerHTML = Object.keys(LAYERS).map((k) => {
+  $('lrows').innerHTML = Object.keys(LAYERS).filter((k) => k !== 'prio').map((k) => {
     const r = layerRow(k, p) ?? ['', '--', ''], chip = document.querySelector(`#layers [data-k=${k}]`);
     return `<div class="lrow" style="${chip.getAttribute('style')}">${chip.querySelector('svg').outerHTML}` +
       `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></div>`;
@@ -799,7 +857,7 @@ function target() {
     pay: usd ? capex / usd : 0, n, co2: (kwh / 1000) * CITY.co2 };
 }
 
-const money = (v) => `${CITY.cur}${v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : `${Math.round(v / 1000)}k`}`;
+const money = (v) => `${CITY.cur}${v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : v < 1000 ? Math.round(v) : `${Math.round(v / 1000)}k`}`;
 function draw(s) {
   cur = s;
   for (const id of ids) map.setFeatureState({ source: 'bld', id }, { cool: s.cool });
@@ -843,25 +901,22 @@ function closeScenario() {
 }
 
 // ---- Budget optimizer: which roofs get the money ----
-// Score = roof °C over the precinct median × roof area / (distance to nearest school or aged care + 100 m).
+// Score = the weighted retrofit priority (savings, payback, vulnerable people, heat).
 // Greedy fill in score order at each building's cost for the chosen measures until the budget runs out. "× per $" compares against spending
 // the same budget evenly over every roof in the precinct (uniform rollout), on the same score.
 function optimize() {
   if (!scnB.length) return;
   const kx = Math.cos((CITY.center[1] * Math.PI) / 180) * 111320, ky = 110540;
   const dist = ([x, y], [u, v]) => Math.hypot((x - u) * kx, (y - v) * ky);
-  // Hot = over the precinct's own median, so the budget always has roofs to bind on (a cool CBD would have few over the city's).
-  const ts = scnB.map((f) => f.properties.lst).filter((t) => t != null).sort((a, b) => a - b), med = ts[ts.length >> 1] ?? lstMed;
   const cand = scnB.map((f) => {
     const c = mid(f.geometry.coordinates[0]);
     let d = 500, near = null;
     for (const p of pois) { const e = dist(c, p.geometry.coordinates); if (!near || e < d) d = e, near = p.properties.name; }
-    const ex = Math.max(0, (f.properties.lst ?? med) - med), cost = plan(f.properties)[0];
-    return { f, c, d, near, ex, cost, s: (ex * f.properties.area) / (d + 100) };
+    return { f, c, d, near, cost: plan(f.properties)[0], s: score(f.properties) };
   }).sort((a, b) => b.s - a.s);
   let left = budget();
   const chosen = [];
-  for (const c of cand) if (c.s > 0 && c.cost > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
+  for (const c of cand) if (c.cost > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
   const sum = (l, k) => l.reduce((a, c) => a + c[k], 0);
   const x = (sum(chosen, 's') / (budget() - left || 1)) / (sum(cand, 's') / (sum(cand, 'cost') || 1));
 
@@ -882,10 +937,19 @@ function optimize() {
   document.body.classList.add('optimized');
   $('o-x').textContent = `${x.toFixed(1)}×`;
   $('o-res').textContent = res.toLocaleString();
-  $('o-top').innerHTML = chosen.slice(0, 5).map((c, i) =>
-    `<li data-i="${i}"><div><b>${c.near ? `Near ${esc(c.near)}` : 'Roof'}</b>` +
-    `<span>+${c.ex.toFixed(1)}°C · ${Math.round(c.d)} m</span></div>` +
-    `<em>${money(c.cost)}</em></li>`).join('');
+  // Top 5: address once Nominatim answers (cached), else type + nearest facility.
+  $('o-top').innerHTML = chosen.slice(0, 5).map((c, i) => {
+    const q = c.f.properties;
+    return `<li data-i="${i}"><div><b>${c.near && c.d < 300 ? `Near ${esc(c.near)}` : TYPE_NAME[q.type]}</b>` +
+      `<span>${TYPE_NAME[q.type]} · ${q.best ? MEASURES[q.best].name : '--'} ${dots(q)}</span></div>` +
+      `<div class="t-n"><em>${money(q.best_usd)}/yr</em><span>${q.best_usd ? (q.best_cap / q.best_usd).toFixed(1) : '--'} yrs</span></div></li>`;
+  }).join('');
+  chosen.slice(0, 5).reduce((wait, c, i) => wait.then(async () => {
+    const hit = geoCache.has(`${c.c[0].toFixed(5)},${c.c[1].toFixed(5)}`), { name } = await placeName(c.c);
+    const b = picks === chosen && $('o-top').children[i]?.querySelector('b');
+    if (b && name) b.textContent = name;
+    if (!hit) await new Promise((r) => setTimeout(r, 1000)); // Nominatim allows ~1 request/s
+  }), Promise.resolve());
   cancelAnimationFrame(pulse);
   const beat = (now) => {
     map.setPaintProperty('picks', 'fill-extrusion-color', `hsl(173, 80%, ${45 + 25 * (0.5 + 0.5 * Math.sin(now / 250))}%)`);
@@ -945,7 +1009,7 @@ async function makeBrief() {
     cooling_per_dollar_vs_uniform: `${x.toFixed(1)}x`, vulnerable_residents_protected: res,
     annual_benefit: `$${Math.round((energy + health) / 1000)}k (energy $${Math.round(energy / 1000)}k, health $${Math.round(health / 1000)}k)`,
     payback_years: (spent / (energy + health)).toFixed(1), peak_demand_cut_mw: peak.toFixed(2),
-    top_targets: chosen.slice(0, 5).map((c) => `${c.near ? `near ${c.near}` : 'roof'} +${c.ex.toFixed(1)}°C`).join('; '),
+    top_targets: chosen.slice(0, 5).map((c) => `${TYPE_NAME[c.f.properties.type]}${c.near ? ` near ${c.near}` : ''}: ${MEASURES[c.f.properties.best]?.name ?? 'retrofit'}`).join('; '),
   };
   $('s-export').textContent = 'Drafting brief…';
   let b;
@@ -954,8 +1018,8 @@ async function makeBrief() {
     b = r.ok ? await r.json() : null;
   } catch {}
   b ??= {
-    hazard: `${f.precinct} is at ${f.air_temp_c}°C today, and its hottest roofs run up to ${chosen[0]?.ex.toFixed(1)}°C over the local median. ${f.residents.toLocaleString()} residents live here, ${f.age65_pct}% aged 65+, alongside ${f.schools} schools and ${f.aged_care} aged-care sites.`,
-    plan: `${f.budget} funds ${f.measures.toLowerCase()} on ${f.buildings_funded} buildings (${f.roof_area_m2.toLocaleString()} m² of roof), chosen for heat, size and proximity to schools and aged care. That delivers ${f.cooling_per_dollar_vs_uniform} more cooling per dollar than a uniform rollout.`,
+    hazard: `${f.precinct} is at ${f.air_temp_c}°C today, and its hottest funded roofs run up to ${Math.max(0, ...chosen.map((c) => (c.f.properties.lst ?? lstMed) - lstMed)).toFixed(1)}°C over the city median. ${f.residents.toLocaleString()} residents live here, ${f.age65_pct}% aged 65+, alongside ${f.schools} schools and ${f.aged_care} aged-care sites.`,
+    plan: `${f.budget} funds ${f.measures.toLowerCase()} on ${f.buildings_funded} buildings (${f.roof_area_m2.toLocaleString()} m² of roof), ranked by savings, payback, vulnerable people and roof heat. That delivers ${f.cooling_per_dollar_vs_uniform} more cooling per dollar than a uniform rollout.`,
     roi: `The program returns ${f.annual_benefit} a year, paying back in ${f.payback_years} years. It cuts peak grid demand by ${f.peak_demand_cut_mw} MW and protects ${res.toLocaleString()} vulnerable residents through the hottest weeks.`,
   };
   $('b-hazard').textContent = b.hazard; $('b-plan').textContent = b.plan; $('b-roi').textContent = b.roi;
@@ -964,8 +1028,14 @@ async function makeBrief() {
   document.body.classList.add('briefed');
 }
 $('s-export').onclick = makeBrief;
-document.querySelector('.scn').oninput = () => {
+document.querySelector('.scn').oninput = (e) => {
   $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
+  const w = e.target.dataset.w;
+  if (w) { // weight slider: recolour the priority map and re-rank
+    W[w] = +e.target.value;
+    if (on.has('prio')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor()); else toggleLayer('prio', true);
+    return optimize();
+  }
   if (picks) optimize(); else animateTo(target(), 300);
 };
 

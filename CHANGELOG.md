@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 12: "Priority" layer chip colours buildings by retrofit priority (savings, payback, vulnerable people, heat); three weight sliders recolour live and re-rank the optimizer; top-5 list shows address, type, best measure, $/yr, payback; popup adds type, best fix, payback, priority ± band and measured/estimated/missing badges.
 - 2026-10-04 — Item 11: six retrofit measure chips (cool roofs, trees, solar, insulation, HVAC, controls); scenario KPIs are now real sums over the precinct's buildings (saved/yr, payback, capex, MWh, CO₂, buildings reached); optimizer prices each building by the chosen measures.
 - 2026-10-04 — Item 10: per-building energy model (OSM type, floor area, EUI, cooling share) and a red "$/yr extra cooling from local heat" line under the temperature delta, per precinct or city.
 - 2026-10-04 — Trees in every city: OSM mapped trees + park/wood scatter (`scripts/fetch-green.mjs`, `data/green-*.geojson`); Sydney CBD no longer uses its cloudy NDVI, so no trees in the harbour.

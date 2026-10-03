@@ -208,10 +208,29 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .targets li { min-width: 0; counter-increment: t; display: flex; align-items: center; gap: 10px; padding: 3px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .targets li::before { content: counter(t); width: 20px; height: 20px; flex: none; border-radius: 50%; background: var(--teal); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
 .targets li:hover { background: #e7f5f4; }
-.targets li > div { flex: 1; min-width: 0; }
-.targets li > div { display: flex; align-items: baseline; gap: 8px; }
-.targets span { white-space: nowrap; }
-.opt .kpi-v { font-size: 32px; }
+.targets li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.targets li > .t-n { flex: none; align-items: flex-end; }
+.targets span { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+/* priority weights: three compact sliders in one row */
+.wts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+.wts label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.wts input { width: 100%; accent-color: var(--teal); margin-top: 2px; }
+/* input confidence: measured / estimated / missing */
+.conf { display: inline-flex; flex-wrap: wrap; gap: 3px 9px; }
+.cf { font-style: normal; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+.cf::before { content: ''; width: 7px; height: 7px; border-radius: 50%; }
+.cf.m::before { background: #10b981; }
+.cf.e::before { background: #f59e0b; }
+.cf.x::before { border: 1.5px solid #94a3b8; width: 4px; height: 4px; }
+.targets .conf { gap: 3px; }
+.bp-prio { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+.bp-prio span { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); flex: 1; }
+.bp-prio b { font-size: 18px; font-weight: 800; color: var(--teal); }
+.bp-prio i { font-style: normal; font-size: 11px; color: var(--muted); }
+.bpop .conf { margin-bottom: 8px; }
+.opt .kpi-v { font-size: 28px; }
+.optimized .opt-m { margin-top: 12px; }
+.targets li { line-height: 1.25; padding: 2px 8px; }
 .targets b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .targets span { font-size: 12px; color: var(--muted); }
 .targets em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -233,7 +252,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 /* council brief replaces optimizer results once drafted */
 .brief { display: none; margin-top: 18px; }
 .briefed .brief { display: block; }
-.briefed .opt, .briefed .bud, .briefed .lrows { display: none; }
+.briefed .opt, .briefed .bud, .briefed .wts, .briefed .lrows { display: none; }
 .b-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .brief h3 { font-size: 15px; font-weight: 700; margin-top: 14px; color: var(--teal); }
 .brief p { font-size: 14px; line-height: 1.5; margin-top: 4px; }
