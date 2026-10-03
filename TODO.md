@@ -56,7 +56,7 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Done when: clicking precincts updates the panel and pins render.
 
 - [x] **4. Scenario simulator: "Test canopy scenario"** (~40 min)
-  - Note: card replaces the stat tiles (panel still fits); KPIs given are at 50% coverage, scale linearly; CTA with nothing selected picks Parramatta CBD. Panel overflows slightly below ~700 px window height: record at 1080p.
+  - Note: card replaces the stat tiles (panel still fits); KPIs given are at 50% coverage, scale linearly; CTA with nothing selected picks Parramatta CBD. Owner change: no Apply button, simulates on open, Export brief is the CTA, Reset small in card header.
   - CTA opens scenario card: toggles Cool roofs / Tree canopy / Rooftop solar (checkboxes, default all on), slider "Coverage %".
   - Apply: buildings in the selected precinct animate heat → cool (cyan/green) over ~1.5 s (requestAnimationFrame lerp on
     feature-state); KPI counters count up: −4.2 °C surface, −18 % peak AC demand, +320 MWh/yr solar, $48k/yr saved

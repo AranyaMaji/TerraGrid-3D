@@ -302,23 +302,23 @@ function openScenario() {
   $('s-where').textContent = selected.name;
   document.body.classList.add('scenario');
   draw({ ...ZERO });
+  animateTo(target());
 }
 
 function closeScenario() {
   cancelAnimationFrame(anim);
   draw({ ...ZERO });
   ids = [];
-  document.body.classList.remove('scenario', 'applied');
+  document.body.classList.remove('scenario');
 }
 
-document.querySelector('.cta').onclick = openScenario;
+document.querySelector('.panel > .cta').onclick = openScenario;
 $('s-back').onclick = closeScenario;
-$('s-apply').onclick = () => { document.body.classList.add('applied'); animateTo(target()); };
-$('s-reset').onclick = () => { document.body.classList.remove('applied'); animateTo({ ...ZERO }); };
+$('s-reset').onclick = () => animateTo({ ...ZERO });
 $('s-export').onclick = () => window.print();
 document.querySelector('.scn').oninput = () => {
   $('s-cov-v').textContent = `${$('s-cov').value}%`;
-  if (document.body.classList.contains('applied')) animateTo(target(), 300);
+  animateTo(target(), 300);
 };
 
 // ---- Live air temperature: Parramatta vs coastal Sydney CBD (Open-Meteo, one call) ----
