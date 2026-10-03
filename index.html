@@ -98,6 +98,32 @@
         <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
       <a class="link center" href="#">Sources &amp; assumptions</a>
+
+      <section class="scn">
+        <div class="scn-h">
+          <button class="icon-btn" id="s-back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <div><div class="eyebrow">Cooling scenario</div><div class="scn-where" id="s-where"></div></div>
+        </div>
+        <div class="levers">
+          <label><input type="checkbox" id="s-roofs" checked /> Cool roofs</label>
+          <label><input type="checkbox" id="s-trees" checked /> Tree canopy</label>
+          <label><input type="checkbox" id="s-solar" checked /> Rooftop solar</label>
+        </div>
+        <label class="cov">Coverage <b id="s-cov-v">50%</b>
+          <input type="range" id="s-cov" min="0" max="100" value="50" />
+        </label>
+        <div class="kpis">
+          <div><div class="kpi-v cool" id="k-t">−0.0°C</div><div class="kpi-l">Surface temperature</div></div>
+          <div><div class="kpi-v cool" id="k-ac">−0%</div><div class="kpi-l">Peak AC demand</div></div>
+          <div><div class="kpi-v" id="k-mwh">+0</div><div class="kpi-l">MWh/yr solar</div></div>
+          <div><div class="kpi-v" id="k-usd">$0k</div><div class="kpi-l">Saved per year</div></div>
+        </div>
+        <div class="scn-btns">
+          <button class="cta" id="s-apply">Apply scenario</button>
+          <button class="ghost" id="s-reset">Reset</button>
+        </div>
+        <button class="link center" id="s-export">Export council brief (PDF)</button>
+      </section>
     </aside>
   </main>
   <script type="module" src="/src/main.js"></script>

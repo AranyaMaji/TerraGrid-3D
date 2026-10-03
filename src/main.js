@@ -101,8 +101,11 @@ b3.onclick = () => setMode3d(true);
 
 // ---- Surface heat: GIBS LST drape + per-building Landsat heat ----
 // Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (slate blue), 0 = average (yellow), +1 = hotter (red).
-const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'heat'], 0],
-  -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d'];
+// Scenario: feature-state `cool` 0..1 blends toward cyan (was hottest) / green (was coolest).
+const HEAT = ['coalesce', ['feature-state', 'heat'], 0];
+const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'cool'], 0],
+  0, ['interpolate', ['linear'], HEAT, -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d'],
+  1, ['interpolate', ['linear'], HEAT, -1, '#34d399', 1, '#22d3ee']];
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const lstUrl = (d, z = '{z}', y = '{y}', x = '{x}') =>
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_8Day_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
@@ -168,6 +171,7 @@ async function addHeatLayers() {
     },
   });
   gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
+  buildings = gj.features;
   addPrecincts();
 }
 
@@ -185,7 +189,7 @@ const ICON = {
   school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',
 };
-let precincts = [], selected = null, label = null, live = null;
+let precincts = [], selected = null, label = null, live = null, buildings = [];
 
 function pin(cls, text, icon = '') {
   const el = document.createElement('div');
@@ -211,6 +215,8 @@ async function addPrecincts() {
 }
 
 function select(name) {
+  if (name === selected?.name) return;
+  closeScenario();
   if (selected) map.setFeatureState({ source: 'precincts', id: selected.name }, { sel: false });
   label?.remove();
   const f = precincts.find((p) => p.properties.name === name);
@@ -242,6 +248,78 @@ function renderPanel() {
   $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} coastal Sydney`;
   $('delta').classList.toggle('cool', d < 0);
 }
+
+// ---- Scenario simulator: levers cool the selected precinct's buildings; KPIs count up ----
+// Headline numbers are for 50% coverage with all levers on; scale linearly with coverage.
+const ZERO = { cool: 0, t: 0, ac: 0, mwh: 0, usd: 0 };
+let cur = { ...ZERO }, ids = [], anim = 0;
+
+function inside([x, y], ring) {
+  let c = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+
+function target() {
+  const k = $('s-cov').value / 50, roofs = +$('s-roofs').checked, trees = +$('s-trees').checked, solar = +$('s-solar').checked;
+  const ac = 18 * k * (roofs + trees) / 2, mwh = 320 * k * solar;
+  return {
+    cool: Math.min(1, k) * (0.45 * roofs + 0.45 * trees + 0.1 * solar),
+    t: 4.2 * k * (0.45 * roofs + 0.55 * trees), ac, mwh,
+    usd: 48000 * (0.6 * ac / 18 + 0.4 * mwh / 320),
+  };
+}
+
+function draw(s) {
+  cur = s;
+  for (const id of ids) map.setFeatureState({ source: 'bld', id }, { cool: s.cool });
+  $('k-t').textContent = `−${s.t.toFixed(1)}°C`;
+  $('k-ac').textContent = `−${Math.round(s.ac)}%`;
+  $('k-mwh').textContent = `+${Math.round(s.mwh)}`;
+  $('k-usd').textContent = `$${Math.round(s.usd / 1000)}k`;
+}
+
+function animateTo(to, ms = 1500) {
+  cancelAnimationFrame(anim);
+  const from = cur, t0 = performance.now();
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / ms), e = 1 - (1 - p) ** 3;
+    draw(Object.fromEntries(Object.keys(to).map((k) => [k, from[k] + (to[k] - from[k]) * e])));
+    if (p < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+
+function openScenario() {
+  if (!buildings.length || !precincts.length) return;
+  if (!selected) return select('Parramatta CBD'), openScenario();
+  const ring = precincts.find((p) => p.properties.name === selected.name).geometry.coordinates[0];
+  // Any corner inside: big footprints on the edge (Westfield) otherwise stay hot mid-precinct.
+  ids = buildings.filter((f) => f.geometry.coordinates[0].some((p) => inside(p, ring))).map((f) => f.id);
+  $('s-where').textContent = selected.name;
+  document.body.classList.add('scenario');
+  draw({ ...ZERO });
+}
+
+function closeScenario() {
+  cancelAnimationFrame(anim);
+  draw({ ...ZERO });
+  ids = [];
+  document.body.classList.remove('scenario', 'applied');
+}
+
+document.querySelector('.cta').onclick = openScenario;
+$('s-back').onclick = closeScenario;
+$('s-apply').onclick = () => { document.body.classList.add('applied'); animateTo(target()); };
+$('s-reset').onclick = () => { document.body.classList.remove('applied'); animateTo({ ...ZERO }); };
+$('s-export').onclick = () => window.print();
+document.querySelector('.scn').oninput = () => {
+  $('s-cov-v').textContent = `${$('s-cov').value}%`;
+  if (document.body.classList.contains('applied')) animateTo(target(), 300);
+};
 
 // ---- Live air temperature: Parramatta vs coastal Sydney CBD (Open-Meteo, one call) ----
 async function liveTemp() {

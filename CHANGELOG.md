@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Item 4: scenario simulator. CTA swaps the stat tiles for a card (cool roofs / canopy / solar, coverage slider); Apply eases the precinct's buildings to cyan/green over 1.5 s while KPIs count up; slider updates live; Reset reverses; Export brief = window.print() of the panel.
 - 2026-10-03 — Feat: clickable precincts (teal outline, name pill, camera ease, panel stats), school/aged-care pins, decluttered no-scroll side panel.
 - 2026-10-03 — Fix: Landsat ground drape recoloured to the same thermal ramp as buildings (over ±5 °C), baked locally from the greyscale mosaic.
 - 2026-10-03 — Fix: buildings use a thermal-camera ramp (slate blue → yellow → red); legend reduced to one minimal Cooler/Hotter bar.

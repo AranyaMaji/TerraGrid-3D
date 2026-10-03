@@ -135,3 +135,32 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .pin-stem::after { content: ''; position: absolute; left: -4px; bottom: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid #fff; }
 .pin.area .pin-body { background: var(--teal); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 17px; font-weight: 600; }
 .pin.area .pin-stem { height: 28px; }
+
+/* scenario card: replaces the stat tiles while open */
+.scn { display: none; }
+.scenario .scn { display: block; }
+.scenario .stats, .scenario .panel > .cta, .scenario .panel > .link { display: none; }
+.scn { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 20px; }
+.scn-h { display: flex; align-items: center; gap: 12px; }
+.scn-where { font-size: 18px; font-weight: 600; margin-top: 2px; }
+.levers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.levers label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; }
+.levers label:has(:checked) { border-color: var(--teal); background: #e7f5f4; }
+.levers input, .cov input { accent-color: var(--teal); }
+.cov { display: block; margin-top: 18px; font-size: 15px; font-weight: 500; }
+.cov b { float: right; }
+.cov input { width: 100%; margin-top: 8px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin-top: 20px; }
+.kpi-v { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.kpi-v.cool { color: var(--teal); }
+.kpi-l { font-size: 14px; color: var(--muted); }
+.scn-btns { display: flex; gap: 12px; }
+.scn-btns .cta { flex: 1; margin-top: 22px; }
+.ghost { margin-top: 22px; height: 56px; padding: 0 22px; border-radius: 8px; border: 1px solid var(--border); font-size: 17px; font-weight: 500; }
+.scn .link.center { margin: 14px auto 0; }
+
+@media print {
+  .nav, .map-wrap, .scn-btns, #s-export, #s-back, .crumbs .close { display: none !important; }
+  body { display: block; overflow: visible; background: #fff; }
+  .panel { width: auto; border: 0; }
+}
