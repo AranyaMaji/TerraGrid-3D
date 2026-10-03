@@ -6,12 +6,26 @@ import './style.css';
 // Vite's dep pre-bundling breaks MapLibre's own worker lookup; without the worker no vector tiles render.
 maplibregl.setWorkerUrl(workerUrl);
 
-// Everything location-specific lives here; panel stats are illustrative.
-const CITY = {
-  name: 'Parramatta', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
-  ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
-  tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, population: 64700, offset: 0,
-};
+// Everything location-specific lives here. Buildings: data/buildings-<key>.geojson (scripts/fetch-buildings.mjs);
+// precincts and POIs carry a `city` key. `surf`: typical summer roof °C for cities outside the Landsat scene.
+const CITIES = [
+  { key: 'parramatta', name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
+    ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
+    tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, population: 64700 },
+  { key: 'melbourne', name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
+    ghi: 1600, surf: 41, plume: { at: [144.928, -37.824], name: 'Port of Melbourne' },
+    tree_cover_pct: 12, age65_pct: 8, schools: 12, aged_care: 6, population: 111900 },
+  { key: 'london', name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
+    ghi: 1000, surf: 33, plume: { at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' },
+    tree_cover_pct: 14, age65_pct: 11, schools: 18, aged_care: 9, population: 53100 },
+  { key: 'sydney', name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
+    ghi: 1800, plume: { at: [151.181, -33.866], name: 'Rozelle Interchange stacks' },
+    tree_cover_pct: 15, age65_pct: 10, schools: 9, aged_care: 8, population: 46000 },
+  { key: 'suva', name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
+    ghi: 1950, surf: 39, plume: { at: [178.4325, -18.1285], name: 'Walu Bay industrial' },
+    tree_cover_pct: 20, age65_pct: 6, schools: 22, aged_care: 4, population: 93900 },
+];
+let CITY = CITIES.find((c) => c.key === new URLSearchParams(location.search).get('city')) ?? CITIES[0];
 const OCEANIA = [150, -25];
 
 const map = new maplibregl.Map({
@@ -99,6 +113,33 @@ function restartIntro() {
 document.getElementById('explore').onclick = flyIn;
 document.getElementById('demo').onclick = restartIntro;
 
+// City switch: flyTo's zoom-out arc takes it up to the globe and back down; data swaps in while it flies.
+function goCity(c) {
+  if (c === CITY) return flyIn();
+  select(null);
+  CITY = c;
+  live = aq = null;
+  $('crumb').textContent = c.region;
+  flown = true;
+  spinning = false;
+  setMode3d(true, false);
+  map.flyTo({ center: c.center, zoom: 16, pitch: 60, bearing: -20, speed: 1.1, curve: 1.8, essential: true });
+  liveTemp();
+  loadCity();
+}
+
+// Search box: a city name switches city, a precinct name of the current city selects it.
+$('crumb').textContent = CITY.region;
+$('cities').innerHTML = CITIES.map((c) => `<option value="${c.name}">${c.region}</option>`).join('');
+$('search').onchange = (e) => {
+  const q = e.target.value.trim().toLowerCase(), hit = (s) => s.toLowerCase().startsWith(q);
+  if (!q) return;
+  const c = CITIES.find((c) => hit(c.name)) ?? CITIES.find((c) => hit(c.region)), p = precincts.find((p) => hit(p.properties.name));
+  if (p) select(p.properties.name); else if (c) goCity(c);
+  e.target.value = '';
+  e.target.blur();
+};
+
 // 2D / 3D toggle
 const b2 = document.getElementById('btn-2d'), b3 = document.getElementById('btn-3d');
 function setMode3d(on, animate = true) {
@@ -167,16 +208,7 @@ async function addHeatLayers() {
   map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: CORNERS });
   map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', layout: vis('landsat'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
 
-  const [gj, raw] = await Promise.all([fetch('/data/buildings-parramatta.geojson').then((r) => r.json()), sampler('/data/lst-landsat-gray.png')]);
-  const sample = (lon, lat) => { const v = raw(lon, lat); return v == null ? null : LANDSAT.t0 + v * (LANDSAT.t1 - LANDSAT.t0); };
-  // Building colour = Landsat surface temp at its footprint (vertex mean) vs the scene's building median.
-  const lst = gj.features.map((f) => (f.properties.lst = sample(...mid(f.geometry.coordinates[0]))));
-  const sorted = lst.filter((t) => t != null).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
-  // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
-  const heat = lst.map((t, i) => t == null ? 0 :
-    Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
-
-  map.addSource('bld', { type: 'geojson', data: gj, attribution: '© OpenStreetMap contributors' });
+  map.addSource('bld', { type: 'geojson', data: EMPTY, attribution: '© OpenStreetMap contributors' });
   map.addLayer({
     id: 'bld-heat', type: 'fill-extrusion', source: 'bld',
     paint: {
@@ -197,22 +229,82 @@ async function addHeatLayers() {
       'fill-extrusion-opacity': 1,
     },
   });
+  map.addSource('trees', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'trees', type: 'fill-extrusion', source: 'trees', minzoom: 12.5, layout: vis('trees'), paint: {
+    'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'g'], 0, '#84cc16', 1, '#15803d'],
+    'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'],
+    'fill-extrusion-vertical-gradient': true,
+  } });
+  addPrecinctLayers();
+  loadCity();
+}
+
+// Per-city data: buildings + heat/solar state, precincts, POI pins, plume source. Re-run on every city switch.
+const EMPTY = { type: 'FeatureCollection', features: [] };
+const json = (u) => fetch(u).then((r) => r.json());
+let landsatP = null, placesP = null, loadSeq = 0, markers = [];
+async function loadCity() {
+  const c = CITY, seq = ++loadSeq;
+  buildings = []; lstMed = 0;
+  landsatP ??= sampler('/data/lst-landsat-gray.png');
+  placesP ??= Promise.all([json('/data/precincts.geojson'), json('/data/pois.geojson')]);
+  const [gj, raw, [pre, pois]] = await Promise.all([json(`/data/buildings-${c.key}.geojson`), landsatP, placesP]);
+  if (seq !== loadSeq) return; // switched again mid-load
+
+  const sample = (lon, lat) => { const v = raw(lon, lat); return v == null ? null : LANDSAT.t0 + v * (LANDSAT.t1 - LANDSAT.t0); };
+  // Building colour = Landsat surface temp at its footprint (vertex mean) vs the scene's building median.
+  let lst = gj.features.map((f) => sample(...mid(f.geometry.coordinates[0])));
+  if (!lst.some((t) => t != null)) lst = proxyLst(gj.features, c.surf);
+  gj.features.forEach((f, i) => (f.properties.lst = lst[i]));
+  const sorted = lst.filter((t) => t != null).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
+  // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
+  const heat = lst.map((t, i) => t == null ? 0 :
+    Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
   // Colour by rank of rooftop yield so the ramp spreads evenly.
-  const mwh = gj.features.map(roofMWh), rank = [];
-  mwh.map((_, i) => i).sort((a, b) => mwh[a] - mwh[b]).forEach((i, r) => (rank[i] = r / (mwh.length - 1)));
+  const mwh = gj.features.map(roofMWh), solar = rank(mwh);
+  map.removeFeatureState({ source: 'bld' });
+  map.getSource('bld').setData(gj);
   gj.features.forEach((f, i) => {
     f.properties.mwh = mwh[i];
-    map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i], solar: rank[i] });
+    map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i], solar: solar[i] });
   });
   buildings = gj.features;
   lstAt = sample; lstMed = med;
+
+  precincts = pre.features.filter((f) => f.properties.city === c.key);
+  map.getSource('precincts').setData({ type: 'FeatureCollection', features: precincts });
+  markers.forEach((m) => m.remove());
+  markers = pois.features.filter((f) => f.properties.city === c.key).map((f) =>
+    new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map));
+  plumeMarker?.remove();
+  plumeMarker = new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${c.plume.name}</span>Emission source · plume toward ${c.name}`), anchor: 'bottom' })
+    .setLngLat(c.plume.at).addTo(map);
+  plumeMarker.getElement().style.display = on.has('smoke') ? '' : 'none';
+
+  treesP = null;
+  map.getSource('trees').setData(EMPTY);
   if (on.has('canopy')) addTrees();
   renderLegend();
   renderPanel();
-  addPrecincts();
 }
 
-const mid = (ring) => [ring.reduce((a, p) => a + p[0], 0) / ring.length, ring.reduce((a, p) => a + p[1], 0) / ring.length];
+// Percentile rank 0..1 of each value.
+function rank(v) {
+  const r = [];
+  v.map((_, i) => i).sort((a, b) => v[a] - v[b]).forEach((i, k) => (r[i] = k / Math.max(1, v.length - 1)));
+  return r;
+}
+
+// No Landsat scene: roof °C from big footprints, low rise and distance to green (ranks), plus ~600 m warm/cool patches.
+function proxyLst(fs, surf) {
+  const a = rank(fs.map((f) => f.properties.area)), g = rank(fs.map((f) => f.properties.dist_green)), h = rank(fs.map((f) => -f.properties.height));
+  return fs.map((f, i) => {
+    const [x, y] = mid(f.geometry.coordinates[0]), patch = Math.sin(x * 900) * Math.cos(y * 1100) + 0.5 * Math.sin((x + y) * 2300);
+    return surf + 3 * (0.4 * a[i] + 0.35 * g[i] + 0.25 * h[i] - 0.5) + 0.8 * patch + 0.6 * (Math.random() - 0.5);
+  });
+}
+
+const mid =(ring) => [ring.reduce((a, p) => a + p[0], 0) / ring.length, ring.reduce((a, p) => a + p[1], 0) / ring.length];
 
 // Rooftop yield: roof m² × 60% usable × 20% panel efficiency × 80% performance ratio × annual irradiance.
 // Every building part has its own roof, so towers made of parts count too.
@@ -227,7 +319,7 @@ function roofMWh(f) {
 const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#3b2a12', 0.5, '#b45309', 0.85, '#f59e0b', 1, '#fde68a'];
 const LAYERS = {
   heat: { ids: ['lst', 'landsat'],
-    legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? lstMed.toFixed(1) : '--'}°C</b> · Landsat`] },
+    legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? lstMed.toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
   smoke: { ids: ['smoke', 'plume'],
     legend: ['Aerosol optical depth', '#fef3c7, #f59e0b 50%, #7c2d12', 'Clear', 'Smoky', () => 'NASA MODIS · CAMS'] },
   canopy: { ids: ['canopy', 'ndvi', 'trees'],
@@ -301,10 +393,12 @@ async function addOverlays() {
 }
 
 // 3D trees grown from the 30 m NDVI inside the building box: at most one crown per pixel, likelier and taller where greener.
-let treesP = null;
+let treesP = null, ndviP = null;
 function addTrees() {
   if (treesP || !buildings.length) return;
-  treesP = sampler('/data/ndvi-landsat-gray.png').then((ndvi) => {
+  const seq = loadSeq;
+  treesP = (ndviP ??= sampler('/data/ndvi-landsat-gray.png')).then((ndvi) => {
+    if (seq !== loadSeq) return;
     let [w, s, e, n] = [180, 90, -180, -90];
     for (const f of buildings) for (const [x, y] of f.geometry.coordinates[0]) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
     const L = LANDSAT, sx = (L.e - L.w) / L.px[0], sy = (L.n - L.s) / L.px[1];
@@ -317,12 +411,7 @@ function addTrees() {
       const ring = Array.from({ length: 9 }, (_, i) => [cx + Math.cos((i * Math.PI) / 4) * r * kx, cy + Math.sin((i * Math.PI) / 4) * r * ky]);
       features.push({ type: 'Feature', properties: { h, b: h * 0.35, g }, geometry: { type: 'Polygon', coordinates: [ring] } });
     }
-    map.addSource('trees', { type: 'geojson', data: { type: 'FeatureCollection', features } });
-    map.addLayer({ id: 'trees', type: 'fill-extrusion', source: 'trees', minzoom: 12.5, layout: vis('trees'), paint: {
-      'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'g'], 0, '#84cc16', 1, '#15803d'],
-      'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'],
-      'fill-extrusion-vertical-gradient': true,
-    } });
+    map.getSource('trees').setData({ type: 'FeatureCollection', features });
   });
 }
 
@@ -376,11 +465,9 @@ function poiMore({ name, kind, street }, [lon, lat]) {
   return `<span class="pin-name">${name}</span>${kind} · ${street}${heat}`;
 }
 
-async function addPrecincts() {
-  const [pre, pois] = await Promise.all(['precincts', 'pois'].map((n) => fetch(`/data/${n}.geojson`).then((r) => r.json())));
-  precincts = pre.features;
+function addPrecinctLayers() {
   const sel = ['boolean', ['feature-state', 'sel'], false];
-  map.addSource('precincts', { type: 'geojson', data: pre, promoteId: 'name' });
+  map.addSource('precincts', { type: 'geojson', data: EMPTY, promoteId: 'name' });
   map.addLayer({ id: 'precinct-fill', type: 'fill', source: 'precincts', paint: { 'fill-color': '#0f8b85', 'fill-opacity': ['case', sel, 0.3, 0.06] } }, 'bld-heat');
   // Outline drawn over the buildings so it reads in 3D, like the design.
   map.addLayer({ id: 'precinct-line', type: 'line', source: 'precincts', layout: { 'line-join': 'round' },
@@ -388,11 +475,6 @@ async function addPrecincts() {
   map.on('click', 'precinct-fill', (e) => select(e.features[0].properties.name));
   map.on('mouseenter', 'precinct-fill', () => (map.getCanvas().style.cursor = 'pointer'));
   map.on('mouseleave', 'precinct-fill', () => (map.getCanvas().style.cursor = ''));
-  for (const f of pois.features)
-    new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
-  plumeMarker = new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${CITY.plume.name}</span>Emission source · plume toward ${CITY.name}`), anchor: 'bottom' })
-    .setLngLat(CITY.plume.at).addTo(map);
-  plumeMarker.getElement().style.display = on.has('smoke') ? '' : 'none';
 }
 
 function select(name) {
@@ -430,7 +512,7 @@ function renderPanel() {
       `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></div>`;
   }).join('');
   if (!live) return;
-  const t = live.t + p.offset, d = t - live.ref;
+  const t = live.t + (p.offset || 0), d = t - live.ref;
   $('temp').textContent = `${t.toFixed(1)}°C`;
   $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} ${CITY.refName}`;
   $('delta').classList.toggle('cool', d < 0);
@@ -442,7 +524,7 @@ function layerRow(k, p) {
   if (k === 'heat') {
     if (!buildings.length) return null;
     const t = area().map((f) => f.properties.lst).filter((v) => v != null).sort((a, b) => a - b), m = t[t.length >> 1] ?? lstMed, d = m - lstMed;
-    return ['Roof surface', `${m.toFixed(1)}°C`, selected ? `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.name} avg` : 'Landsat median'];
+    return ['Roof surface', `${m.toFixed(1)}°C`, selected ? `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.name} avg` : CITY.surf ? 'Summer median' : 'Landsat median'];
   }
   if (k === 'smoke') {
     if (!aq) return null;
@@ -536,12 +618,13 @@ document.querySelector('.scn').oninput = () => {
 
 // ---- Live air temperature (city vs reference point) + air quality (Open-Meteo / CAMS) ----
 async function liveTemp() {
-  const [[lon, lat], [rlon, rlat]] = [CITY.center, CITY.ref];
+  const c = CITY, [[lon, lat], [rlon, rlat]] = [c.center, c.ref];
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat},${rlat}&longitude=${lon},${rlon}&current=temperature_2m,apparent_temperature&timezone=auto`;
   fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,carbon_monoxide,aerosol_optical_depth,us_aqi&timezone=auto`)
-    .then((r) => r.json()).then((j) => { aq = j.current; renderPanel(); }).catch(() => {});
+    .then((r) => r.json()).then((j) => { if (c === CITY) aq = j.current, renderPanel(); }).catch(() => {});
   try {
     const [par, cbd] = await (await fetch(url)).json();
+    if (c !== CITY) return;
     live = { t: par.current.temperature_2m, feels: par.current.apparent_temperature, ref: cbd.current.temperature_2m, time: par.current.time.slice(11) };
     renderPanel();
   } catch {

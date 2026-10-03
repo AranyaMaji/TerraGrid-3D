@@ -1,12 +1,12 @@
 {"type":"FeatureCollection","features":[
-{"type":"Feature","properties":{"type":"school","name":"Arthur Phillip High School","kind":"Public high school","street":"Macquarie St"},"geometry":{"type":"Point","coordinates":[151.00772,-33.81571]}},
-{"type":"Feature","properties":{"type":"school","name":"Parramatta High School","kind":"Public high school","street":"Great Western Hwy"},"geometry":{"type":"Point","coordinates":[150.99607,-33.81789]}},
-{"type":"Feature","properties":{"type":"school","name":"Westmead Public School","kind":"Public primary school","street":"Hawkesbury Rd"},"geometry":{"type":"Point","coordinates":[150.98528,-33.81018]}},
-{"type":"Feature","properties":{"type":"school","name":"Parramatta North Public School","kind":"Public primary school","street":"Albert St"},"geometry":{"type":"Point","coordinates":[151.00469,-33.80396]}},
-{"type":"Feature","properties":{"type":"school","name":"Rosehill Primary School","kind":"Public primary school","street":"Virginia St"},"geometry":{"type":"Point","coordinates":[151.01788,-33.82419]}},
-{"type":"Feature","properties":{"type":"school","name":"Macarthur Girls High School","kind":"Public high school","street":"Macarthur St"},"geometry":{"type":"Point","coordinates":[151.01251,-33.81300]}},
-{"type":"Feature","properties":{"type":"aged","name":"Thomas Street Lodge","kind":"Residential aged care","street":"Thomas St"},"geometry":{"type":"Point","coordinates":[151.01631,-33.81266]}},
-{"type":"Feature","properties":{"type":"aged","name":"Park Meadows by Uniting","kind":"Residential aged care","street":"Caroline St"},"geometry":{"type":"Point","coordinates":[150.99261,-33.80568]}},
-{"type":"Feature","properties":{"type":"aged","name":"Bolton Clarke Cabrini","kind":"Assisted living","street":"Amos St"},"geometry":{"type":"Point","coordinates":[150.98508,-33.81509]}},
-{"type":"Feature","properties":{"type":"aged","name":"Northcourt","kind":"Residential aged care","street":"Gilbert St"},"geometry":{"type":"Point","coordinates":[151.00943,-33.79779]}}
+{"type":"Feature","properties":{"city":"parramatta","type":"school","name":"Arthur Phillip High School","kind":"Public high school","street":"Macquarie St"},"geometry":{"type":"Point","coordinates":[151.00772,-33.81571]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"school","name":"Parramatta High School","kind":"Public high school","street":"Great Western Hwy"},"geometry":{"type":"Point","coordinates":[150.99607,-33.81789]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"school","name":"Westmead Public School","kind":"Public primary school","street":"Hawkesbury Rd"},"geometry":{"type":"Point","coordinates":[150.98528,-33.81018]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"school","name":"Parramatta North Public School","kind":"Public primary school","street":"Albert St"},"geometry":{"type":"Point","coordinates":[151.00469,-33.80396]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"school","name":"Rosehill Primary School","kind":"Public primary school","street":"Virginia St"},"geometry":{"type":"Point","coordinates":[151.01788,-33.82419]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"school","name":"Macarthur Girls High School","kind":"Public high school","street":"Macarthur St"},"geometry":{"type":"Point","coordinates":[151.01251,-33.81300]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"aged","name":"Thomas Street Lodge","kind":"Residential aged care","street":"Thomas St"},"geometry":{"type":"Point","coordinates":[151.01631,-33.81266]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"aged","name":"Park Meadows by Uniting","kind":"Residential aged care","street":"Caroline St"},"geometry":{"type":"Point","coordinates":[150.99261,-33.80568]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"aged","name":"Bolton Clarke Cabrini","kind":"Assisted living","street":"Amos St"},"geometry":{"type":"Point","coordinates":[150.98508,-33.81509]}},
+{"type":"Feature","properties":{"city":"parramatta","type":"aged","name":"Northcourt","kind":"Residential aged care","street":"Gilbert St"},"geometry":{"type":"Point","coordinates":[151.00943,-33.79779]}}
 ]}

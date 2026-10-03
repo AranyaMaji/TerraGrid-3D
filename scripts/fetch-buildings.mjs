@@ -1,7 +1,16 @@
-// One-off: Overpass → data/buildings-parramatta.geojson. Run: node scripts/fetch-buildings.mjs
+// One-off: Overpass → data/buildings-<city>.geojson. Run: node scripts/fetch-buildings.mjs <city> [saved-overpass.json]
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
-const [S, W, N, E] = [-33.850, 150.955, -33.785, 151.045]; // ~8 x 7 km: CBD, Westmead, Harris Park, North Parramatta
+// [S, W, N, E] per city; each box covers that city's precincts in data/precincts.geojson.
+const BOXES = {
+  parramatta: [-33.850, 150.955, -33.785, 151.045], // ~8 x 7 km: CBD, Westmead, Harris Park, North Parramatta
+  melbourne: [-37.833, 144.930, -37.791, 144.977],
+  london: [51.500, -0.131, 51.530, -0.069],
+  sydney: [-33.893, 151.196, -33.852, 151.220],
+  suva: [-18.158, 178.417, -18.124, 178.455],
+};
+const city = process.argv[2] || 'parramatta', [S, W, N, E] = BOXES[city];
 const q = `[out:json][timeout:90];
 (way["building"](${S},${W},${N},${E});
  way["building:part"](${S},${W},${N},${E});
@@ -11,14 +20,12 @@ const q = `[out:json][timeout:90];
  way["landuse"~"grass|forest"](${S},${W},${N},${E}););
 out geom tags;`;
 
-// Optional arg: a saved Overpass JSON response (e.g. fetched with curl) instead of fetching.
-async function load() {
-  if (process.argv[2]) return JSON.parse(readFileSync(process.argv[2], 'utf8'));
-  const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', headers: { 'User-Agent': 'TerraGrid3D-hackathon/0.1' }, body: 'data=' + encodeURIComponent(q) });
-  if (!res.ok) throw new Error(`Overpass ${res.status}`);
-  return res.json();
+// Optional arg: a saved Overpass JSON response. Otherwise curl (Node fetch can't reach Overpass on the dev machine).
+function load() {
+  if (process.argv[3]) return JSON.parse(readFileSync(process.argv[3], 'utf8'));
+  return JSON.parse(execFileSync('curl', ['-s', '-A', 'TerraGrid3D-hackathon/0.1', '--data-urlencode', `data=${q}`, 'https://overpass-api.de/api/interpreter'], { encoding: 'utf8', maxBuffer: 1 << 30 }));
 }
-const { elements } = await load();
+const { elements } = load();
 
 // Local planar metres around the bbox centre.
 const lat0 = (S + N) / 2, mx = 111320 * Math.cos(lat0 * Math.PI / 180), my = 110540;
@@ -61,11 +68,13 @@ const partCs = blds.filter((b) => b.tags['building:part']).map((b) => areaCentro
 for (let i = blds.length - 1; i >= 0; i--)
   if (!blds[i].tags['building:part'] && partCs.some((c) => inside(c, blds[i].geometry))) blds.splice(i, 1);
 
-const num = (v) => parseFloat(String(v).replace(/[^\d.]/g, ''));
+// First number only: tags like "12;15" or "40 m" otherwise parse as 1215 / garbage.
+const num = (v) => parseFloat(String(v).match(/\d+(\.\d+)?/)?.[0]);
 const features = blds.map((el) => {
   const t = el.tags, { area, c } = areaCentroid(el.geometry);
   let height = num(t.height);
   if (!(height > 0)) height = t['building:levels'] ? num(t['building:levels']) * 3.2 : 8;
+  height = Math.min(height || 8, 340); // nothing in these boxes is taller than the Shard
   let d = Infinity;
   for (const [x, y] of greenPts) d = Math.min(d, Math.hypot(x - c[0], y - c[1]));
   return {
@@ -82,5 +91,5 @@ const features = blds.map((el) => {
 });
 
 mkdirSync('data', { recursive: true });
-writeFileSync('data/buildings-parramatta.geojson', JSON.stringify({ type: 'FeatureCollection', features }));
-console.log(`${features.length} buildings, ${green.length} green/water areas`);
+writeFileSync(`data/buildings-${city}.geojson`, JSON.stringify({ type: 'FeatureCollection', features }));
+console.log(`${city}: ${features.length} buildings, ${green.length} green/water areas`);

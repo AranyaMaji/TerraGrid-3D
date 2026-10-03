@@ -102,7 +102,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     MapLibre custom layer + three.js, or a model layer if MapLibre gains one). Vary species/size by NDVI; add shrubs/grass
     tufts on low-NDVI green. Needs a new dependency (three.js): ask first.
 
-- [ ] **6. Multi-city: Melbourne, then London** (~15 min each)
+- [x] **6. Multi-city: Melbourne, London, Sydney CBD, Suva (Fiji)** (~15 min each)
+  - Done 2026-10-03: baked OSM buildings per city (`node scripts/fetch-buildings.mjs <city>`, curl) instead of tile buildings, so per-building heat, solar, scenario and precinct stats all work everywhere. `CITIES` table in main.js; precincts/POIs tagged `city` (real suburb outlines from Nominatim where they exist). Sydney CBD reuses the Landsat scene + trees; others get proxy roof heat (footprint, low rise, distance to green, ~600 m patches) around a summer `surf` °C. Switch by typing a city in search (datalist) or `?city=london`. No POIs outside Parramatta.
   - City switcher in nav/search. Globe fly between cities. Reuse tile `building-3d` (no Overpass) with precinct-level
     heat tint only; Open-Meteo per city. Skip if time is short.
 

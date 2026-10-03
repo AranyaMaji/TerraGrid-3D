@@ -34,7 +34,8 @@
       <div class="toolbar">
         <label class="ctl search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="text" placeholder="Find an address or area" />
+          <input type="text" id="search" list="cities" placeholder="Find a city or area" autocomplete="off" />
+          <datalist id="cities"></datalist>
         </label>
         <div class="ctl chips" id="layers">
           <button data-k="heat" class="on" style="--c:#e5484d"><svg viewBox="0 0 24 24"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0Z"/></svg>Heat</button>
@@ -53,7 +54,7 @@
     </section>
 
     <aside class="panel">
-      <div class="crumbs"><span>Sydney</span> / <span>Selected area</span>
+      <div class="crumbs"><span id="crumb">Sydney</span> / <span>Selected area</span>
         <button class="icon-btn close" id="p-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <h1 id="p-name">Parramatta</h1>
