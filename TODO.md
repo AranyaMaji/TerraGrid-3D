@@ -92,6 +92,15 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Done 2026-10-03: `scripts/fetch-ndvi.py` bakes NDVI (bare ground transparent); ~1 crown per vegetated 30 m pixel,
     trees load on first Canopy toggle. PM2.5 per precinct = live CAMS + plume model at the precinct centre (CBD 25.0, Harris Park 11.7).
 
+- [x] **5c. Panel shows every layer's metric at once** (owner-raised 2026-10-03)
+  - Big number is always air temperature; below it one row per layer (roof surface °C, PM2.5, canopy %, solar GWh/yr)
+    for the selected precinct, always visible; rows for layers off the map are greyed; clicking a row toggles the layer.
+
+- [ ] **5d. Realistic trees and flora** (later, owner-raised 2026-10-03)
+  - Replace the octagon crowns with real 3D tree models (e.g. a few low-poly glTF species instanced via a
+    MapLibre custom layer + three.js, or a model layer if MapLibre gains one). Vary species/size by NDVI; add shrubs/grass
+    tufts on low-NDVI green. Needs a new dependency (three.js): ask first.
+
 - [ ] **6. Multi-city: Melbourne, then London** (~15 min each)
   - City switcher in nav/search. Globe fly between cities. Reuse tile `building-3d` (no Overpass) with precinct-level
     heat tint only; Open-Meteo per city. Skip if time is short.

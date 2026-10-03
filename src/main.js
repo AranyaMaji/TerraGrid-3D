@@ -237,7 +237,6 @@ const LAYERS = {
 };
 const OVERLAYS = Object.values(LAYERS).flatMap((l) => l.ids);
 const on = new Set(['heat']);
-let last = 'heat'; // panel headline follows the last layer switched on
 const vis = (id) => ({ visibility: [...on].some((k) => LAYERS[k].ids.includes(id)) ? 'visible' : 'none' });
 const wallColor = () => (on.has('heat') ? HEAT_COLOR : C.bld);
 
@@ -251,14 +250,13 @@ function renderLegend() {
 }
 
 function toggleLayer(k, state = !on.has(k)) {
-  if (state) { on.add(k); last = k; } else { on.delete(k); if (last === k) last = [...on].at(-1); }
+  if (state) on.add(k); else on.delete(k);
   applyLayers();
 }
 
 function setLayers(keys) {
   on.clear();
   keys.forEach((k) => on.add(k));
-  last = keys.at(-1);
   applyLayers();
 }
 
@@ -275,6 +273,7 @@ function applyLayers() {
   renderPanel();
 }
 document.querySelectorAll('#layers button').forEach((b) => (b.onclick = () => toggleLayer(b.dataset.k)));
+$('lrows').onclick = (e) => { const b = e.target.closest('.lrow'); if (b) toggleLayer(b.dataset.k); };
 
 // Satellite overlays (global GIBS rasters, Landsat NDVI drape) + smoke plume source.
 async function addOverlays() {
@@ -425,35 +424,40 @@ function renderPanel() {
   $('p-aged').textContent = p.aged_care;
   $('p-tree').textContent = `${p.tree_cover_pct}%`;
   $('p-age').textContent = `${p.age65_pct}%`;
-  const h = headline(p);
-  $('eyebrow').classList.toggle('live', !last || last === 'heat' || last === 'smoke');
-  if (!h) return;
-  [$('eyebrow').textContent, $('temp').textContent, $('delta').textContent] = h;
-  $('delta').classList.toggle('cool', h[3]);
+  // Every layer's metric is always shown; rows for layers off the map are greyed. Icon/colour from the toolbar chip.
+  $('lrows').innerHTML = Object.keys(LAYERS).map((k) => {
+    const r = layerRow(k, p) ?? ['', '--', ''], chip = document.querySelector(`#layers [data-k=${k}]`);
+    return `<button class="lrow${on.has(k) ? '' : ' off'}" data-k="${k}" style="${chip.getAttribute('style')}">${chip.querySelector('svg').outerHTML}` +
+      `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></button>`;
+  }).join('');
+  if (!live) return;
+  const t = live.t + p.offset, d = t - live.ref;
+  $('temp').textContent = `${t.toFixed(1)}°C`;
+  $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} ${CITY.refName}`;
+  $('delta').classList.toggle('cool', d < 0);
 }
 
-// Big panel metric follows the active layer: [eyebrow, value, sub-line, reads as good?]
-function headline(p) {
-  if (last === 'smoke') {
+// Panel row for a map layer: [label, value, sub-line] for the selected precinct (or the whole city).
+function layerRow(k, p) {
+  const area = () => (selected ? within(ringOf(selected.name)) : buildings);
+  if (k === 'heat') {
+    if (!buildings.length) return null;
+    const t = area().map((f) => f.properties.lst).filter((v) => v != null).sort((a, b) => a - b), m = t[t.length >> 1] ?? lstMed, d = m - lstMed;
+    return ['Roof surface', `${m.toFixed(1)}°C`, selected ? `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.name} avg` : 'Landsat median'];
+  }
+  if (k === 'smoke') {
     if (!aq) return null;
     // CAMS is a ~40 km grid, so precincts differ only by what the plume adds on top.
     const extra = selected ? plumeAt(mid(ringOf(selected.name))) : 0;
-    return ['Fine particles (PM2.5) now', `${(aq.pm2_5 + extra).toFixed(1)} µg/m³`,
-      extra >= 0.1 ? `+${extra.toFixed(1)} from industry plume · AQI ${aq.us_aqi}` : `AQI ${aq.us_aqi} · AOD ${aq.aerosol_optical_depth.toFixed(2)}`, aq.us_aqi <= 50 && extra < 5];
+    return ['PM2.5', `${(aq.pm2_5 + extra).toFixed(1)} µg/m³`, extra >= 0.1 ? `+${extra.toFixed(1)} from plume · AQI ${aq.us_aqi}` : `AQI ${aq.us_aqi}`];
   }
-  if (last === 'canopy') {
+  if (k === 'canopy') {
     const d = p.tree_cover_pct - 40;
-    return ['Tree canopy cover', `${p.tree_cover_pct}%`, `${Math.abs(d)} pts ${d < 0 ? 'below' : 'above'} the 40% target`, d >= 0];
+    return ['Tree canopy', `${p.tree_cover_pct}%`, `${Math.abs(d)} pts ${d < 0 ? 'below' : 'above'} 40% target`];
   }
-  if (last === 'solar') {
-    if (!buildings.length) return null;
-    const m = (selected ? within(ringOf(selected.name)) : buildings).reduce((a, f) => a + f.properties.mwh, 0);
-    return ['Rooftop solar potential', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`,
-      `≈ ${Math.round(m / 6).toLocaleString()} homes powered`, true];
-  }
-  if (!live) return null;
-  const t = live.t + p.offset, d = t - live.ref;
-  return ['Air temperature now', `${t.toFixed(1)}°C`, `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} ${CITY.refName}`, d < 0];
+  if (!buildings.length) return null;
+  const m = area().reduce((a, f) => a + f.properties.mwh, 0);
+  return ['Rooftop solar', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`, `≈ ${Math.round(m / 6).toLocaleString()} homes`];
 }
 
 // ---- Scenario simulator: levers cool the selected precinct's buildings; KPIs count up ----

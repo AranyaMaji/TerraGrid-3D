@@ -89,7 +89,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .crumbs { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; }
 .crumbs .close { margin-left: auto; }
 .crumbs .close svg { width: 22px; height: 22px; }
-.panel h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin: 14px 0 26px; }
+.panel h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin: 10px 0 16px; }
 .sub { font-size: 18px; color: #475569; }
 .ptabs { display: flex; border-bottom: 1px solid var(--border); margin: 22px 0 32px; }
 .ptabs button { padding: 10px 24px; font-size: 17px; color: #475569; border-bottom: 3px solid transparent; margin-bottom: -1px; }
@@ -100,25 +100,35 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .muted { color: var(--muted); font-size: 17px; margin-top: 10px; }
 .muted.sm, .sm { font-size: 14px; margin-top: 0; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
-.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 28px; border-top: 1px solid var(--border); margin-top: 26px; padding-top: 24px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; border-top: 1px solid var(--border); margin-top: 20px; padding-top: 20px; }
+.lrows { margin-top: 16px; display: grid; gap: 6px; }
+.lrow { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 8px; text-align: left; background: color-mix(in srgb, var(--c) 8%, #fff); border: 1px solid transparent; }
+.lrow.off { background: none; border-color: var(--border); }
+.lrow.off svg { color: var(--muted); }
+.lrow.off .lrow-v { color: var(--ink); }
+.lrow svg { color: var(--c); }
+.lrow > div:first-of-type { flex: 1; min-width: 0; }
+.lrow-l { font-size: 14px; font-weight: 600; }
+.lrow-s { font-size: 12px; color: var(--muted); }
+.lrow-v { font-size: 20px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stat:nth-child(even) { border-left: 1px solid var(--border); padding-left: 28px; }
 .stat-h { display: flex; align-items: center; gap: 14px; font-size: 16px; font-weight: 500; }
 .stat-h svg { width: 28px; height: 28px; color: var(--teal); }
 .stat:nth-child(n+2) .stat-h svg { color: var(--ink); }
-.stat-v { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
+.stat-v { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
 .stat-u { color: var(--muted); font-size: 17px; }
 .period { display: flex; gap: 22px; }
 .period > svg { width: 26px; height: 26px; }
 .strong { font-weight: 600; font-size: 18px; margin: 6px 0 4px; }
 .cta {
-  width: 100%; height: 56px; margin-top: 30px; border-radius: 8px;
+  width: 100%; height: 56px; margin-top: 22px; border-radius: 8px;
   background: var(--teal); color: #fff; font-size: 19px; font-weight: 500;
   display: flex; align-items: center; justify-content: center; gap: 14px;
   box-shadow: 0 4px 12px rgba(15, 139, 133, 0.3);
 }
 .cta:hover { filter: brightness(1.08); }
 .link { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; font-size: 17px; }
-.link.center { display: block; text-align: center; margin-top: 18px; }
+.link.center { display: block; text-align: center; margin-top: 12px; }
 .foot { display: flex; justify-content: space-between; border-top: 1px solid var(--border); margin-top: 28px; padding-top: 22px; }
 .delta.cool { color: var(--teal, #0f8b85); }
 .live { margin-top: 6px; }
