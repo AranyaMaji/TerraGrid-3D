@@ -6,7 +6,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
 
 ## Core (must ship)
 
-- [ ] **1. Scaffold + globe + fly-in + 3D buildings + UI shell** (~60 min)
+- [x] **1. Scaffold + globe + fly-in + 3D buildings + UI shell** (~60 min)
+  - Note: hand-written Vite files (no `npm create`); MapLibre v6 has no default export, use `import * as maplibregl`. Demo button replays the intro.
   - `npm create vite@latest` vanilla JS at repo root (`index.html`, `src/main.js`, `src/style.css`). Add `maplibre-gl`.
   - Map: OpenFreeMap `liberty` style (has `building-3d` fill-extrusion layer), recolour to dark canvas
     (`#0b1220` background, water, land; buildings `#2a3447`). Globe: `map.on('style.load', () => map.setProjection({type:'globe'}))`.
