@@ -7,21 +7,21 @@ import './style.css';
 maplibregl.setWorkerUrl(workerUrl);
 
 // Everything location-specific lives here. Buildings: data/buildings-<key>.geojson (scripts/fetch-buildings.mjs);
-// precincts and POIs carry a `city` key. `surf`: typical summer roof °C for cities outside the Landsat scene.
+// precincts and POIs carry a `city` key. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
 const CITIES = [
-  { key: 'parramatta', name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
+  { key: 'parramatta', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
     ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
     tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, population: 64700 },
-  { key: 'melbourne', name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
+  { key: 'melbourne', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
     ghi: 1600, surf: 41, plume: { at: [144.928, -37.824], name: 'Port of Melbourne' },
     tree_cover_pct: 12, age65_pct: 8, schools: 12, aged_care: 6, population: 111900 },
-  { key: 'london', name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
+  { key: 'london', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
     ghi: 1000, surf: 33, plume: { at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' },
     tree_cover_pct: 14, age65_pct: 11, schools: 18, aged_care: 9, population: 53100 },
-  { key: 'sydney', name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
+  { key: 'sydney', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
     ghi: 1800, plume: { at: [151.181, -33.866], name: 'Rozelle Interchange stacks' },
     tree_cover_pct: 15, age65_pct: 10, schools: 9, aged_care: 8, population: 46000 },
-  { key: 'suva', name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
+  { key: 'suva', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
     ghi: 1950, surf: 39, plume: { at: [178.4325, -18.1285], name: 'Walu Bay industrial' },
     tree_cover_pct: 20, age65_pct: 6, schools: 22, aged_care: 4, population: 93900 },
 ];
@@ -114,8 +114,24 @@ document.getElementById('explore').onclick = flyIn;
 document.getElementById('demo').onclick = restartIntro;
 
 // City switch: flyTo's zoom-out arc takes it up to the globe and back down; data swaps in while it flies.
-function goCity(c) {
-  if (c === CITY) return flyIn();
+// `at`: a searched address to land on instead of the centre; it gets a pin and its precinct is selected.
+function goCity(c, at, name) {
+  addrPin?.remove();
+  addrPin = null;
+  const land = () => {
+    if (c !== CITY) return;
+    if (at) addrPin = new maplibregl.Marker({ element: pin('addr', esc(name), ICON.pin), anchor: 'bottom' }).setLngLat(at).addTo(map);
+    const p = at && precincts.find((p) => inside(at, p.geometry.coordinates[0]));
+    select(p ? p.properties.name : null);
+    if (!p) map.easeTo({ zoom: 16, pitch: 60, bearing: -20, duration: 2500 });
+  };
+  if (c === CITY) {
+    if (!at) return flyIn();
+    flown = true;
+    spinning = false;
+    map.flyTo({ center: at, zoom: 15.4, pitch: 45, bearing: 0, speed: 0.8, curve: 1.5, essential: true });
+    return map.once('moveend', land);
+  }
   select(null);
   CITY = c;
   live = aq = null;
@@ -136,22 +152,51 @@ function goCity(c) {
     if (c !== CITY) return;
     await loadCity();
     if (c !== CITY) return;
-    map.flyTo({ center: c.center, zoom: 15.4, speed: 0.9, curve: 1.5, essential: true });
-    map.once('moveend', () => c === CITY && map.easeTo({ zoom: 16, pitch: 60, bearing: -20, duration: 2500 }));
+    map.flyTo({ center: at ?? c.center, zoom: 15.4, speed: 0.9, curve: 1.5, essential: true });
+    map.once('moveend', land);
   });
 }
 
-// Search box: a city name switches city, a precinct name of the current city selects it.
+// Search: modelled cities and precincts first, then any address from Photon (OSM geocoder, keyless).
+// An address inside a city box switches to that city; elsewhere it just flies there and pins it.
 $('crumb').textContent = CITY.region;
-$('cities').innerHTML = CITIES.map((c) => `<option value="${c.name}">${c.region}</option>`).join('');
-$('search').onchange = (e) => {
-  const q = e.target.value.trim().toLowerCase(), hit = (s) => s.toLowerCase().startsWith(q);
-  if (!q) return;
-  const c = CITIES.find((c) => hit(c.name)) ?? CITIES.find((c) => hit(c.region)), p = precincts.find((p) => hit(p.properties.name));
-  if (p) select(p.properties.name); else if (c) goCity(c);
-  e.target.value = '';
-  e.target.blur();
+let addrPin = null, sugg = [], sTimer = 0, sSeq = 0;
+const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => `&#${ch.charCodeAt(0)};`);
+function showSugg(list) {
+  sugg = list;
+  $('sugg').innerHTML = list.map((s, i) => `<li data-i="${i}"><b>${esc(s.name)}</b><span>${esc(s.sub)}</span></li>`).join('');
+  $('sugg').hidden = !list.length;
+}
+$('search').oninput = (e) => {
+  const q = e.target.value.trim(), hit = (s) => s.toLowerCase().startsWith(q.toLowerCase());
+  clearTimeout(sTimer);
+  sSeq++;
+  if (!q) return showSugg([]);
+  const local = [...CITIES.filter((c) => hit(c.name) || hit(c.region)).map((c) => ({ name: c.name, sub: `${c.region} · city model`, city: c })),
+    ...precincts.filter((p) => hit(p.properties.name)).map((p) => ({ name: p.properties.name, sub: `${CITY.name} · precinct`, precinct: p.properties.name }))];
+  showSugg(local);
+  if (q.length < 3) return;
+  const seq = sSeq;
+  sTimer = setTimeout(() => fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en`).then((r) => r.json()).then((j) => {
+    if (seq !== sSeq) return;
+    showSugg([...local, ...j.features.map(({ geometry, properties: p }) => {
+      const street = [p.housenumber, p.street].filter(Boolean).join(' ');
+      return { name: p.name || street || p.city, sub: [p.name && street, p.district || p.city || p.county, p.country].filter(Boolean).join(', '), at: geometry.coordinates };
+    })]);
+  }).catch(() => {}), 250);
 };
+function pick(s) {
+  showSugg([]);
+  $('search').value = '';
+  $('search').blur();
+  if (s.city) return goCity(s.city);
+  if (s.precinct) return select(s.precinct);
+  const [x, y] = s.at, c = CITIES.find(({ box: [w, so, e, n] }) => x >= w && x <= e && y >= so && y <= n);
+  goCity(c ?? CITY, s.at, s.name);
+}
+$('sugg').onmousedown = (e) => { const li = e.target.closest('li'); if (li) e.preventDefault(), pick(sugg[li.dataset.i]); };
+$('search').onkeydown = (e) => { if (e.key === 'Enter' && sugg.length) pick(sugg[0]); if (e.key === 'Escape') showSugg([]); };
+$('search').onblur = () => showSugg([]);
 
 // 2D / 3D toggle
 const b2 = document.getElementById('btn-2d'), b3 = document.getElementById('btn-3d');
@@ -458,6 +503,7 @@ function plumeFrame(now) {
 // ---- Precincts + POI pins (stats in data/ are illustrative) ----
 function $(id) { return document.getElementById(id); }
 const ICON = {
+  pin: '<svg viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
   factory: '<svg viewBox="0 0 24 24"><path d="M2 20V10l6 4v-4l6 4V4h4l2 16Z"/></svg>',
   school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',

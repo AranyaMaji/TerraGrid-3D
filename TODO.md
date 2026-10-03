@@ -117,13 +117,17 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     (`scripts/fetch-pois.mjs`, curl). Panel Schools / Aged care = real count inside the selected precinct (or box).
     Pins: a spread-out subset when nothing is selected, every pin inside the precinct when one is.
 
-- [ ] **6c. Search any real address, anywhere** (owner-raised 2026-10-03)
+- [x] **6c. Search any real address, anywhere** (owner-raised 2026-10-03)
+  - Done 2026-10-03: Photon suggestions (debounced, cities + precincts listed first); address in a city box switches city, selects its precinct, drops a red address pin (visible at all zooms). Outside the boxes it only flies + pins; live mode split out to 6e (owner: not for the demo).
   - Geocode from the browser (Photon/Nominatim, debounced suggestions list styled like the design) → globe fly to it.
   - Inside a baked city box: switch to that city and select the precinct containing the point, drop an address pin.
   - Anywhere else ("live mode"): harvest the vector-tile buildings in view (`querySourceFeatures`, dedupe by id) into
     the `bld` source with proxy heat, so heat/solar/scenario still work; panel name = place name, live Open-Meteo
     temp + AQ at the point, ref = nearest coast/rural point (or a fixed offset); a ~1 km circle as the one "precinct";
     runtime Overpass for POIs. Blast radius: CITY assumptions in renderPanel/layerRow/plume/crumbs/legend.
+
+- [ ] **6e. Live mode for addresses outside the baked cities** (split from 6c; only if the owner asks)
+  - The "Anywhere else" bullet of 6c above.
 
 - [ ] **6d. Sidebar follows the map** (owner-raised 2026-10-03: "sidebar is dumb about what's on the map")
   - Active layers' rows highlighted/expanded, inactive ones dimmed; legend and rows agree.

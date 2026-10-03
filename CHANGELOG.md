@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Item 6c: address search (Photon suggestions); an address in a modelled city switches to it, selects its precinct and drops an address pin.
 - 2026-10-03 — Click any building: popup with its name or street address, suburb, roof °C vs average, height, solar MWh/yr and coordinates.
 
 - 2026-10-03 — City switch pulls back to the globe, loads there, then dives in flat and tilts on landing: worst frame 950 → 158 ms; TODO gains 6b–6d (POIs everywhere, address search, map-aware sidebar, building popup).

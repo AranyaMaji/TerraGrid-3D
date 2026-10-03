@@ -53,7 +53,12 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   background: var(--panel); border-radius: 12px; box-shadow: var(--shadow);
   font-size: 15px; font-weight: 500;
 }
-.search { width: 300px; }
+.search { width: 300px; position: relative; }
+.sugg { position: absolute; top: 62px; left: 0; width: 380px; margin: 0; padding: 6px; list-style: none; background: var(--panel); border-radius: 12px; box-shadow: var(--shadow); }
+.sugg li { display: flex; flex-direction: column; gap: 2px; padding: 9px 12px; border-radius: 8px; cursor: pointer; }
+.sugg li:hover { background: var(--page); }
+.sugg b { font-size: 15px; font-weight: 600; color: var(--ink); }
+.sugg span { font-size: 12px; font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .search input { border: 0; outline: 0; font: inherit; font-weight: 400; font-size: 16px; flex: 1; color: var(--ink); }
 .search input::placeholder { color: var(--muted); }
 .chips { padding: 6px; gap: 4px; }
@@ -134,7 +139,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 
 /* map pins (POIs + selected precinct label) */
 .pin { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-.far .pin { display: none; }
+.far .pin:not(.addr) { display: none; }
 .pin-body {
   display: flex; align-items: center; gap: 8px; white-space: nowrap;
   background: #fff; color: var(--ink); border-radius: 999px; padding: 4px 12px 4px 4px;
@@ -145,6 +150,10 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .pin-stem::after { content: ''; position: absolute; left: -4px; bottom: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid #fff; }
 .pin.area .pin-body { background: var(--teal); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 17px; font-weight: 600; }
 .pin.area .pin-stem { height: 28px; }
+.pin.addr .pin-body { background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; padding-right: 14px; }
+.pin.addr .pin-body svg { background: var(--heat); }
+.pin.addr .pin-stem { background: var(--heat); height: 26px; }
+.pin.addr .pin-stem::after { background: var(--heat); }
 .pin.poi .pin-body { pointer-events: auto; cursor: default; }
 .pin-more { display: none; font-size: 12px; font-weight: 400; color: var(--muted); }
 .pin-more b { display: block; font-weight: 600; margin-top: 1px; }
