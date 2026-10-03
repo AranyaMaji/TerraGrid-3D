@@ -258,6 +258,12 @@ Shared blast radius (check all of these on every item):
   - Feed the ranking into the brief as the plan's order. Canned fallback = sort by saving per $.
   - Done when: different suburbs get different orders with sensible reasons, fallback works with no key.
 
+- [ ] **13b. "× more cooling per $ vs uniform" drops below 1×** (owner-raised 2026-10-04, do before 14)
+  - Parramatta CBD, $2M, AI mix (solar + smart controls + insulation): optimizer shows 0.9×, and the brief says it "beat a uniform rollout by achieving 0.9x", contradicting itself on camera.
+  - Likely cause: `optimize()` fills greedily by `score` alone, but `x` compares score per $ (chosen) against score per $ (all candidates). Expensive high-score buildings (towers with floor-area measures) win the fill and drag score per $ under the average.
+  - Fix options: greedy by score ÷ cost (classic knapsack heuristic; keeps x ≥ 1 in practice), or define x on $ saved per $ instead of score. Check the top-5 list and map pulse still look sensible, all 5 cities, a few mixes and budgets.
+  - Done when: x ≥ 1 for every precinct/mix/budget tried, brief wording reads right.
+
 - [ ] **14. Suburb ranking ("Compare areas" tab, currently dead)** (~25 min)
   - Tab opens a ranked list in the panel: every precinct in the city by extra cooling $/yr, with roof °C, vulnerable
     residents and best measure. Sort toggle (cost / heat / vulnerable). Row click → `select()`. Optional: tint precinct
