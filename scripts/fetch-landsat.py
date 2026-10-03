@@ -22,13 +22,29 @@ def mosaic(extra):
 
 
 # Greyscale (0..255 = 35..50 °C): read per building in src/main.js. No feather, values must stay exact.
-mosaic('').save('data/lst-landsat-gray.png', optimize=True)
+gray = mosaic('')
+gray.save('data/lst-landsat-gray.png', optimize=True)
 
-col = mosaic('&colormap_name=inferno').convert('RGBA')
+# Colour drape = same thermal ramp as the buildings (slate blue -> yellow -> red, HEAT_COLOR in src/main.js),
+# but over MID ± SPREAD °C since the ground (water, parks, roads) varies far more than roofs do.
+MID, SPREAD = 45.8, 5
+STOPS = [(-1, (0x2b, 0x3a, 0x67)), (0, (0xf5, 0xc5, 0x42)), (1, (0xe5, 0x48, 0x4d))]
+
+
+def ramp(v):
+    x = max(-1, min(1, ((35 + v / 255 * 15) - MID) / SPREAD))
+    (x0, c0), (x1, c1) = (STOPS[0], STOPS[1]) if x <= 0 else (STOPS[1], STOPS[2])
+    f = (x - x0) / (x1 - x0)
+    return [round(a + (b - a) * f) for a, b in zip(c0, c1)]
+
+
+lut = [ramp(v) for v in range(256)]
+L, A = gray.getchannel('L'), gray.getchannel('A')
+col = Image.merge('RGBA', [L.point([c[i] for c in lut]) for i in range(3)] + [A])
 w, h = col.size
 fx = [min(1, x / (w * FEATHER), (w - 1 - x) / (w * FEATHER)) for x in range(w)]
 fy = [min(1, y / (h * FEATHER), (h - 1 - y) / (h * FEATHER)) for y in range(h)]
 fade = Image.new('L', (w, h))
 fade.putdata([int(255 * (a * b) ** 0.5) for b in fy for a in fx])
-col.putalpha(ImageChops.multiply(col.getchannel('A'), fade))
+col.putalpha(ImageChops.multiply(A, fade))
 col.save('data/lst-landsat.png', optimize=True)
