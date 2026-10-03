@@ -214,6 +214,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 /* priority weights: three compact sliders in one row */
 .wts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
 .wts label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.wts b { float: right; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .wts input { width: 100%; accent-color: var(--teal); margin-top: 2px; }
 /* input confidence: measured / estimated / missing */
 .conf { display: inline-flex; flex-wrap: wrap; gap: 3px 9px; }

@@ -43,14 +43,16 @@ const MEASURES = {
   hvac: { name: 'Efficient HVAC', types: 'apartment office retail school health hotel', basis: 'floor', rate: 60, cool: 0.3, life: 15 },
   ctrl: { name: 'Smart controls', types: 'office retail school health hotel', basis: 'floor', rate: 8, all: 0.08, life: 10 },
 };
-for (const m of Object.values(MEASURES)) m.types = new Set(m.types.split(' '));
+Object.values(MEASURES).forEach((m, i) => Object.assign(m, { types: new Set(m.types.split(' ')), i }));
+// Stable 0..1 per building and measure: existing condition (roof state, plant age, glazing) scales what each measure saves.
+const fit = (q, m) => { const x = Math.sin(q.seed * 12.9898 + m.i * 78.233) * 43758.5453; return 0.55 + 0.9 * (x - Math.floor(x)); };
 // One building, one measure: [capex, kWh/yr saved]. Trees: one per 150 m² of footprint, low-rise only.
 function retrofit(q, k) {
   const m = MEASURES[k];
   if (!m.types.has(q.type) || (k === 'trees' && q.height > 15)) return [0, 0];
   const n = { roof: q.area, floor: q.floor, tree: Math.min(m.max, Math.ceil(q.area / 150)) }[m.basis];
   const top = m.basis === 'floor' ? 1 : Math.min(1, (2 * q.area) / (q.floor || 1)); // roofs and trees only reach the top two floors
-  return [n * m.rate, m.solar ? q.mwh * 1000 : top * ((m.cool ?? 0) * q.cool_kwh + (m.all ?? 0) * q.kwh + (m.extra ?? 0) * q.extra_kwh)];
+  return [n * m.rate, m.solar ? q.mwh * 1000 : fit(q, m) * top * ((m.cool ?? 0) * q.cool_kwh + (m.all ?? 0) * q.kwh + (m.extra ?? 0) * q.extra_kwh)];
 }
 
 // ---- Retrofit priority: per-building inputs, each a 0..1 percentile rank so one outlier can't flatten the ramp ----
@@ -63,7 +65,11 @@ function priorityInputs(fs, cityPois) {
   const kx = Math.cos((CITY.center[1] * Math.PI) / 180) * 111320, ky = 110540;
   const best = fs.map((f) => {
     let b = { k: null, cap: 0, kwh: 0 };
-    for (const k in MEASURES) { const [c, e] = retrofit(f.properties, k); if (c > 0 && e / c > (b.kwh / b.cap || 0)) b = { k, cap: c, kwh: e }; }
+    // Best fix = biggest yearly saving that pays back within the measure's life. Demand-side only: solar is generation and would win on almost every roof.
+    for (const k in MEASURES) if (k !== 'solar') {
+      const [c, e] = retrofit(f.properties, k);
+      if (c > 0 && e > b.kwh && c / (e * CITY['kwh$']) < MEASURES[k].life) b = { k, cap: c, kwh: e };
+    }
     return { ...b, usd: b.kwh * CITY['kwh$'] };
   });
   const nS = rank(best.map((b) => b.usd)), nP = rank(best.map((b) => (b.cap ? b.usd / b.cap : 0))), nH = rank(fs.map((f) => f.properties.lst ?? 0));
@@ -443,7 +449,7 @@ function energyModel(fs, lst, cityPois) {
     }
     const e = ENERGY[type], floor = q.area * (q.levels || Math.max(1, Math.round(q.height / 3.2)));
     const kwh = floor * e.eui, cool = kwh * Math.min(0.6, e.cool * (CITY.cool ?? 1));
-    Object.assign(q, { osm: q.type, type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool_kwh: Math.round(cool),
+    Object.assign(q, { seed: i, osm: q.type, type, conf, floor: Math.round(floor), kwh: Math.round(kwh), cool_kwh: Math.round(cool),
       extra_kwh: Math.round(cool * ENERGY.perC * Math.max(0, (lst[i] ?? cool10) - cool10)) });
   });
 }
@@ -937,14 +943,23 @@ function optimize() {
   document.body.classList.add('optimized');
   $('o-x').textContent = `${x.toFixed(1)}×`;
   $('o-res').textContent = res.toLocaleString();
-  // Top 5: address once Nominatim answers (cached), else type + nearest facility.
-  $('o-top').innerHTML = chosen.slice(0, 5).map((c, i) => {
+  // Top 5: address once Nominatim answers (cached), else type + nearest facility. One row per site: a school's other buildings are skipped.
+  // A school's or hospital's buildings merge into one row (summed); sites saving $1k+/yr first, small homes fill leftover rows.
+  const site = (c) => /school|health/.test(c.f.properties.type) && c.d < 150 && c.near;
+  const rows = [];
+  for (const c of chosen) {
+    const q = c.f.properties, r = site(c) && rows.find((t) => t.site === site(c));
+    if (!q.best) continue;
+    if (r) { r.usd += q.best_usd; r.cap += q.best_cap; r.n++; } else rows.push({ c, site: site(c), usd: q.best_usd, cap: q.best_cap, n: 1 });
+  }
+  const top = [...rows.filter((r) => r.usd >= 1000), ...rows.filter((r) => r.usd < 1000)].slice(0, 5).sort((a, b) => b.c.s - a.c.s);
+  $('o-top').innerHTML = top.map(({ c, usd, cap, n }) => {
     const q = c.f.properties;
-    return `<li data-i="${i}"><div><b>${c.near && c.d < 300 ? `Near ${esc(c.near)}` : TYPE_NAME[q.type]}</b>` +
-      `<span>${TYPE_NAME[q.type]} · ${q.best ? MEASURES[q.best].name : '--'} ${dots(q)}</span></div>` +
-      `<div class="t-n"><em>${money(q.best_usd)}/yr</em><span>${q.best_usd ? (q.best_cap / q.best_usd).toFixed(1) : '--'} yrs</span></div></li>`;
+    return `<li data-i="${chosen.indexOf(c)}"><div><b>${c.near && c.d < 300 ? `Near ${esc(c.near)}` : TYPE_NAME[q.type]}</b>` +
+      `<span>${TYPE_NAME[q.type]}${n > 1 ? ` · ${n} buildings` : ''} · ${MEASURES[q.best].name} ${dots(q)}</span></div>` +
+      `<div class="t-n"><em>${money(usd)}/yr</em><span>${(cap / usd).toFixed(1)} yrs</span></div></li>`;
   }).join('');
-  chosen.slice(0, 5).reduce((wait, c, i) => wait.then(async () => {
+  top.reduce((wait, { c }, i) => wait.then(async () => {
     const hit = geoCache.has(`${c.c[0].toFixed(5)},${c.c[1].toFixed(5)}`), { name } = await placeName(c.c);
     const b = picks === chosen && $('o-top').children[i]?.querySelector('b');
     if (b && name) b.textContent = name;
@@ -1009,7 +1024,8 @@ async function makeBrief() {
     cooling_per_dollar_vs_uniform: `${x.toFixed(1)}x`, vulnerable_residents_protected: res,
     annual_benefit: `$${Math.round((energy + health) / 1000)}k (energy $${Math.round(energy / 1000)}k, health $${Math.round(health / 1000)}k)`,
     payback_years: (spent / (energy + health)).toFixed(1), peak_demand_cut_mw: peak.toFixed(2),
-    top_targets: chosen.slice(0, 5).map((c) => `${TYPE_NAME[c.f.properties.type]}${c.near ? ` near ${c.near}` : ''}: ${MEASURES[c.f.properties.best]?.name ?? 'retrofit'}`).join('; '),
+    priority_weights: [...document.querySelectorAll('[data-w]')].map((s) => `${s.parentNode.firstChild.textContent.trim()} ${s.previousElementSibling.textContent}`).join(', '),
+    top_targets: [...$('o-top').children].map((li) => li.innerText.replace(/\n/g, ' · ')).join('; '),
   };
   $('s-export').textContent = 'Drafting brief…';
   let b;
@@ -1028,13 +1044,21 @@ async function makeBrief() {
   document.body.classList.add('briefed');
 }
 $('s-export').onclick = makeBrief;
+// Each slider's share of the three weights, next to its label.
+function showWeights() {
+  const t = W.nS + W.nP + W.nV || 1;
+  for (const s of document.querySelectorAll('[data-w]')) s.previousElementSibling.textContent = `${Math.round((100 * W[s.dataset.w]) / t)}%`;
+}
+showWeights();
 document.querySelector('.scn').oninput = (e) => {
   $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
   const w = e.target.dataset.w;
-  if (w) { // weight slider: recolour the priority map and re-rank
+  if (w) { // weight slider: recolour the priority map; re-rank if Optimize has run
     W[w] = +e.target.value;
+    showWeights();
     if (on.has('prio')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor()); else toggleLayer('prio', true);
-    return optimize();
+    if (picks) optimize();
+    return;
   }
   if (picks) optimize(); else animateTo(target(), 300);
 };
