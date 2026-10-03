@@ -1,0 +1,82 @@
+# TODO — build order (most significant first; shippable after every item)
+
+Rules: `CLAUDE.md`. One item per session. Tick when done, note deviations in one line.
+Time budget: ~5 h total. Items 1–4 are the demo. 5–9 are stretch, in priority order.
+If time or tokens run out, stop after any item: the video can be cut from whatever exists.
+
+## Core (must ship)
+
+- [ ] **1. Scaffold + globe + fly-in + 3D buildings + UI shell** (~60 min)
+  - `npm create vite@latest` vanilla JS at repo root (`index.html`, `src/main.js`, `src/style.css`). Add `maplibre-gl`.
+  - Map: OpenFreeMap `liberty` style (has `building-3d` fill-extrusion layer), recolour to dark canvas
+    (`#0b1220` background, water, land; buildings `#2a3447`). Globe: `map.on('style.load', () => map.setProjection({type:'globe'}))`.
+  - Intro: globe centred on Oceania, slow auto-rotate, then `flyTo` Parramatta (-33.815, 151.003) pitch 60, bearing -20, zoom 16 on
+    "Explore" click (and auto after 4 s). Smooth: `flyTo` with `curve`/`speed` tuned, `easeTo` pitch after.
+  - UI shell from `docs/design-reference.png`: top nav, floating search box (static), layer dropdown, Layers button,
+    2D/3D toggle (pitch 0 ↔ 60), legend bottom-left, right side panel (static placeholder text). Inter font, tokens from CLAUDE.md.
+  - Done when: `npm run dev` shows spinning globe → fly-in → extruded Parramatta buildings inside the light UI shell, no console errors.
+  - Needs: `docs/API-NOTES.md` §1–2.
+
+- [ ] **2. Surface heat layer, live data, per-building heat** (~45 min)
+  - Fetch Parramatta buildings once via Overpass (bbox ~2 km around centre), convert ways → GeoJSON polygons with
+    `height` (or `building:levels`×3.2, default 8), save to `data/buildings-parramatta.geojson` (commit it; no runtime Overpass).
+    Script: `scripts/fetch-buildings.mjs` (node, no deps).
+  - Compute per-building `heat` 0..1 at load: f(footprint area, height, lat/lon noise, distance to nearest park/water if cheap).
+    Store via `setFeatureState`; `fill-extrusion-color` interpolates buildings `#2a3447` → amber → red → `#fecdd3`.
+    Hide the tile `building-3d` layer inside the bbox (or just render ours on top with `fill-extrusion-opacity` 1).
+  - NASA GIBS `MODIS_Terra_L3_Land_Surface_Temp_Daily_Day` raster source (latest date that returns tiles; try today-1, -2, -3),
+    opacity 0.55, under buildings. Toggle with "Surface heat" layer dropdown.
+  - Open-Meteo current `temperature_2m`, `apparent_temperature` for the city → side panel headline (e.g. "41.2°C"), with
+    "+X°C above reference" vs a fixed built-up reference, and timestamp "Open-Meteo · live".
+  - Legend: LST colour bar 30–45 °C + "No data" hatch, as in design.
+  - Done when: buildings glow by heat, satellite LST drapes under them, panel shows a live temperature with timestamp.
+  - Needs: `docs/API-NOTES.md` §3–5.
+
+- [ ] **3. Precinct selection + side panel + POI pins** (~40 min)
+  - `data/precincts.geojson`: 3–4 hand-drawn polygons in Parramatta (e.g. CBD, Harris Park, Westmead, North Parramatta)
+    with props: name, tree_cover_pct, age65_pct, schools, aged_care (illustrative, plausible).
+  - Click a precinct → teal outline + label pill (design), camera eases to it, side panel fills: name, headline temp
+    (city live temp + precinct offset), tree cover, age 65+, observation period, "Sources & assumptions" link.
+  - POI pins: custom HTML markers (school, aged care) from `data/pois.geojson`, styled as in design (white pill, icon, teal stem).
+  - Done when: clicking precincts updates the panel and pins render.
+
+- [ ] **4. Scenario simulator: "Test canopy scenario"** (~40 min)
+  - CTA opens scenario card: toggles Cool roofs / Tree canopy / Rooftop solar (checkboxes, default all on), slider "Coverage %".
+  - Apply: buildings in the selected precinct animate heat → cool (cyan/green) over ~1.5 s (requestAnimationFrame lerp on
+    feature-state); KPI counters count up: −4.2 °C surface, −18 % peak AC demand, +320 MWh/yr solar, $48k/yr saved
+    (scale by coverage %). Reset button reverses.
+  - "Export council brief (PDF)" button = `window.print()` of the panel (good enough for video).
+  - Done when: the magic moment records cleanly in one take.
+
+## Stretch (priority order)
+
+- [ ] **5. More layers: smoke/aerosol, tree canopy, solar potential** (~45 min)
+  - Smoke: GIBS `MODIS_Combined_Value_Added_AOD` raster + Open-Meteo air quality (pm2_5, co, aod) in panel + an animated
+    particle plume (canvas overlay or `symbol` layer with drifting points) from an industrial POI across the precinct.
+  - Tree canopy: GIBS `MODIS_Terra_NDVI_8Day` raster, green ramp; buildings desaturate.
+  - Solar: buildings coloured gold by roof area × irradiance constant; panel shows MWh/yr.
+  - Layer dropdown switches all three + heat; legend updates.
+
+- [ ] **6. Multi-city: Melbourne, then London** (~15 min each)
+  - City switcher in nav/search. Globe fly between cities. Reuse tile `building-3d` (no Overpass) with precinct-level
+    heat tint only; Open-Meteo per city. Skip if time is short.
+
+- [ ] **7. AI: "Ask the twin"** (~30 min)
+  - Vite `configureServer` middleware `POST /api/ask` → Gemini (`GEMINI_API_KEY` env). Prompt includes current city,
+    precinct stats, live temp/air quality, available actions. Model returns JSON `{answer, action?: {type:'flyTo'|'select'|'layer'|'scenario', ...}}`.
+    UI runs the action and types the answer out. Fallback: canned Q&A if no key.
+  - Demo query: "Which precinct puts the most aged-care residents in extreme heat, and what would canopy do?"
+
+- [ ] **8. Arduino DS18B20 ground sensor** (~20 min)
+  - `arduino/sensor.ino`: Uno R3 + DS18B20 (OneWire + DallasTemperature libs), prints `°C` as one number per line at 9600.
+  - Web Serial button "Connect sensor" → live reading on a pulsing pin "Ground sensor · live", panel shows satellite vs ground
+    delta ("calibration"). Simulated fallback if no port.
+
+- [ ] **9. Capture mode + repo polish** (~25 min)
+  - Key `c` hides chrome and runs a cinematic path: globe spin → fly-in → orbit precinct → scenario apply. For recording.
+  - New root `README.md`: project pitch, GIF/screens, architecture diagram (mermaid), data sources, run instructions, licence (MIT).
+  - Video shot list in `docs/VIDEO.md`.
+
+## Not doing
+
+Login, backend database, real Copernicus CDS downloads (swap in later if an account appears), tests, deployment, mobile.
