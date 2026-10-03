@@ -160,13 +160,23 @@ Projects must be submitted through the **Junction Platform** before the deadline
 
 ## ⚖️ Judging & Evaluation System (Gavel)
 
-Judging is performed via **Gavel**, an open-source pairwise comparison voting system developed for hackathons (based on the Bradley-Terry mathematical model), running at `climate-hack-tion-gavel-56ef231b1d62.herokuapp.com`.
+Judging is performed via **Gavel**, an open-source pairwise comparison voting system running at `climate-hack-tion-gavel-56ef231b1d62.herokuapp.com` based on the **Crowd-BT active learning Bradley-Terry model**.
 
-### Core Evaluation Dimensions:
-* **Climate Impact & Scalability (30%):** Does the solution target a meaningful emissions reduction, adaptation outcome, or resilience benefit in Oceania and globally? Can it realistically scale?
-* **Technical Feasibility & Innovation (30%):** Quality, complexity, and soundness of implementation. Effective use of AI/ML, data pipelines, APIs, and modern architecture.
-* **User Experience & Design (20%):** Intuitiveness, accessibility, responsiveness, and aesthetic clarity of the interface.
-* **Presentation & Clarity (20%):** Strength of the pitch video, documentation completeness, and ability to communicate value clearly.
+### 1. Algorithmic Dynamics & Early Momentum
+* **Pairwise Voting:** Evaluators are repeatedly presented with **two competing projects side-by-side** and asked: *"Which project is better overall?"*
+* **Active Learning Information Gain:** Gavel dynamically matches submissions with close latent scores $\mu$ or high uncertainty $\sigma^2$. Early matchup wins rapidly inflate $\mu$, mathematically locking projects into the top finalist bracket.
+
+### 2. Cognitive Exploits for Gavel Domination
+* **The "30-Second Snap Decision":** Judges evaluate 20+ pairs in rapid succession (spending 60–120 seconds per pair). They form an intuitive, subconscious preference within the first 15–30 seconds, using the remaining time to confirm that bias.
+* **High-Contrast Disparity (The Juxtaposition Effect):** Because projects are evaluated side-by-side, visual disparity is magnified 10x. A sleek cyber-dark interface (`#0b0f19`) featuring 3D extruded city blocks and multi-spectral heat/smoke layers will consistently beat a plain white document or text form.
+* **Feeding the "Novelty Neurons" (The Affect Heuristic):** After reviewing a dozen repetitive 2D dashboards, presenting a rotating 3D globe and interactive city microclimate simulations triggers immediate cognitive excitement.
+* **Zero-Friction Looping GIFs:** Embedding high-resolution 60 FPS looping GIFs directly into the presentation slide deck ensures tired evaluators absorb the working technology instantly with zero loading latency or broken link risks.
+
+### 3. Core Evaluation Dimensions:
+* **Climate Impact & Scalability (30%):** Tangible emissions cuts, urban heat mitigation, and clean energy acceleration in Oceania and globally.
+* **Technical Feasibility & Innovation (30%):** Rigorous use of Copernicus Earth observation data (Sentinel-3, Sentinel-5P, Sentinel-2, CAMS) and 3D geospatial architecture.
+* **User Experience & Design (20%):** Aesthetics, clarity of the multi-layer switcher, and intuitiveness of the council intervention simulator.
+* **Presentation & Clarity (20%):** Quality of the slide deck, embedded looping GIFs, and 2-minute video pitch.
 
 ---
 

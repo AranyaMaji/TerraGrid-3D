@@ -4,20 +4,54 @@ A complete operational guide for delivering a top-scoring project at the **Clima
 
 ---
 
-## 🎯 How Gavel Judging Works & How to Win
+## 🎯 How Gavel Judging Works: The Algorithm & Cognitive Exploits
 
-Climate Hack-tion employs **Gavel** (`climate-hack-tion-gavel-56ef231b1d62.herokuapp.com`), a peer and expert pairwise comparison algorithm based on the Bradley-Terry model.
+Climate Hack-tion employs **Gavel** (`climate-hack-tion-gavel-56ef231b1d62.herokuapp.com`), an open-source pairwise evaluation platform developed by HackMIT (Anish Athalye) based on the **Crowd-BT active learning Bradley-Terry model**.
 
-### Key Dynamics of Gavel:
-1. **Head-to-Head Matchups:** Judges are repeatedly shown **two** random projects side-by-side and asked: *"Which project is better overall?"*
-2. **Speed & First Impressions:** A judge spends an average of **90 to 180 seconds** per comparison. If your live demo is broken, or your pitch video is rambling, you will lose head-to-head comparisons rapidly.
-3. **Elo-Style Ranking:** Every win boosts your project's rating; consistent wins across different judges propel you into top finalist spots.
+### 1. The Mathematical Engine & Early Momentum
+* **Head-to-Head Matchups:** Judges are never asked to give absolute 1–10 scores. Instead, they are repeatedly shown **two random projects side-by-side** and asked: *"Which project is better overall?"*
+* **Active Learning (Crowd-BT):** Gavel calculates a latent quality score $\mu$ and an uncertainty variance $\sigma^2$ ($\mathcal{N}(\mu, \sigma^2)$) for every submission. Matchups are assigned adaptively to maximize *information gain* (pitting close competitors against each other).
+* **Early Win Compounding:** Early matchup wins rapidly narrow your uncertainty $\sigma^2$ and inflate your latent score $\mu$, mathematically cementing your project in the top bracket. Early losses due to friction or confusion push a project into the lower bracket, where score recovery becomes statistically difficult.
 
-### 4 Golden Rules for Gavel Success:
-* **The "30-Second Hook":** Clearly articulate the **one** specific climate problem you solve in the first 30 seconds of your video and the top of your README.
-* **Make the Demo Clickable / Zero Friction:** Judges will not clone your repo and install 50 Python packages locally. Deploy a live web app or provide a public clickable Figma prototype.
-* **Show Real Data / Real Logic:** Even a simplified ML model or realistic API integration beats a completely static mockup with hardcoded lorem ipsum.
-* **Quantify the Climate Impact:** Don't just say "we reduce emissions." State: *"Our algorithm optimizes charging across 50,000 EVs, mitigating an estimated 12,000 tonnes of $CO_2$-e peak grid emissions annually."*
+---
+
+### 2. Cognitive Biases & Feeding the Judge's "Novelty Neurons"
+
+Evaluators judge between **20 to 30 matchups in a row**. Across multiple evaluations, severe cognitive fatigue sets in. To win 90%+ of pairwise comparisons, the submission must be engineered for how tired judges actually behave:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        THE 30-SECOND GAVEL JUXTAPOSITION DYNAMICS                      │
+├────────────────────────────────┬───────────────────────────────────────────────────────┤
+│ The 30-Second Snap Decision    │ Judges make an intuitive, subconscious choice within  │
+│ (Thin-Slicing)                 │ the first 15–30 seconds. The remaining 60 seconds are │
+│                                │ spent seeking confirming evidence (confirmation bias). │
+├────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ High-Contrast Disparity        │ In side-by-side comparison, aesthetic difference is   │
+│ (The Juxtaposition Effect)     │ magnified 10x. A sleek cyber-dark UI (#0b0f19) with   │
+│                                │ glowing 3D extruded buildings next to a plain white   │
+│                                │ form or Google Slide triggers an immediate win.       │
+├────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ Feeding "Novelty Neurons"      │ After evaluating 15 repetitive 2D dashboards with      │
+│ (The Affect Heuristic)         │ basic line charts, a dynamic rotating 3D globe and    │
+│                                │ interactive city-scale heat/smoke shaders delivers an │
+│                                │ immediate dopamine hit. The judge feels: "This team   │
+│                                │ built frontier intelligence tech."                    │
+├────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ Zero-Friction & Looping GIFs   │ Fatigued judges will NEVER clone repos or wait for    │
+│                                │ spinning servers. Embedded 60 FPS looping GIFs in the │
+│                                │ presentation deck provide instant comprehension with │
+│                                │ zero loading delay.                                   │
+└────────────────────────────────┴───────────────────────────────────────────────────────┘
+```
+
+---
+
+### 3. The 4 Golden Rules for Gavel Domination:
+1. **The "30-Second Hook":** Deliver the core regional climate crisis (Western Sydney 50°C heat / Pacific atoll vulnerability) in the first 25 seconds of the video and top of the slide deck.
+2. **Visual Novelty Over Boring Breadth:** Don't build 10 plain CRUD pages (login, profile, settings). Build **one breathtaking 3D vertical slice** that lets the judge watch buildings cool down in real-time.
+3. **Embed High-Res Looping GIFs:** Place looping 60 FPS GIFs directly into the slide deck (macro globe fly-in, multi-layer toggle, cool roof retrofit simulation) so the prototype's working state is visible within 1 second.
+4. **Quantify the ROI:** Never say "we reduce emissions." Display hard, indisputable metrics: **"-4.2°C surface temperature, -18% peak summer AC grid demand, \$48,000 annual energy savings per precinct."**
 
 ---
 
