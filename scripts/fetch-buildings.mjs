@@ -1,9 +1,11 @@
 // One-off: Overpass → data/buildings-parramatta.geojson. Run: node scripts/fetch-buildings.mjs
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 
-const [S, W, N, E] = [-33.828, 150.990, -33.802, 151.018];
+const [S, W, N, E] = [-33.835, 150.980, -33.795, 151.030];
 const q = `[out:json][timeout:90];
 (way["building"](${S},${W},${N},${E});
+ way["building:part"](${S},${W},${N},${E});
+ rel["building"](${S},${W},${N},${E});
  way["leisure"~"park|garden|nature_reserve"](${S},${W},${N},${E});
  way["natural"~"water|wood"](${S},${W},${N},${E});
  way["landuse"~"grass|forest"](${S},${W},${N},${E}););
@@ -35,11 +37,29 @@ function areaCentroid(g) {
 const closed = (el) => { const g = el.geometry; return g?.length > 3 && g[0].lat === g.at(-1).lat && g[0].lon === g.at(-1).lon; };
 const green = [], blds = [];
 for (const el of elements) {
+  // Multipolygon buildings: each closed outer ring becomes its own footprint with the relation's tags.
+  if (el.type === 'relation') {
+    for (const m of el.members || []) if (m.role === 'outer' && closed(m)) blds.push({ id: el.id * 1000 + blds.length % 1000, tags: el.tags, geometry: m.geometry });
+    continue;
+  }
   if (el.type !== 'way' || !closed(el)) continue;
-  (el.tags.building ? blds : green).push(el);
+  (el.tags.building || el.tags['building:part'] ? blds : green).push(el);
 }
 // Sample green/water edges every few vertices so big parks count by their boundary, not just centroid.
 const greenPts = green.flatMap((el) => el.geometry.filter((_, i) => i % 3 === 0).map(xy));
+
+// OSM keeps both a building's outline and its building:part pieces; drawing both z-fights. Drop outlines that contain a part.
+const inside = ([x, y], g) => {
+  let c = false;
+  for (let i = 0, j = g.length - 1; i < g.length; j = i++) {
+    const [xi, yi] = xy(g[i]), [xj, yj] = xy(g[j]);
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+};
+const partCs = blds.filter((b) => b.tags['building:part']).map((b) => areaCentroid(b.geometry).c);
+for (let i = blds.length - 1; i >= 0; i--)
+  if (!blds[i].tags['building:part'] && partCs.some((c) => inside(c, blds[i].geometry))) blds.splice(i, 1);
 
 const num = (v) => parseFloat(String(v).replace(/[^\d.]/g, ''));
 const features = blds.map((el) => {

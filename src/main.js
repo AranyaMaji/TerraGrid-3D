@@ -31,7 +31,7 @@ function recolour() {
     else if (id === 'building') set('fill-color', '#1a2335');
     else if (id === 'building-3d') {
       set('fill-extrusion-color', C.bld);
-      set('fill-extrusion-opacity', 0.95);
+      set('fill-extrusion-opacity', ['interpolate', ['linear'], ['zoom'], 13.5, 0.95, 14, 0]);
       set('fill-extrusion-vertical-gradient', true);
     }
     else if (l.type === 'fill') set('fill-color', /park|wood|grass|wetland/.test(id) ? C.green : C.land);
@@ -114,24 +114,42 @@ async function latestLstDate() {
   return day(16);
 }
 
-// Percentile rank so the ramp spreads evenly whatever the raw units.
-function ranks(vals) {
-  const idx = vals.map((v, i) => i).sort((a, b) => vals[a] - vals[b]), r = new Array(vals.length);
-  idx.forEach((i, k) => (r[i] = k / (vals.length - 1)));
-  return r;
+// Landsat scene bounds; the greyscale copy encodes 35..50 °C as 0..255.
+const LANDSAT = { w: 150.90, e: 151.10, n: -33.73, s: -33.90, t0: 35, t1: 50 };
+
+// Returns (lon, lat) → surface °C (null outside the scene / no data).
+async function landsatSampler() {
+  const img = new Image();
+  img.src = '/data/lst-landsat-gray.png';
+  await img.decode();
+  const cv = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height });
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  cx.drawImage(img, 0, 0);
+  const px = cx.getImageData(0, 0, img.width, img.height).data, L = LANDSAT;
+  return (lon, lat) => {
+    const x = Math.floor(((lon - L.w) / (L.e - L.w)) * img.width), y = Math.floor(((L.n - lat) / (L.n - L.s)) * img.height);
+    if (x < 0 || y < 0 || x >= img.width || y >= img.height) return null;
+    const i = (y * img.width + x) * 4;
+    return px[i + 3] ? L.t0 + (px[i] / 255) * (L.t1 - L.t0) : null;
+  };
 }
 
 async function addHeatLayers() {
   const date = await latestLstDate();
-  map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day' });
-  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 11, 0.3, 12.5, 0], 'raster-resampling': 'linear' } }, 'building-3d');
+  map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day · Landsat: USGS via Microsoft Planetary Computer' });
+  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 10, 0.5, 11, 0] , 'raster-resampling': 'linear' } }, 'building-3d');
+  // 100 m Landsat scene (baked by scripts/fetch-landsat.sh) takes over from 1 km MODIS at city zoom.
+  map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: [[150.90, -33.73], [151.10, -33.73], [151.10, -33.90], [150.90, -33.90]] });
+  map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
 
-  const gj = await (await fetch('/data/buildings-parramatta.geojson')).json();
-  const P = gj.features.map((f) => f.properties);
-  const hash = (f) => { const [x, y] = f.geometry.coordinates[0][0]; const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return s - Math.floor(s); };
-  const rA = ranks(P.map((p) => p.area)), rG = ranks(P.map((p) => p.dist_green)), rH = ranks(P.map((p) => p.height));
-  // ponytail: heuristic heat score (big roofs, far from green, low-rise = hotter), not a physical model.
-  const heat = ranks(gj.features.map((f, i) => 0.35 * rA[i] + 0.3 * rG[i] + 0.15 * (1 - rH[i]) + 0.2 * hash(f)));
+  const [gj, sample] = await Promise.all([fetch('/data/buildings-parramatta.geojson').then((r) => r.json()), landsatSampler()]);
+  // Building colour = Landsat surface temp at its footprint (vertex mean), so overlapping parts match.
+  const heat = gj.features.map((f) => {
+    const ring = f.geometry.coordinates[0], n = ring.length;
+    const t = sample(ring.reduce((a, p) => a + p[0], 0) / n, ring.reduce((a, p) => a + p[1], 0) / n);
+    f.properties.lst = t;
+    return t == null ? 0 : (t - 42) / 6; // 42..48 °C spans the ramp (buildings' 5th..95th percentile is 42.6..47.0)
+  });
 
   map.addSource('bld', { type: 'geojson', data: gj, attribution: '© OpenStreetMap contributors' });
   map.addLayer({
@@ -145,12 +163,12 @@ async function addHeatLayers() {
     },
   });
   gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
-  document.getElementById('lst-date').textContent = `MODIS Terra 8-day · from ${date}`;
+  document.getElementById('lst-date').textContent = `Landsat 8 · 9 Jan 2026 (city) · MODIS 8-day from ${date} (region)`;
 }
 
 document.getElementById('layer').onchange = (e) => {
   const on = e.target.value === 'Surface heat';
-  if (map.getLayer('lst')) map.setLayoutProperty('lst', 'visibility', on ? 'visible' : 'none');
+  for (const id of ['lst', 'landsat']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
   if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', on ? HEAT_COLOR : C.bld);
   document.querySelector('.legend').style.visibility = on ? 'visible' : 'hidden';
 };

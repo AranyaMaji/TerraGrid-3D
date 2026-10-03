@@ -34,11 +34,10 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Done when: buildings glow by heat, satellite LST drapes under them, panel shows a live temperature with timestamp.
   - Needs: `docs/API-NOTES.md` §3–5.
 
-- [ ] **2b. Visual pass on item 2 (verify in a VISIBLE Chrome tab; hidden tabs throttle and show half-drawn frames)** (~20 min)
+- [x] **2b. Visual pass on item 2 (verify in a VISIBLE Chrome tab; hidden tabs throttle and show half-drawn frames)** (~20 min)
   - Fixed 2026-10-03: MapLibre worker never loaded under Vite (no basemap/vector tiles at all) → `setWorkerUrl`. Daily LST → 8-day composite (fewer cloud gaps). LST fades out by z12.5 (1 km pixels are a flat wash at street level).
-  - Check: intro → street view settles cleanly; building heat colours read well (small houses currently pink, towers dark — tune ramp/weights if it looks wrong).
-  - Legend ramp (amber→red 30–45) does not match GIBS's own LST palette (green/yellow). Either draw GIBS's colormap in the legend or recolour.
-  - Resolution ceiling: MODIS LST is 1 km, the best keyless tiled LST. 100 m Landsat LST needs an account + offline processing → only if time allows; otherwise pitch it as "regional satellite → per-building model".
+  - Fixed 2026-10-03 (verified in Chrome): 100 m Landsat 8 surface temp (9 Jan 2026, keyless via Planetary Computer, baked to `data/lst-landsat*.png`) at city zoom; building colour = Landsat temp at footprint (replaced the heuristic; stops overlapping-part stripes); tile 3D buildings hidden from z14 (they z-fought ours → coloured sides, grey roofs); building parts + multipolygons added, outlines containing parts dropped. Legend now inferno 35–50 °C matching Landsat.
+  - Left: legend doesn't match MODIS's own palette at globe zoom; Landsat image edge visible around z11–12 (widen bbox if it shows in the video); panel could show the real 9 Jan surface temp (45.8 °C median) in item 3.
 
  + side panel + POI pins** (~40 min)
   - `data/precincts.geojson`: 3–4 hand-drawn polygons in Parramatta (e.g. CBD, Harris Park, Westmead, North Parramatta)
