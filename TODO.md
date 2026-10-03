@@ -153,7 +153,7 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Done when: moving the budget + Optimize visibly picks/pulses roofs and the metrics + list update, verified in Chrome.
 
 - [x] **7b. Gemini business case** (~25 min)
-  - Done 2026-10-03: `gemini-2.5-flash-lite` (cheapest; `GEMINI_MODEL` env overrides). Export runs Optimize if needed, then the brief replaces the optimizer results + layer rows; second click prints. Benefit model in the facts: $3.2/m²/yr energy, 10 W/m² peak, $180/yr health per protected resident. Canned fallback verified; live Gemini path needs the key in the dev-server env.
+  - Done 2026-10-03: `gemini-3.5-flash-lite` (cheapest; 2.5 was retired for new keys 2026-10-04; `GEMINI_MODEL` env overrides). Export runs Optimize if needed, then the brief replaces the optimizer results + layer rows; second click prints. Benefit model in the facts: $3.2/m²/yr energy, 10 W/m² peak, $180/yr health per protected resident. Canned fallback verified; live Gemini path needs the key in the dev-server env.
   - Vite `configureServer` middleware `POST /api/brief` → Gemini (`GEMINI_API_KEY` env; check current model id first).
     Input: city, precinct, live temp/PM2.5, 65+ %, schools/aged care, budget, optimizer metrics, top targets.
     Output 3 sections: hazard, funded intervention plan, ROI (payback, peak grid demand, health/equity). COP31 framing OK.

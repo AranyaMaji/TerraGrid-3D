@@ -19,7 +19,7 @@ const tunnel = {
 
 // POST /api/brief: optimizer facts in, three-section council brief out. POST /api/rank: per-measure totals in,
 // top 3 measures with a reason each out. Key stays server-side; the model orders and explains, never invents numbers.
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite'
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
 const PROMPTS = {
   brief: (facts) => `You write a one-page business case for a city council officer pitching a cooling budget to councillors (COP31 framing welcome).
 Use ONLY the facts below; quote their numbers exactly, invent no new figures. Plain, confident, specific. No markdown.
