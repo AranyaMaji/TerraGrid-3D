@@ -926,7 +926,7 @@ function closeScenario() {
 
 // ---- Budget optimizer: which roofs get the money ----
 // Score = the weighted retrofit priority (savings, payback, vulnerable people, heat).
-// Greedy fill in score order at each building's cost for the chosen measures until the budget runs out. "× per $" compares against spending
+// Greedy fill by score per $ (knapsack heuristic, so "× per $" stays ≥ 1) at each building's cost for the chosen measures until the budget runs out. "× per $" compares against spending
 // the same budget evenly over every roof in the precinct (uniform rollout), on the same score.
 function optimize() {
   if (!scnB.length) return;
@@ -937,7 +937,7 @@ function optimize() {
     let d = 500, near = null;
     for (const p of pois) { const e = dist(c, p.geometry.coordinates); if (!near || e < d) d = e, near = p.properties.name; }
     return { f, c, d, near, cost: plan(f.properties)[0], s: score(f.properties) };
-  }).sort((a, b) => b.s - a.s);
+  }).sort((a, b) => b.s / (b.cost || Infinity) - a.s / (a.cost || Infinity));
   // ex = roof °C over the precinct median (offer letters quote it).
   const t = scnB.map((f) => f.properties.lst).filter((v) => v != null).sort((a, b) => a - b), med = t[t.length >> 1] ?? lstMed;
   for (const c of cand) c.ex = Math.max(0, (c.f.properties.lst ?? med) - med);
@@ -945,7 +945,8 @@ function optimize() {
   const chosen = [];
   for (const c of cand) if (c.cost > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
   const sum = (l, k) => l.reduce((a, c) => a + c[k], 0);
-  const x = (sum(chosen, 's') / (budget() - left || 1)) / (sum(cand, 's') / (sum(cand, 'cost') || 1));
+  const reach = cand.filter((c) => c.cost > 0); // uniform rollout only covers buildings the chosen measures apply to
+  const x = (sum(chosen, 's') / (budget() - left || 1)) / (sum(reach, 's') / (sum(reach, 'cost') || 1));
 
   // Vulnerable residents: pupils and aged-care residents at facilities within 200 m of a funded roof,
   // plus the precinct's 65+ residents in proportion to its buildings within 200 m of one.

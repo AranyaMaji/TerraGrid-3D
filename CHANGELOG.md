@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 13b: optimizer fills by score per $ and compares against a uniform rollout over reachable buildings only, so "× per $ vs uniform" is never below 1× (Parramatta CBD AI mix 0.9× → 6.1×).
 - 2026-10-04 — fix: Gemini model 2.5-flash-lite → 3.5-flash-lite (2.5 retired for new keys; live brief and ranking now work).
 - 2026-10-04 — Item 13: "AI recommends" block in the scenario card. Gemini (`/api/rank`) orders the top 3 measures per suburb from computed totals with a short reason each; click applies the mix to the lever chips; the brief follows that order. Fallback ranks by saving per $.
 - 2026-10-04 — Item 12b: teammate's program merged onto items 10–12 as the Retrofit program; offer letters and the owner popup quote each building's best fix, capex and saving from the energy model; Public view hides the priority score and confidence dots, and tells owners of offered buildings they qualify.
