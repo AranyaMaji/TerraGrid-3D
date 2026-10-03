@@ -99,9 +99,9 @@ b2.onclick = () => setMode3d(false);
 b3.onclick = () => setMode3d(true);
 
 // ---- Surface heat: GIBS LST drape + per-building Landsat heat ----
-// Diverging: -1 = 1.5 °C cooler than the local median, +1 = 1.5 °C hotter (matches .ramp.div in style.css).
+// Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (slate blue), 0 = average (yellow), +1 = hotter (red).
 const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'heat'], 0],
-  -1, '#22d3ee', -0.4, '#0f8b85', 0, '#3a4458', 0.4, '#f59e0b', 0.7, '#e5484d', 1, '#fecdd3'];
+  -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d'];
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const lstUrl = (d, z = '{z}', y = '{y}', x = '{x}') =>
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_8Day_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
@@ -167,7 +167,7 @@ async function addHeatLayers() {
     },
   });
   gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
-  document.getElementById('lst-date').textContent = `Landsat 8 · 9 Jan 2026 (city) · MODIS 8-day from ${date} (region)`;
+  document.getElementById('lst-date').textContent = `Landsat 8 · 9 Jan 2026`;
 }
 
 document.getElementById('layer').onchange = (e) => {
