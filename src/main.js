@@ -10,7 +10,7 @@ maplibregl.setWorkerUrl(workerUrl);
 const CITY = {
   name: 'Parramatta', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
   ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
-  tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, offset: 0,
+  tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, hot_days: 14, offset: 0,
 };
 const OCEANIA = [150, -25];
 
@@ -273,7 +273,6 @@ function applyLayers() {
   renderPanel();
 }
 document.querySelectorAll('#layers button').forEach((b) => (b.onclick = () => toggleLayer(b.dataset.k)));
-$('lrows').onclick = (e) => { const b = e.target.closest('.lrow'); if (b) toggleLayer(b.dataset.k); };
 
 // Satellite overlays (global GIBS rasters, Landsat NDVI drape) + smoke plume source.
 async function addOverlays() {
@@ -422,13 +421,13 @@ function renderPanel() {
   $('p-name').textContent = p.name;
   $('p-schools').textContent = p.schools;
   $('p-aged').textContent = p.aged_care;
-  $('p-tree').textContent = `${p.tree_cover_pct}%`;
+  $('p-hot').innerHTML = `${p.hot_days}<span class="stat-u"> /yr</span>`;
   $('p-age').textContent = `${p.age65_pct}%`;
-  // Every layer's metric is always shown; rows for layers off the map are greyed. Icon/colour from the toolbar chip.
+  // Every layer's metric is always shown, whether or not it is on the map. Icon/colour from the toolbar chip.
   $('lrows').innerHTML = Object.keys(LAYERS).map((k) => {
     const r = layerRow(k, p) ?? ['', '--', ''], chip = document.querySelector(`#layers [data-k=${k}]`);
-    return `<button class="lrow${on.has(k) ? '' : ' off'}" data-k="${k}" style="${chip.getAttribute('style')}">${chip.querySelector('svg').outerHTML}` +
-      `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></button>`;
+    return `<div class="lrow" style="${chip.getAttribute('style')}">${chip.querySelector('svg').outerHTML}` +
+      `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></div>`;
   }).join('');
   if (!live) return;
   const t = live.t + p.offset, d = t - live.ref;

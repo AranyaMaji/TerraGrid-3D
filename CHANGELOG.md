@@ -2,6 +2,8 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Panel layer rows always coloured and static; Tree cover tile swapped for Days over 35°C per year; panel spacing tightened to fit 855 px-tall windows.
+
 - 2026-10-03 — Item 5c: side panel keeps air temperature as the headline and always lists all four layer metrics for the selected area (active layers coloured, others greyed, click to toggle); panel trimmed to fit without scrolling.
 
 - 2026-10-03 — Item 5b: layers are toggle chips (Heat / Smoke / Canopy / Solar) and mix freely; legend stacks per layer; solar is a roof cap only and counts building parts (Parramatta Square tower now coloured); PM2.5 differs per precinct via the plume model; canopy uses a 30 m Landsat NDVI drape plus 3D trees grown from it.
