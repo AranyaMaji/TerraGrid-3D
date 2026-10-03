@@ -131,7 +131,7 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - The "Anywhere else" bullet of 6c above.
 
 - [x] **6d. Sidebar follows the map** (owner-raised 2026-10-03: "sidebar is dumb about what's on the map")
-  - Done 2026-10-03: rows for layers on the map are lit with an accent bar + the legend's ramp underneath; others dim. Roof row adds "% roofs hot" (>1 °C over median), solar row adds roof count, both from the buildings in view. Canopy stays a precinct prop (NDVI only exists for Sydney).
+  - Done 2026-10-03: row highlight/dim tried and reverted (owner: keep rows as they were). Roof row adds "% roofs hot" (>1 °C over median), solar row adds roof count, both from the buildings in view. Canopy stays a precinct prop (NDVI only exists for Sydney).
   - Active layers' rows highlighted/expanded, inactive ones dimmed; legend and rows agree.
   - [x] Click a building → small aesthetic popup: name, else address (bake OSM `name` / `addr:*` into the building
     files; fall back to Nominatim reverse on click), coords, plus height, roof °C vs avg, solar MWh. (owner-raised)

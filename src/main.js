@@ -611,10 +611,10 @@ function renderPanel() {
   $('p-aged').textContent = here.filter((f) => f.properties.type === 'aged').length;
   $('p-pop').textContent = `${(p.population / 1000).toFixed(1)}k`;
   $('p-age').textContent = `${p.age65_pct}%`;
-  // Every layer's metric is always shown; rows for layers on the map are lit and carry the legend's ramp, the rest dim.
+  // Every layer's metric is always shown, whether or not it is on the map. Icon/colour from the toolbar chip.
   $('lrows').innerHTML = Object.keys(LAYERS).map((k) => {
     const r = layerRow(k, p) ?? ['', '--', ''], chip = document.querySelector(`#layers [data-k=${k}]`);
-    return `<div class="lrow${on.has(k) ? ' on' : ''}" style="${chip.getAttribute('style')};--ramp:linear-gradient(90deg, ${LAYERS[k].legend[1]})">${chip.querySelector('svg').outerHTML}` +
+    return `<div class="lrow" style="${chip.getAttribute('style')}">${chip.querySelector('svg').outerHTML}` +
       `<div><div class="lrow-l">${r[0] || chip.textContent}</div><div class="lrow-s">${r[2]}</div></div><div class="lrow-v">${r[1]}</div></div>`;
   }).join('');
   if (!live) return;

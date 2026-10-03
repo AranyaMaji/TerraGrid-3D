@@ -112,11 +112,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .lrow > div:first-of-type { flex: 1; min-width: 0; }
 .lrow-l { font-size: 14px; font-weight: 600; }
 .lrow-s { font-size: 12px; color: var(--muted); }
-.lrow-v { font-size: 20px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.lrow { position: relative; overflow: hidden; opacity: 0.45; filter: saturate(0.2); transition: opacity 0.25s, filter 0.25s; }
-.lrow.on { opacity: 1; filter: none; background: color-mix(in srgb, var(--c) 14%, #fff); box-shadow: inset 3px 0 var(--c); }
-.lrow.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--ramp); }
-.stat:nth-child(even) { border-left: 1px solid var(--border); padding-left: 28px; }
+.lrow-v { font-size: 20px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; white-space: nowrap; }.stat:nth-child(even) { border-left: 1px solid var(--border); padding-left: 28px; }
 .stat-h { display: flex; align-items: center; gap: 14px; font-size: 16px; font-weight: 500; }
 .stat-h svg { width: 28px; height: 28px; color: var(--teal); }
 .stat:nth-child(n+2) .stat-h svg { color: var(--ink); }
