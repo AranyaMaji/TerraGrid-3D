@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 7c: cool roof program. Public | Council toggle; council sends coded offer letters to the optimizer's funded roofs, owners apply from the public map with the code or a rates number, stages (Offered → Verified) show as roof caps and a pipeline card.
 - 2026-10-04 — docs: item 12b, integration plan and blast radius for teammate PR #1 (cool roof program).
 - 2026-10-04 — docs: round 2 TODO (energy model, retrofit measures, priority map, AI ranking, suburb ranking, projections).
 

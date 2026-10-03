@@ -320,7 +320,7 @@ async function latestGibs(layer, z) {
 }
 
 // Landsat mosaic bounds and pixel size (scripts/fetch-landsat.py, fetch-ndvi.py); grey LST encodes 35..50 °C as 0..255.
-const LANDSAT = { w: 150.70, e: 151.35, n: -33.55, s: -34.10, t0: 35, t1: 50, px: [2400, 2031] };
+const LANDSAT = { w: 150.70, e: 151.35, n: -33.55, s: -34.10, t0: 35, t1: 50, px: [2400, 2031], day: '9 January 2026' };
 const CORNERS = [[LANDSAT.w, LANDSAT.n], [LANDSAT.e, LANDSAT.n], [LANDSAT.e, LANDSAT.s], [LANDSAT.w, LANDSAT.s]];
 
 // Greyscale PNG over the Landsat bounds → (lon, lat) → 0..1 (null outside the scene / no data).
@@ -374,6 +374,12 @@ async function addHeatLayers() {
   map.addSource('picks', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'picks', type: 'fill-extrusion', source: 'picks', minzoom: 12, paint: {
     'fill-extrusion-color': '#2dd4bf', 'fill-extrusion-base': ['+', ['get', 'height'], 0.8], 'fill-extrusion-height': ['+', ['get', 'height'], 4],
+  } });
+  // Cool roof program: a cap coloured by each enrolled roof's stage (coated = white, like the coating itself). Council view only.
+  map.addSource('program', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'program', type: 'fill-extrusion', source: 'program', minzoom: 12, layout: { visibility: view === 'council' ? 'visible' : 'none' }, paint: {
+    'fill-extrusion-color': ['match', ['get', 'st'], ...Object.entries(STAGES).flatMap(([k, [, c]]) => [k, c]), '#fff'],
+    'fill-extrusion-base': ['+', ['get', 'height'], 0.8], 'fill-extrusion-height': ['+', ['get', 'height'], 3],
   } });
   map.addSource('trees', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'trees', type: 'fill-extrusion', source: 'trees', minzoom: 12.5, layout: vis('trees'), paint: {
@@ -431,6 +437,7 @@ async function loadCity() {
   treesP = null;
   map.getSource('trees').setData(EMPTY);
   applyLayers(); // also recolours walls for the new city's priority scores
+  renderProgram();
 }
 
 // Per-building energy: type (OSM tag, else inferred), floor area, baseline + cooling kWh, and the extra cooling
@@ -748,13 +755,23 @@ function buildingPopup(e) {
     `<div><span>Solar</span><b>${Math.round(p.mwh)}</b><i>MWh/yr</i></div>` +
     `<div><span>Type</span><b>${TYPE_NAME[p.type]}</b></div><div><span>Best fix</span><b>${p.best ? MEASURES[p.best].name : '--'}</b></div><div><span>Payback</span>${pay}</div></div>` +
     `<div class="bp-prio"><span>Retrofit priority</span><b>${pct(p)}</b><i>± ${band(p)} / 100</i></div>${dots(p, true)}` +
-    `<div class="bp-xy">${Math.abs(lat).toFixed(5)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lng).toFixed(5)}° ${lng < 0 ? 'W' : 'E'}</div>`).addTo(map);
+    `<div class="bp-xy">${Math.abs(lat).toFixed(5)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lng).toFixed(5)}° ${lng < 0 ? 'W' : 'E'}</div>` + progHtml(f)).addTo(map);
   const el = popup.getElement();
+  wireProg(el, f);
   placeName([lng, lat]).then(({ name, addr }) => {
+    // Program roofs keep their address, so the council's lists show streets instead of codes.
+    const r = prog[pk(f.id)];
+    if (r && name && !r.addr) r.addr = [name, addr].filter(Boolean).join(', '), saveProg();
     if (popup.getElement() !== el || !name) return;
     el.querySelector('.bp-name').textContent = name;
     el.querySelector('.bp-addr').textContent = addr ? `${TYPE_NAME[p.type]} · ${addr}` : TYPE_NAME[p.type];
   });
+}
+
+function flyToBuilding(f) {
+  const [lng, lat] = mid(f.geometry.coordinates[0]);
+  map.flyTo({ center: [lng, lat], zoom: 17.5, pitch: 60, duration: 1400 });
+  map.once('moveend', () => buildingPopup({ features: [{ id: f.id }], lngLat: { lng, lat } }));
 }
 
 function select(name) {
@@ -939,7 +956,10 @@ function optimize() {
   const again = !!picks;
   picks = chosen;
   ids = chosen.map((c) => c.f.id);
-  map.getSource('picks').setData({ type: 'FeatureCollection', features: chosen.map((c) => c.f) });
+  // Roofs already in the program show their stage cap instead of the pulse.
+  const fresh = chosen.filter((c) => !prog[pk(c.f.id)]);
+  map.getSource('picks').setData({ type: 'FeatureCollection', features: fresh.map((c) => c.f) });
+  $('o-send').textContent = fresh.length ? `Send offer letters to ${fresh.length} owners` : 'View offer letters';
   document.body.classList.add('optimized');
   $('o-x').textContent = `${x.toFixed(1)}×`;
   $('o-res').textContent = res.toLocaleString();
@@ -985,9 +1005,7 @@ function clearPicks() {
 
 $('o-top').onclick = (e) => {
   const c = picks?.[e.target.closest('li')?.dataset.i];
-  if (!c) return;
-  map.flyTo({ center: c.c, zoom: 17.5, pitch: 60, duration: 1400 });
-  map.once('moveend', () => buildingPopup({ features: [{ id: c.f.id }], lngLat: { lng: c.c[0], lat: c.c[1] } }));
+  if (c) flyToBuilding(c.f);
 };
 
 document.querySelector('.panel > .cta').onclick = openScenario;
@@ -1044,6 +1062,163 @@ async function makeBrief() {
   document.body.classList.add('briefed');
 }
 $('s-export').onclick = makeBrief;
+
+// ---- Cool roof program: council offers → owner applies → coated → verified ----
+// Council view sends offer letters (one-time code per roof) to the optimizer's funded roofs. Public view lets an owner
+// click their building and apply with that code (enrolled at once) or a rates number (applied; council confirms ownership).
+// Both views share one status list, kept in this browser for the demo. In production the council view sits behind a
+// staff login, letters go to owners from the rates system, and payment waits for an installer invoice + the next Landsat pass.
+const STAGES = { offered: ['Offered', '#f59e0b'], applied: ['Applied', '#a78bfa'], enrolled: ['Enrolled', '#38bdf8'], coated: ['Coated', '#f8fafc'], verified: ['Verified', '#22c55e'] };
+const NEXT = { applied: ['Confirm ownership', 'enrolled'], enrolled: ['Mark coated', 'coated'], coated: ['Verify with satellite', 'verified'] };
+const MINE = { applied: 'The council will confirm you own this property against its rates records before any work.',
+  enrolled: "You're enrolled. The council will book a licensed installer.", coated: 'Coating done. Waiting for the next satellite pass to confirm.',
+  verified: 'Verified: satellite data shows your roof running cooler.' };
+let prog = {}, view = 'council', letters = [], li = 0, open = null; // open: stage whose roof list the card shows
+try { prog = JSON.parse(localStorage.getItem('tg-program')) ?? {}; } catch {}
+const pk = (id) => `${CITY.key}:${id}`;
+const saving = (f) => Math.round(f.properties.area * SAVE).toLocaleString();
+
+function saveProg() {
+  try { localStorage.setItem('tg-program', JSON.stringify(prog)); } catch {}
+  renderProgram();
+}
+
+// Stage caps on the map + the pipeline card. Each stage opens a list of its roofs (newest first); a row flies to the
+// building and opens its popup, so the council never hunts the map. "Applied" needs council action, so it's flagged.
+function renderProgram() {
+  const here = buildings.filter((f) => prog[pk(f.id)]), st = (f) => prog[pk(f.id)].st;
+  map.getSource('program')?.setData({ type: 'FeatureCollection', features: here.map((f) => ({ ...f, properties: { ...f.properties, st: st(f) } })) });
+  const n = (k) => here.filter((f) => st(f) === k).length;
+  const list = here.filter((f) => st(f) === open).sort((a, b) => (prog[pk(b.id)].t ?? 0) - (prog[pk(a.id)].t ?? 0));
+  $('prog').innerHTML = '<div class="prog-row"><b>Cool roof program</b>' + Object.entries(STAGES).map(([k, [t, c]]) =>
+    `<button data-s="${k}" class="${k === open ? 'on' : ''}${k === 'applied' && n(k) ? ' todo' : ''}" style="--c:${c}">${t} <em>${n(k)}</em></button>`).join('') + '</div>' +
+    (open ? `<ol class="prog-list">${list.map((f) => {
+      const r = prog[pk(f.id)], t = f.properties.lst;
+      return `<li data-id="${f.id}"><b>${esc(r.addr ?? (r.code ? `Roof ${r.code}` : 'Roof (rates application)'))}</b>` +
+        `<span>${[t != null && `${t.toFixed(1)}°C roof`, r.addr && r.code, r.via && `via ${r.via}`].filter(Boolean).join(' · ')}</span></li>`;
+    }).join('') || '<li class="empty">No roofs at this stage yet</li>'}</ol>` : '');
+  $('prog').hidden = !here.length;
+}
+
+$('prog').onclick = (e) => {
+  const s = e.target.closest('[data-s]')?.dataset.s, id = e.target.closest('[data-id]')?.dataset.id;
+  if (s) open = open === s ? null : s, renderProgram();
+  const f = id && buildings.find((b) => String(b.id) === id);
+  if (f) flyToBuilding(f);
+};
+
+// Popup section. Council: stage, code and the next action. Public: savings and an application form; an owner only
+// ever sees the status of a building they applied for, never offers to other people.
+function progHtml(f) {
+  const r = prog[pk(f.id)], badge = (t) => `<div class="bp-st" style="--c:${STAGES[r.st][1]}">${t}</div>`;
+  if (view === 'council') {
+    if (!r) return '';
+    return `<div class="bp-prog">${badge([STAGES[r.st][0], r.code, r.via && `via ${r.via}`].filter(Boolean).join(' · '))}` +
+      (NEXT[r.st] ? `<button class="bp-btn" data-act="next">${NEXT[r.st][0]}</button>` : '') +
+      (r.st === 'verified' ? '<div class="bp-note">Simulated in this prototype. In production, payment waits for the installer\'s invoice and the next Landsat pass showing this roof cooler.</div>' : '') + '</div>';
+  }
+  if (r?.mine) return `<div class="bp-prog">${badge(`Your application: ${STAGES[r.st][0]}`)}<div class="bp-note">${MINE[r.st]}</div></div>`;
+  return `<div class="bp-prog"><div class="bp-q">A cool roof could save about <b>$${saving(f)}/yr</b> on cooling this building.</div>` +
+    '<button class="bp-btn" data-act="apply">Apply for a funded cool roof</button>' +
+    '<form class="bp-form" hidden novalidate><input name="email" type="email" placeholder="Your email" autocomplete="email">' +
+    '<input name="code" placeholder="Letter code (CP-1234) or rates number" autocomplete="off"><div class="bp-err"></div>' +
+    '<button class="bp-btn">Submit application</button></form></div>';
+}
+
+function wireProg(el, f) {
+  const box = el.querySelector('.bp-prog');
+  if (!box) return;
+  const redraw = () => { box.outerHTML = progHtml(f); wireProg(el, f); };
+  box.onclick = (e) => {
+    const act = e.target.dataset.act, r = prog[pk(f.id)];
+    if (act === 'apply') e.target.hidden = true, box.querySelector('form').hidden = false, box.querySelector('input').focus();
+    if (act === 'next') {
+      r.st = NEXT[r.st][1];
+      r.t = Date.now();
+      if (r.st === 'enrolled' && !r.via) r.via = 'rates check';
+      saveProg(); redraw();
+    }
+  };
+  const form = box.querySelector('form');
+  if (!form) return;
+  const err = (t) => (form.querySelector('.bp-err').textContent = t);
+  form.oninput = () => err('');
+  form.onkeydown = (e) => e.stopPropagation(); // the popup sits inside the map, whose keyboard handler zooms on "-"
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const { email, code } = form.elements, c = code.value.trim().toUpperCase(), r = prog[pk(f.id)];
+    if (!/^\S+@\S+\.\S+$/.test(email.value.trim())) return err('Enter your email so the council can reply.');
+    // Letter code: the letter only reached the rates-record owner, so a match enrols straight away.
+    if (/^CP-\d{4}$/.test(c)) {
+      if (r?.code !== c) return err("That code isn't for this building. Check your letter.");
+      Object.assign(r, { st: r.st === 'offered' ? 'enrolled' : r.st, via: 'letter code', mine: true, t: Date.now() });
+    } else if (/^\d{5,}$/.test(c.replace(/[\s-]/g, ''))) {
+      prog[pk(f.id)] = { ...r, st: !r || r.st === 'offered' ? 'applied' : r.st, via: r?.via ?? 'rates number', mine: true, t: Date.now() };
+    } else return err('Enter the code from your letter, or your rates notice number.');
+    saveProg(); redraw();
+  };
+}
+
+// Send letters to the optimizer's funded roofs (new ones get a code; existing ones keep their stage), then show them.
+function sendOffers() {
+  if (!last?.chosen.length) return;
+  for (const c of last.chosen) prog[pk(c.f.id)] ??= { st: 'offered', code: `CP-${1000 + Math.floor(Math.random() * 9000)}`, t: Date.now() };
+  cancelAnimationFrame(pulse);
+  map.getSource('picks').setData(EMPTY);
+  $('o-send').textContent = 'View offer letters';
+  saveProg();
+  letters = last.chosen;
+  showLetter(0);
+}
+
+function showLetter(i) {
+  li = (i + letters.length) % letters.length;
+  const c = letters[li], { f } = c, r = prog[pk(f.id)], at = mid(f.geometry.coordinates[0]);
+  $('l-date').textContent = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  $('l-to').textContent = r.addr ?? `Property at ${Math.abs(at[1]).toFixed(5)}° ${at[1] < 0 ? 'S' : 'N'}, ${Math.abs(at[0]).toFixed(5)}° ${at[0] < 0 ? 'W' : 'E'}`;
+  $('l-hot').textContent = CITY.surf
+    ? `Our heat model estimates your roof runs ${c.ex.toFixed(1)}°C hotter than nearby roofs in summer.`
+    : `Satellite data (Landsat 8) shows your roof reached ${f.properties.lst.toFixed(1)}°C on ${LANDSAT.day}, ${c.ex.toFixed(1)}°C hotter than nearby roofs.`;
+  $('l-fund').textContent = `The council will fund a reflective coating for your ${Math.round(f.properties.area).toLocaleString()} m² roof ` +
+    `(about $${Math.round(c.cost / 1000).toLocaleString()}k) at no cost to you. It could save around $${saving(f)} a year on cooling` +
+    (c.near && c.d < 400 ? ` and help keep ${c.near}, ${Math.round(c.d)} m away, cooler during heatwaves.` : '.');
+  $('l-code').textContent = r.code;
+  $('l-n').textContent = `Letter ${li + 1} of ${letters.length}`;
+  $('letter').hidden = false;
+  if (r.addr) return;
+  // Nominatim allows ~1 request/s, so only the letter on screen is looked up; the address is kept with its record.
+  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=${at[1]}&lon=${at[0]}`).then((x) => x.json()).then((j) => {
+    const a = j.address ?? {}, street = [a.house_number, a.road].filter(Boolean).join(' ');
+    if (!street) return;
+    r.addr = [street, a.suburb || a.city_district || a.city].filter(Boolean).join(', ');
+    saveProg();
+    if (letters[li] === c) $('l-to').textContent = r.addr;
+  }).catch(() => {});
+}
+
+$('o-send').onclick = sendOffers;
+$('l-prev').onclick = () => showLetter(li - 1);
+$('l-next').onclick = () => showLetter(li + 1);
+$('l-close').onclick = () => ($('letter').hidden = true);
+$('l-print').onclick = () => {
+  document.body.classList.add('printing-letter');
+  window.print();
+  document.body.classList.remove('printing-letter');
+};
+
+function setView(v) {
+  view = v;
+  document.body.classList.toggle('public', v === 'public');
+  for (const b of document.querySelectorAll('#view button')) b.classList.toggle('on', b.dataset.v === v);
+  if (v === 'public') closeScenario();
+  popup.remove();
+  $('letter').hidden = true;
+  if (map.getLayer('program')) map.setLayoutProperty('program', 'visibility', v === 'council' ? 'visible' : 'none');
+  // Back in the council view, new applications are the first thing to see.
+  if (v === 'council' && buildings.some((f) => prog[pk(f.id)]?.st === 'applied')) open = 'applied', renderProgram();
+}
+document.querySelectorAll('#view button').forEach((b) => (b.onclick = () => setView(b.dataset.v)));
+
 // Each slider's share of the three weights, next to its label.
 function showWeights() {
   const t = W.nS + W.nP + W.nV || 1;

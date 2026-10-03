@@ -160,6 +160,12 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Renders in the panel and in the "Export council brief" print view. Canned fallback if no key / offline.
   - Done when: the brief generates, shows in the panel and prints cleanly. Video ends on this printed artifact.
 
+- [x] **7c. Cool roof program: Public | Council views, offer letters, owner enrolment** (raised 2026-10-04)
+  - Done 2026-10-04: nav toggle (Council default, so the existing demo is unchanged). Council: after Optimize, "Send offer letters" gives each funded roof a one-time code (CP-1234) and opens a printable letter (Nominatim address, Landsat roof °C, cost, $/yr saved, nearest school/aged care). Map caps by stage (Offered → Applied → Enrolled → Coated (white) → Verified) + pipeline counts card; building popup advances the stage. Public: popup shows $/yr a cool roof saves + "Apply" form; letter code enrols at once, rates number = Applied until council confirms ownership. Owners only see buildings they applied for. Status kept in localStorage (demo); no email stored.
+  - Verification step is simulated (stated in the popup and letter). Production: staff login, rates-system addresses, installer invoice + next Landsat pass before payment.
+  - Demo: Council → Optimize → Send letters → note a code → Public → click that building → Apply with the code → Council shows Enrolled.
+  - Blast radius for round 2: letters read `last.chosen` from `optimize()` (`c.f`, `c.ex`, `c.cost`, `c.near`, `c.d`). If item 12 rewrites the optimizer, keep those fields.
+
 ## Round 2: retrofit priority (teammate feedback 2026-10-04, ordered by judge impact; do before 8/9)
 
 Pitch: a screening and prioritisation tool that tells a government which buildings to fix first, with what, for how much.
