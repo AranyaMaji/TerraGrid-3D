@@ -70,7 +70,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
 
 ## Stretch (priority order)
 
-- [ ] **5. More layers: smoke/aerosol, tree canopy, solar potential** (~45 min)
+- [x] **5. More layers: smoke/aerosol, tree canopy, solar potential** (~45 min)
+  - Note: panel headline (big number) follows the layer instead of adding rows. Plume aims from `CITY.plume.at` at the city centre (not live wind) so it always crosses the CBD. Daily AOD has a cloud gap over Sydney some days; plume carries street zoom. All location data lives in `CITY` (centre, reference point, irradiance, plume source); GIBS dates are probed at the city's tile. For item 6, tile buildings get a per-layer `tile` colour (solar uses `render_height` as a proxy since tiles have no footprint list).
   - Smoke: GIBS `MODIS_Combined_Value_Added_AOD` raster + Open-Meteo air quality (pm2_5, co, aod) in panel + an animated
     particle plume (canvas overlay or `symbol` layer with drifting points) from an industrial POI across the precinct.
   - Tree canopy: GIBS `MODIS_Terra_NDVI_8Day` raster, green ramp; buildings desaturate.

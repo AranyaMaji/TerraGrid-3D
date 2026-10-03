@@ -6,7 +6,12 @@ import './style.css';
 // Vite's dep pre-bundling breaks MapLibre's own worker lookup; without the worker no vector tiles render.
 maplibregl.setWorkerUrl(workerUrl);
 
-const PARRAMATTA = [151.003, -33.815];
+// Everything location-specific lives here; panel stats are illustrative.
+const CITY = {
+  name: 'Parramatta', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
+  ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
+  tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, offset: 0,
+};
 const OCEANIA = [150, -25];
 
 const map = new maplibregl.Map({
@@ -19,6 +24,7 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
 // Recolour liberty to the dark canvas.
+const greens = []; // park/wood fill layers, brightened by the canopy view
 const C = { bg: '#0b1220', land: '#111a2b', green: '#10241f', water: '#0d2238', road: '#1c2840', bld: '#2a3447' };
 
 function recolour() {
@@ -34,7 +40,7 @@ function recolour() {
       set('fill-extrusion-opacity', ['interpolate', ['linear'], ['zoom'], 13.5, 0.95, 14, 0]);
       set('fill-extrusion-vertical-gradient', true);
     }
-    else if (l.type === 'fill') set('fill-color', /park|wood|grass|wetland/.test(id) ? C.green : C.land);
+    else if (l.type === 'fill') set('fill-color', /park|wood|grass|wetland/.test(id) ? (greens.push(id), C.green) : C.land);
     else if (l.type === 'line') set('line-color', /waterway/.test(id) ? C.water : /casing/.test(id) ? C.bg : /boundary/.test(id) ? '#334155' : C.road);
     else if (l.type === 'symbol') { set('text-color', '#94a3b8'); set('text-halo-color', C.bg); }
   }
@@ -52,6 +58,7 @@ map.on('style.load', () => {
   });
   recolour();
   addHeatLayers();
+  addOverlays();
 });
 
 // Intro: slow spin over Oceania, then fly in.
@@ -74,7 +81,7 @@ function flyIn() {
   flown = true;
   spinning = false;
   setMode3d(true, false);
-  map.flyTo({ center: PARRAMATTA, zoom: 15.4, pitch: 45, bearing: 0, speed: 0.55, curve: 1.6, essential: true });
+  map.flyTo({ center: CITY.center, zoom: 15.4, pitch: 45, bearing: 0, speed: 0.55, curve: 1.6, essential: true });
   map.once('moveend', () => map.easeTo({ zoom: 16, pitch: 60, bearing: -20, duration: 2500 }));
 }
 
@@ -82,6 +89,7 @@ function restartIntro() {
   flown = true; // demo replays manually, no auto timer
   map.stop();
   select(null);
+  setLayer('heat');
   map.jumpTo({ center: OCEANIA, zoom: 1.6, pitch: 0, bearing: 0 });
   spinning = true;
   spin();
@@ -109,13 +117,21 @@ const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'c
   0, ['interpolate', ['linear'], HEAT, -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d'],
   1, ['interpolate', ['linear'], HEAT, -1, '#34d399', 1, '#22d3ee']];
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
-const lstUrl = (d, z = '{z}', y = '{y}', x = '{x}') =>
-  `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_8Day_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
+const gibsUrl = (layer, z, d) =>
+  `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${d}/GoogleMapsCompatible_Level${z}/{z}/{y}/{x}.png`;
 
-// 8-day composite (daily has big cloud/swath gaps). GIBS 404s until a period is processed; probe back.
-async function latestLstDate() {
+// Tile [z, y, x] under the city centre.
+function tileAt(z, [lon, lat] = CITY.center) {
+  const n = 2 ** z, r = (lat * Math.PI) / 180;
+  return [z, Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n), Math.floor(((lon + 180) / 360) * n)];
+}
+
+// GIBS 404s until a period is processed; probe back from yesterday at the city's tile.
+async function latestGibs(layer, z) {
+  const [tz, ty, tx] = tileAt(z);
   for (let n = 1; n <= 24; n++) {
-    const ok = await new Promise((r) => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = lstUrl(day(n), 7, 76, 117); });
+    const url = gibsUrl(layer, z, day(n)).replace('{z}', tz).replace('{y}', ty).replace('{x}', tx);
+    const ok = await new Promise((r) => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = url; });
     if (ok) return day(n);
   }
   return day(16);
@@ -142,12 +158,13 @@ async function landsatSampler() {
 }
 
 async function addHeatLayers() {
-  const date = await latestLstDate();
-  map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day · Landsat: USGS via Microsoft Planetary Computer' });
-  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 10, 0.5, 11, 0] , 'raster-resampling': 'linear' } }, 'building-3d');
+  // 8-day composite (daily has big cloud/swath gaps).
+  const lstLayer = 'MODIS_Terra_L3_Land_Surface_Temp_8Day_Day';
+  map.addSource('lst', { type: 'raster', tiles: [gibsUrl(lstLayer, 7, await latestGibs(lstLayer, 7))], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day · Landsat: USGS via Microsoft Planetary Computer' });
+  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', layout: vis('lst'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 10, 0.5, 11, 0] , 'raster-resampling': 'linear' } }, 'building-3d');
   // 100 m Landsat scene (baked by scripts/fetch-landsat.sh) takes over from 1 km MODIS at city zoom.
   map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: [[LANDSAT.w, LANDSAT.n], [LANDSAT.e, LANDSAT.n], [LANDSAT.e, LANDSAT.s], [LANDSAT.w, LANDSAT.s]] });
-  map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
+  map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', layout: vis('landsat'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
 
   const [gj, sample] = await Promise.all([fetch('/data/buildings-parramatta.geojson').then((r) => r.json()), landsatSampler()]);
   // Building colour = Landsat surface temp at its footprint (vertex mean) vs the scene's building median.
@@ -159,40 +176,125 @@ async function addHeatLayers() {
   // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
   const heat = lst.map((t, i) => t == null ? 0 :
     Math.max(-1, Math.min(1, ((t - med) / 1.5) * Math.min(1, 20 / (gj.features[i].properties.height || 8)))));
-  document.getElementById('lst-med').textContent = `${med.toFixed(1)}°C`;
 
   map.addSource('bld', { type: 'geojson', data: gj, attribution: '© OpenStreetMap contributors' });
   map.addLayer({
     id: 'bld-heat', type: 'fill-extrusion', source: 'bld',
     paint: {
-      'fill-extrusion-color': HEAT_COLOR,
+      'fill-extrusion-color': VIEWS[view].bld,
       'fill-extrusion-height': ['get', 'height'],
       'fill-extrusion-base': ['get', 'min_height'],
       'fill-extrusion-opacity': 1,
       'fill-extrusion-vertical-gradient': true,
     },
   });
-  gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
+  // Solar: colour by rank of rooftop yield so the ramp spreads evenly.
+  const mwh = gj.features.map(roofMWh), rank = [];
+  mwh.map((_, i) => i).sort((a, b) => mwh[a] - mwh[b]).forEach((i, r) => (rank[i] = r / (mwh.length - 1)));
+  gj.features.forEach((f, i) => {
+    f.properties.mwh = mwh[i];
+    map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i], solar: rank[i] });
+  });
   buildings = gj.features;
   lstAt = sample; lstMed = med;
+  renderLegend();
+  renderPanel();
   addPrecincts();
 }
 
-document.getElementById('layer').onchange = (e) => {
-  const on = e.target.value === 'Surface heat';
-  for (const id of ['lst', 'landsat']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-  if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', on ? HEAT_COLOR : C.bld);
-  document.querySelector('.legend').style.visibility = on ? 'visible' : 'hidden';
+// Rooftop yield: footprint m² × 60% usable × 20% panel efficiency × 80% performance ratio × annual irradiance.
+function roofMWh(f) {
+  if (f.properties.min_height > 0) return 0; // upper building parts sit on a roof already counted
+  const ring = f.geometry.coordinates[0], k = Math.cos((ring[0][1] * Math.PI) / 180) * 111320 * 110540;
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]);
+  return (Math.abs(a / 2) * k * 0.6 * 0.2 * 0.8 * CITY.ghi) / 1000;
+}
+
+// ---- Layer views: which overlays show, how buildings are coloured, legend ----
+const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#1e2433', 0.5, '#7c4a12', 0.85, '#f59e0b', 1, '#fde68a'];
+const VIEWS = {
+  heat: { show: ['lst', 'landsat'], bld: HEAT_COLOR, tile: C.bld,
+    legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? lstMed.toFixed(1) : '--'}°C</b> · Landsat`] },
+  smoke: { show: ['smoke', 'plume'], bld: C.bld, tile: C.bld,
+    legend: ['Aerosol optical depth', '#fef3c7, #f59e0b 50%, #7c2d12', 'Clear', 'Smoky', () => 'NASA MODIS · CAMS'] },
+  canopy: { show: ['canopy'], bld: '#2f3747', tile: '#2f3747',
+    legend: ['Vegetation (NDVI)', '#a07c4a, #e0d68a 50%, #1a7f37', 'Bare', 'Dense', () => 'NASA MODIS 8-day'] },
+  solar: { show: [], bld: SOLAR_COLOR, tile: ['interpolate', ['linear'], ['get', 'render_height'], 4, '#f59e0b', 40, '#5a3d14'],
+    legend: ['Rooftop solar potential', '#1e2433, #7c4a12 50%, #f59e0b 85%, #fde68a', 'Low', 'High', () => `${CITY.ghi.toLocaleString()} kWh/m²/yr`] },
 };
+const OVERLAYS = ['lst', 'landsat', 'smoke', 'canopy', 'plume'];
+let view = 'heat';
+const vis = (id) => ({ visibility: VIEWS[view].show.includes(id) ? 'visible' : 'none' });
+
+function renderLegend() {
+  const [title, ramp, lo, hi, src] = VIEWS[view].legend;
+  $('legend').innerHTML = `<div class="legend-title">${title}</div><div class="ramp" style="background:linear-gradient(90deg, ${ramp})"></div>` +
+    `<div class="ticks"><span>${lo}</span><span>${hi}</span></div><div class="legend-src">${src()}</div>`;
+}
+
+function setLayer(key) {
+  view = key;
+  $('layer').value = key;
+  const v = VIEWS[key];
+  for (const id of OVERLAYS) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis(id).visibility);
+  if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', v.bld);
+  if (map.getLayer('building-3d')) map.setPaintProperty('building-3d', 'fill-extrusion-color', v.tile);
+  for (const id of greens) map.setPaintProperty(id, 'fill-color', key === 'canopy' ? '#1f6f3f' : C.green);
+  if (plumeMarker) plumeMarker.getElement().style.display = key === 'smoke' ? '' : 'none';
+  cancelAnimationFrame(plumeAnim);
+  if (key === 'smoke') plumeAnim = requestAnimationFrame(plumeFrame);
+  renderLegend();
+  renderPanel();
+}
+document.getElementById('layer').onchange = (e) => setLayer(e.target.value);
+
+// Satellite overlays (global GIBS rasters) + smoke plume source.
+async function addOverlays() {
+  const aod = 'MODIS_Combined_Value_Added_AOD', ndvi = 'MODIS_Terra_NDVI_8Day';
+  map.addSource('plume', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  // At z16 a pixel is ~2 m, so 40..200 px ≈ 80..400 m puffs; size doubles per zoom level.
+  const R = ['+', 40, ['*', 160, ['get', 'a']]];
+  map.addLayer({ id: 'plume', type: 'circle', source: 'plume', layout: vis('plume'), paint: {
+    'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 10, ['/', R, 64], 18, ['*', R, 4]],
+    'circle-blur': 1,
+    'circle-color': ['interpolate', ['linear'], ['get', 'a'], 0, '#f2e3bd', 1, '#a39b8a'],
+    'circle-opacity': ['*', 0.6, ['-', 1, ['get', 'a']], ['min', 1, ['*', 8, ['get', 'a']]]],
+    'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'map',
+  } });
+  const [dAod, dNdvi] = await Promise.all([latestGibs(aod, 6), latestGibs(ndvi, 9)]);
+  map.addSource('smoke', { type: 'raster', tiles: [gibsUrl(aod, 6, dAod)], tileSize: 256, maxzoom: 6 });
+  map.addLayer({ id: 'smoke', type: 'raster', source: 'smoke', layout: vis('smoke'),
+    paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0.7, 12, 0.45, 16, 0.3], 'raster-resampling': 'linear' } }, 'building-3d');
+  map.addSource('canopy', { type: 'raster', tiles: [gibsUrl(ndvi, 9, dNdvi)], tileSize: 256, maxzoom: 9 });
+  map.addLayer({ id: 'canopy', type: 'raster', source: 'canopy', layout: vis('canopy'),
+    paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.8, 13, 0.55, 16, 0.35], 'raster-resampling': 'linear' } }, 'building-3d');
+}
+
+// Stateless particles: each loops from the source toward and past the city centre, widening as it ages.
+const PLUME = Array.from({ length: 260 }, () => [Math.random() * 2 - 1, Math.random()]);
+let plumeAnim = 0, plumeMarker = null;
+function plumeFrame(now) {
+  const [x0, y0] = CITY.plume.at, [x1, y1] = CITY.center, k = Math.cos((y0 * Math.PI) / 180);
+  let dx = (x1 - x0) * k, dy = y1 - y0;
+  const len = Math.hypot(dx, dy), L = len * 1.8, W = L * 0.18;
+  dx /= len; dy /= len;
+  const features = PLUME.map(([r, ph], i) => {
+    const a = (now / 14000 + ph) % 1, s = a * L, w = (r + 0.25 * Math.sin(a * 9 + i)) * a * W;
+    return { type: 'Feature', properties: { a }, geometry: { type: 'Point', coordinates: [x0 + (dx * s - dy * w) / k, y0 + dy * s + dx * w] } };
+  });
+  map.getSource('plume')?.setData({ type: 'FeatureCollection', features });
+  plumeAnim = requestAnimationFrame(plumeFrame);
+}
 
 // ---- Precincts + POI pins (stats in data/ are illustrative) ----
-const $ = (id) => document.getElementById(id);
-const CITY = { name: 'Parramatta', tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, offset: 0 };
+function $(id) { return document.getElementById(id); }
 const ICON = {
+  factory: '<svg viewBox="0 0 24 24"><path d="M2 20V10l6 4v-4l6 4V4h4l2 16Z"/></svg>',
   school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',
 };
-let precincts = [], selected = null, label = null, live = null, buildings = [], lstAt = () => null, lstMed = 0;
+let precincts = [], selected = null, label = null, live = null, aq = null, buildings = [], lstAt = () => null, lstMed = 0;
 
 function pin(cls, text, icon = '', more = '') {
   const el = document.createElement('div');
@@ -222,6 +324,9 @@ async function addPrecincts() {
   map.on('mouseleave', 'precinct-fill', () => (map.getCanvas().style.cursor = ''));
   for (const f of pois.features)
     new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
+  plumeMarker = new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${CITY.plume.name}</span>Emission source · plume toward ${CITY.name}`), anchor: 'bottom' })
+    .setLngLat(CITY.plume.at).addTo(map);
+  plumeMarker.getElement().style.display = view === 'smoke' ? '' : 'none';
 }
 
 function select(name) {
@@ -252,11 +357,30 @@ function renderPanel() {
   $('p-aged').textContent = p.aged_care;
   $('p-tree').textContent = `${p.tree_cover_pct}%`;
   $('p-age').textContent = `${p.age65_pct}%`;
-  if (!live) return;
+  const h = headline(p);
+  $('eyebrow').classList.toggle('live', view === 'heat' || view === 'smoke');
+  if (!h) return;
+  [$('eyebrow').textContent, $('temp').textContent, $('delta').textContent] = h;
+  $('delta').classList.toggle('cool', h[3]);
+}
+
+// Big panel metric follows the active layer: [eyebrow, value, sub-line, reads as good?]
+function headline(p) {
+  if (view === 'smoke') return aq && ['Fine particles (PM2.5) now', `${aq.pm2_5.toFixed(1)} µg/m³`,
+    `AQI ${aq.us_aqi} · AOD ${aq.aerosol_optical_depth.toFixed(2)} · CO ${Math.round(aq.carbon_monoxide)} µg/m³`, aq.us_aqi <= 50];
+  if (view === 'canopy') {
+    const d = p.tree_cover_pct - 40;
+    return ['Tree canopy cover', `${p.tree_cover_pct}%`, `${Math.abs(d)} pts ${d < 0 ? 'below' : 'above'} the 40% target`, d >= 0];
+  }
+  if (view === 'solar') {
+    if (!buildings.length) return null;
+    const m = (selected ? within(ringOf(selected.name)) : buildings).reduce((a, f) => a + f.properties.mwh, 0);
+    return ['Rooftop solar potential', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`,
+      `≈ ${Math.round(m / 6).toLocaleString()} homes powered`, true];
+  }
+  if (!live) return null;
   const t = live.t + p.offset, d = t - live.ref;
-  $('temp').textContent = `${t.toFixed(1)}°C`;
-  $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} coastal Sydney`;
-  $('delta').classList.toggle('cool', d < 0);
+  return ['Air temperature now', `${t.toFixed(1)}°C`, `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} ${CITY.refName}`, d < 0];
 }
 
 // ---- Scenario simulator: levers cool the selected precinct's buildings; KPIs count up ----
@@ -272,6 +396,10 @@ function inside([x, y], ring) {
   }
   return c;
 }
+
+const ringOf = (name) => precincts.find((p) => p.properties.name === name).geometry.coordinates[0];
+// Any corner inside: big footprints on the edge (Westfield) otherwise stay hot mid-precinct.
+const within = (ring) => buildings.filter((f) => f.geometry.coordinates[0].some((p) => inside(p, ring)));
 
 function target() {
   const k = $('s-cov').value / 50, roofs = +$('s-roofs').checked, trees = +$('s-trees').checked, solar = +$('s-solar').checked;
@@ -305,10 +433,9 @@ function animateTo(to, ms = 1500) {
 
 function openScenario() {
   if (!buildings.length || !precincts.length) return;
-  if (!selected) return select('Parramatta CBD'), openScenario();
-  const ring = precincts.find((p) => p.properties.name === selected.name).geometry.coordinates[0];
-  // Any corner inside: big footprints on the edge (Westfield) otherwise stay hot mid-precinct.
-  ids = buildings.filter((f) => f.geometry.coordinates[0].some((p) => inside(p, ring))).map((f) => f.id);
+  if (!selected) return select(precincts[0].properties.name), openScenario();
+  if (view !== 'heat') setLayer('heat');
+  ids = within(ringOf(selected.name)).map((f) => f.id);
   $('s-where').textContent = selected.name;
   document.body.classList.add('scenario');
   draw({ ...ZERO });
@@ -331,9 +458,12 @@ document.querySelector('.scn').oninput = () => {
   animateTo(target(), 300);
 };
 
-// ---- Live air temperature: Parramatta vs coastal Sydney CBD (Open-Meteo, one call) ----
+// ---- Live air temperature (city vs reference point) + air quality (Open-Meteo / CAMS) ----
 async function liveTemp() {
-  const url = 'https://api.open-meteo.com/v1/forecast?latitude=-33.815,-33.8607&longitude=151.003,151.2050&current=temperature_2m,apparent_temperature&timezone=auto';
+  const [[lon, lat], [rlon, rlat]] = [CITY.center, CITY.ref];
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat},${rlat}&longitude=${lon},${rlon}&current=temperature_2m,apparent_temperature&timezone=auto`;
+  fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,carbon_monoxide,aerosol_optical_depth,us_aqi&timezone=auto`)
+    .then((r) => r.json()).then((j) => { aq = j.current; renderPanel(); }).catch(() => {});
   try {
     const [par, cbd] = await (await fetch(url)).json();
     live = { t: par.current.temperature_2m, feels: par.current.apparent_temperature, ref: cbd.current.temperature_2m, time: par.current.time.slice(11) };

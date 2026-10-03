@@ -2,6 +2,8 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Item 5: layer dropdown switches Surface heat / Smoke & aerosol (GIBS AOD + live CAMS PM2.5/AQI + animated plume from Camellia) / Tree canopy (GIBS NDVI, parks brightened) / Solar potential (roof area × irradiance per building); legend and panel headline follow the layer. Location bits moved into one `CITY` config.
+
 - 2026-10-03 — Map credits start collapsed to the (i) icon instead of an open bar.
 - 2026-10-03 — POI pins show just School / Aged care; name and details appear on hover.
 - 2026-10-03 — Item 3b: POI pins are 10 real OSM schools and aged-care homes (Overpass, curl); pins show the name, hover adds type, street and Landsat surface temp vs the local average.
