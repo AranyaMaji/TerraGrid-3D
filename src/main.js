@@ -24,7 +24,7 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
 // Recolour liberty to the dark canvas.
-const greens = []; // park/wood fill layers, brightened by the canopy view
+const greens = []; // park/wood fill layers, brightened by the canopy layer
 const C = { bg: '#0b1220', land: '#111a2b', green: '#10241f', water: '#0d2238', road: '#1c2840', bld: '#2a3447' };
 
 function recolour() {
@@ -89,7 +89,7 @@ function restartIntro() {
   flown = true; // demo replays manually, no auto timer
   map.stop();
   select(null);
-  setLayer('heat');
+  setLayers(['heat']);
   map.jumpTo({ center: OCEANIA, zoom: 1.6, pitch: 0, bearing: 0 });
   spinning = true;
   spin();
@@ -137,13 +137,14 @@ async function latestGibs(layer, z) {
   return day(16);
 }
 
-// Landsat mosaic bounds (scripts/fetch-landsat.py); the greyscale copy encodes 35..50 °C as 0..255.
-const LANDSAT = { w: 150.70, e: 151.35, n: -33.55, s: -34.10, t0: 35, t1: 50 };
+// Landsat mosaic bounds and pixel size (scripts/fetch-landsat.py, fetch-ndvi.py); grey LST encodes 35..50 °C as 0..255.
+const LANDSAT = { w: 150.70, e: 151.35, n: -33.55, s: -34.10, t0: 35, t1: 50, px: [2400, 2031] };
+const CORNERS = [[LANDSAT.w, LANDSAT.n], [LANDSAT.e, LANDSAT.n], [LANDSAT.e, LANDSAT.s], [LANDSAT.w, LANDSAT.s]];
 
-// Returns (lon, lat) → surface °C (null outside the scene / no data).
-async function landsatSampler() {
+// Greyscale PNG over the Landsat bounds → (lon, lat) → 0..1 (null outside the scene / no data).
+async function sampler(url) {
   const img = new Image();
-  img.src = '/data/lst-landsat-gray.png';
+  img.src = url;
   await img.decode();
   const cv = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height });
   const cx = cv.getContext('2d', { willReadFrequently: true });
@@ -153,7 +154,7 @@ async function landsatSampler() {
     const x = Math.floor(((lon - L.w) / (L.e - L.w)) * img.width), y = Math.floor(((L.n - lat) / (L.n - L.s)) * img.height);
     if (x < 0 || y < 0 || x >= img.width || y >= img.height) return null;
     const i = (y * img.width + x) * 4;
-    return px[i + 3] ? L.t0 + (px[i] / 255) * (L.t1 - L.t0) : null;
+    return px[i + 3] ? px[i] / 255 : null;
   };
 }
 
@@ -162,16 +163,14 @@ async function addHeatLayers() {
   const lstLayer = 'MODIS_Terra_L3_Land_Surface_Temp_8Day_Day';
   map.addSource('lst', { type: 'raster', tiles: [gibsUrl(lstLayer, 7, await latestGibs(lstLayer, 7))], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day · Landsat: USGS via Microsoft Planetary Computer' });
   map.addLayer({ id: 'lst', type: 'raster', source: 'lst', layout: vis('lst'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 10, 0.5, 11, 0] , 'raster-resampling': 'linear' } }, 'building-3d');
-  // 100 m Landsat scene (baked by scripts/fetch-landsat.sh) takes over from 1 km MODIS at city zoom.
-  map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: [[LANDSAT.w, LANDSAT.n], [LANDSAT.e, LANDSAT.n], [LANDSAT.e, LANDSAT.s], [LANDSAT.w, LANDSAT.s]] });
+  // 100 m Landsat scene takes over from 1 km MODIS at city zoom.
+  map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: CORNERS });
   map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', layout: vis('landsat'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
 
-  const [gj, sample] = await Promise.all([fetch('/data/buildings-parramatta.geojson').then((r) => r.json()), landsatSampler()]);
+  const [gj, raw] = await Promise.all([fetch('/data/buildings-parramatta.geojson').then((r) => r.json()), sampler('/data/lst-landsat-gray.png')]);
+  const sample = (lon, lat) => { const v = raw(lon, lat); return v == null ? null : LANDSAT.t0 + v * (LANDSAT.t1 - LANDSAT.t0); };
   // Building colour = Landsat surface temp at its footprint (vertex mean) vs the scene's building median.
-  const lst = gj.features.map((f) => {
-    const ring = f.geometry.coordinates[0], n = ring.length;
-    return (f.properties.lst = sample(ring.reduce((a, p) => a + p[0], 0) / n, ring.reduce((a, p) => a + p[1], 0) / n));
-  });
+  const lst = gj.features.map((f) => (f.properties.lst = sample(...mid(f.geometry.coordinates[0]))));
   const sorted = lst.filter((t) => t != null).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
   // A 100 m pixel under a tower is mostly its shadow and the street, not its roof: damp tall buildings toward average.
   const heat = lst.map((t, i) => t == null ? 0 :
@@ -181,14 +180,24 @@ async function addHeatLayers() {
   map.addLayer({
     id: 'bld-heat', type: 'fill-extrusion', source: 'bld',
     paint: {
-      'fill-extrusion-color': VIEWS[view].bld,
+      'fill-extrusion-color': wallColor(),
       'fill-extrusion-height': ['get', 'height'],
       'fill-extrusion-base': ['get', 'min_height'],
       'fill-extrusion-opacity': 1,
       'fill-extrusion-vertical-gradient': true,
     },
   });
-  // Solar: colour by rank of rooftop yield so the ramp spreads evenly.
+  // Solar paints a thin cap on each roof only, so it mixes with the heat-coloured walls.
+  map.addLayer({
+    id: 'roofs', type: 'fill-extrusion', source: 'bld', layout: vis('roofs'),
+    paint: {
+      'fill-extrusion-color': SOLAR_COLOR,
+      'fill-extrusion-base': ['get', 'height'],
+      'fill-extrusion-height': ['+', ['get', 'height'], 0.8],
+      'fill-extrusion-opacity': 1,
+    },
+  });
+  // Colour by rank of rooftop yield so the ramp spreads evenly.
   const mwh = gj.features.map(roofMWh), rank = [];
   mwh.map((_, i) => i).sort((a, b) => mwh[a] - mwh[b]).forEach((i, r) => (rank[i] = r / (mwh.length - 1)));
   gj.features.forEach((f, i) => {
@@ -197,59 +206,77 @@ async function addHeatLayers() {
   });
   buildings = gj.features;
   lstAt = sample; lstMed = med;
+  if (on.has('canopy')) addTrees();
   renderLegend();
   renderPanel();
   addPrecincts();
 }
 
-// Rooftop yield: footprint m² × 60% usable × 20% panel efficiency × 80% performance ratio × annual irradiance.
+const mid = (ring) => [ring.reduce((a, p) => a + p[0], 0) / ring.length, ring.reduce((a, p) => a + p[1], 0) / ring.length];
+
+// Rooftop yield: roof m² × 60% usable × 20% panel efficiency × 80% performance ratio × annual irradiance.
+// Every building part has its own roof, so towers made of parts count too.
 function roofMWh(f) {
-  if (f.properties.min_height > 0) return 0; // upper building parts sit on a roof already counted
   const ring = f.geometry.coordinates[0], k = Math.cos((ring[0][1] * Math.PI) / 180) * 111320 * 110540;
   let a = 0;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]);
   return (Math.abs(a / 2) * k * 0.6 * 0.2 * 0.8 * CITY.ghi) / 1000;
 }
 
-// ---- Layer views: which overlays show, how buildings are coloured, legend ----
-const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#1e2433', 0.5, '#7c4a12', 0.85, '#f59e0b', 1, '#fde68a'];
-const VIEWS = {
-  heat: { show: ['lst', 'landsat'], bld: HEAT_COLOR, tile: C.bld,
+// ---- Layers: any mix can be on. Rasters stack; walls show heat (neutral if off); solar paints roof caps only. ----
+const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#3b2a12', 0.5, '#b45309', 0.85, '#f59e0b', 1, '#fde68a'];
+const LAYERS = {
+  heat: { ids: ['lst', 'landsat'],
     legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? lstMed.toFixed(1) : '--'}°C</b> · Landsat`] },
-  smoke: { show: ['smoke', 'plume'], bld: C.bld, tile: C.bld,
+  smoke: { ids: ['smoke', 'plume'],
     legend: ['Aerosol optical depth', '#fef3c7, #f59e0b 50%, #7c2d12', 'Clear', 'Smoky', () => 'NASA MODIS · CAMS'] },
-  canopy: { show: ['canopy'], bld: '#2f3747', tile: '#2f3747',
-    legend: ['Vegetation (NDVI)', '#a07c4a, #e0d68a 50%, #1a7f37', 'Bare', 'Dense', () => 'NASA MODIS 8-day'] },
-  solar: { show: [], bld: SOLAR_COLOR, tile: ['interpolate', ['linear'], ['get', 'render_height'], 4, '#f59e0b', 40, '#5a3d14'],
-    legend: ['Rooftop solar potential', '#1e2433, #7c4a12 50%, #f59e0b 85%, #fde68a', 'Low', 'High', () => `${CITY.ghi.toLocaleString()} kWh/m²/yr`] },
+  canopy: { ids: ['canopy', 'ndvi', 'trees'],
+    legend: ['Vegetation (NDVI)', '#84cc16, #22c55e 50%, #065f46', 'Sparse', 'Dense', () => 'Landsat 30 m'] },
+  solar: { ids: ['roofs'],
+    legend: ['Rooftop solar potential', '#3b2a12, #b45309 50%, #f59e0b 85%, #fde68a', 'Low', 'High', () => `${CITY.ghi.toLocaleString()} kWh/m²/yr`] },
 };
-const OVERLAYS = ['lst', 'landsat', 'smoke', 'canopy', 'plume'];
-let view = 'heat';
-const vis = (id) => ({ visibility: VIEWS[view].show.includes(id) ? 'visible' : 'none' });
+const OVERLAYS = Object.values(LAYERS).flatMap((l) => l.ids);
+const on = new Set(['heat']);
+let last = 'heat'; // panel headline follows the last layer switched on
+const vis = (id) => ({ visibility: [...on].some((k) => LAYERS[k].ids.includes(id)) ? 'visible' : 'none' });
+const wallColor = () => (on.has('heat') ? HEAT_COLOR : C.bld);
 
 function renderLegend() {
-  const [title, ramp, lo, hi, src] = VIEWS[view].legend;
-  $('legend').innerHTML = `<div class="legend-title">${title}</div><div class="ramp" style="background:linear-gradient(90deg, ${ramp})"></div>` +
-    `<div class="ticks"><span>${lo}</span><span>${hi}</span></div><div class="legend-src">${src()}</div>`;
+  $('legend').innerHTML = Object.keys(LAYERS).filter((k) => on.has(k)).map((k) => {
+    const [title, ramp, lo, hi, src] = LAYERS[k].legend;
+    return `<div class="leg"><div class="legend-title">${title}</div><div class="ramp" style="background:linear-gradient(90deg, ${ramp})"></div>` +
+      `<div class="ticks"><span>${lo}</span><span>${hi}</span></div><div class="legend-src">${src()}</div></div>`;
+  }).join('');
+  $('legend').hidden = !on.size;
 }
 
-function setLayer(key) {
-  view = key;
-  $('layer').value = key;
-  const v = VIEWS[key];
+function toggleLayer(k, state = !on.has(k)) {
+  if (state) { on.add(k); last = k; } else { on.delete(k); if (last === k) last = [...on].at(-1); }
+  applyLayers();
+}
+
+function setLayers(keys) {
+  on.clear();
+  keys.forEach((k) => on.add(k));
+  last = keys.at(-1);
+  applyLayers();
+}
+
+function applyLayers() {
+  if (on.has('canopy')) addTrees();
   for (const id of OVERLAYS) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis(id).visibility);
-  if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', v.bld);
-  if (map.getLayer('building-3d')) map.setPaintProperty('building-3d', 'fill-extrusion-color', v.tile);
-  for (const id of greens) map.setPaintProperty(id, 'fill-color', key === 'canopy' ? '#1f6f3f' : C.green);
-  if (plumeMarker) plumeMarker.getElement().style.display = key === 'smoke' ? '' : 'none';
+  if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor());
+  for (const id of greens) map.setPaintProperty(id, 'fill-color', on.has('canopy') ? '#1f6f3f' : C.green);
+  if (plumeMarker) plumeMarker.getElement().style.display = on.has('smoke') ? '' : 'none';
   cancelAnimationFrame(plumeAnim);
-  if (key === 'smoke') plumeAnim = requestAnimationFrame(plumeFrame);
+  if (on.has('smoke')) plumeAnim = requestAnimationFrame(plumeFrame);
+  for (const b of document.querySelectorAll('#layers button')) b.classList.toggle('on', on.has(b.dataset.k));
   renderLegend();
   renderPanel();
 }
-document.getElementById('layer').onchange = (e) => setLayer(e.target.value);
+document.querySelectorAll('#layers button').forEach((b) => (b.onclick = () => toggleLayer(b.dataset.k)));
 
-// Satellite overlays (global GIBS rasters) + smoke plume source.
+// Satellite overlays (global GIBS rasters, Landsat NDVI drape) + smoke plume source.
 async function addOverlays() {
   const aod = 'MODIS_Combined_Value_Added_AOD', ndvi = 'MODIS_Terra_NDVI_8Day';
   map.addSource('plume', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -262,23 +289,64 @@ async function addOverlays() {
     'circle-opacity': ['*', 0.6, ['-', 1, ['get', 'a']], ['min', 1, ['*', 8, ['get', 'a']]]],
     'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'map',
   } });
+  // 30 m Landsat NDVI (bare ground transparent) takes over from 250 m MODIS at city zoom.
+  map.addSource('ndvi', { type: 'image', url: '/data/ndvi-landsat.png', coordinates: CORNERS });
+  map.addLayer({ id: 'ndvi', type: 'raster', source: 'ndvi', layout: vis('ndvi'),
+    paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.85, 16, 0.6], 'raster-fade-duration': 0 } }, 'building-3d');
   const [dAod, dNdvi] = await Promise.all([latestGibs(aod, 6), latestGibs(ndvi, 9)]);
   map.addSource('smoke', { type: 'raster', tiles: [gibsUrl(aod, 6, dAod)], tileSize: 256, maxzoom: 6 });
   map.addLayer({ id: 'smoke', type: 'raster', source: 'smoke', layout: vis('smoke'),
     paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0.7, 12, 0.45, 16, 0.3], 'raster-resampling': 'linear' } }, 'building-3d');
   map.addSource('canopy', { type: 'raster', tiles: [gibsUrl(ndvi, 9, dNdvi)], tileSize: 256, maxzoom: 9 });
   map.addLayer({ id: 'canopy', type: 'raster', source: 'canopy', layout: vis('canopy'),
-    paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.8, 13, 0.55, 16, 0.35], 'raster-resampling': 'linear' } }, 'building-3d');
+    paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.8, 10, 0.6, 11, 0], 'raster-resampling': 'linear' } }, 'ndvi');
 }
 
-// Stateless particles: each loops from the source toward and past the city centre, widening as it ages.
+// 3D trees grown from the 30 m NDVI inside the building box: at most one crown per pixel, likelier and taller where greener.
+let treesP = null;
+function addTrees() {
+  if (treesP || !buildings.length) return;
+  treesP = sampler('/data/ndvi-landsat-gray.png').then((ndvi) => {
+    let [w, s, e, n] = [180, 90, -180, -90];
+    for (const f of buildings) for (const [x, y] of f.geometry.coordinates[0]) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
+    const L = LANDSAT, sx = (L.e - L.w) / L.px[0], sy = (L.n - L.s) / L.px[1];
+    const ky = 1 / 110540, kx = 1 / (111320 * Math.cos((s * Math.PI) / 180)), features = [];
+    for (let x = w; x < e; x += sx) for (let y = s; y < n; y += sy) {
+      const v = (ndvi(x, y) ?? 0) * 0.8; // NDVI
+      if (v < 0.4 || Math.random() > (v - 0.3) / 0.3) continue;
+      const g = Math.min(1, (v - 0.4) / 0.25), r = 3 + 3 * Math.random() + 2 * g, h = 7 + 3 * Math.random() + 10 * g * Math.random();
+      const cx = x + Math.random() * sx, cy = y + Math.random() * sy;
+      const ring = Array.from({ length: 9 }, (_, i) => [cx + Math.cos((i * Math.PI) / 4) * r * kx, cy + Math.sin((i * Math.PI) / 4) * r * ky]);
+      features.push({ type: 'Feature', properties: { h, b: h * 0.35, g }, geometry: { type: 'Polygon', coordinates: [ring] } });
+    }
+    map.addSource('trees', { type: 'geojson', data: { type: 'FeatureCollection', features } });
+    map.addLayer({ id: 'trees', type: 'fill-extrusion', source: 'trees', minzoom: 12.5, layout: vis('trees'), paint: {
+      'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'g'], 0, '#84cc16', 1, '#15803d'],
+      'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'],
+      'fill-extrusion-vertical-gradient': true,
+    } });
+  });
+}
+
+// Plume axis from the source toward and past the city centre; offsets in lat-degree units (east scaled by k).
+function plumeAxis() {
+  const [x0, y0] = CITY.plume.at, [x1, y1] = CITY.center, k = Math.cos((y0 * Math.PI) / 180);
+  const ex = (x1 - x0) * k, ny = y1 - y0, len = Math.hypot(ex, ny), L = len * 1.8;
+  return { x0, y0, k, dx: ex / len, dy: ny / len, L, W: L * 0.18 };
+}
+
+// Plume's PM2.5 contribution (µg/m³) at a point: strongest near the source, thinning downwind and off-axis.
+function plumeAt([lon, lat]) {
+  const { x0, y0, k, dx, dy, L, W } = plumeAxis();
+  const ex = (lon - x0) * k, ny = lat - y0, a = (ex * dx + ny * dy) / L, w = -ex * dy + ny * dx;
+  return a <= 0 || a >= 1 ? 0 : 30 * (1 - a) * Math.exp(-((w / (a * W)) ** 2));
+}
+
+// Stateless particles: each loops along the axis, widening as it ages.
 const PLUME = Array.from({ length: 260 }, () => [Math.random() * 2 - 1, Math.random()]);
 let plumeAnim = 0, plumeMarker = null;
 function plumeFrame(now) {
-  const [x0, y0] = CITY.plume.at, [x1, y1] = CITY.center, k = Math.cos((y0 * Math.PI) / 180);
-  let dx = (x1 - x0) * k, dy = y1 - y0;
-  const len = Math.hypot(dx, dy), L = len * 1.8, W = L * 0.18;
-  dx /= len; dy /= len;
+  const { x0, y0, k, dx, dy, L, W } = plumeAxis();
   const features = PLUME.map(([r, ph], i) => {
     const a = (now / 14000 + ph) % 1, s = a * L, w = (r + 0.25 * Math.sin(a * 9 + i)) * a * W;
     return { type: 'Feature', properties: { a }, geometry: { type: 'Point', coordinates: [x0 + (dx * s - dy * w) / k, y0 + dy * s + dx * w] } };
@@ -326,7 +394,7 @@ async function addPrecincts() {
     new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
   plumeMarker = new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${CITY.plume.name}</span>Emission source · plume toward ${CITY.name}`), anchor: 'bottom' })
     .setLngLat(CITY.plume.at).addTo(map);
-  plumeMarker.getElement().style.display = view === 'smoke' ? '' : 'none';
+  plumeMarker.getElement().style.display = on.has('smoke') ? '' : 'none';
 }
 
 function select(name) {
@@ -358,7 +426,7 @@ function renderPanel() {
   $('p-tree').textContent = `${p.tree_cover_pct}%`;
   $('p-age').textContent = `${p.age65_pct}%`;
   const h = headline(p);
-  $('eyebrow').classList.toggle('live', view === 'heat' || view === 'smoke');
+  $('eyebrow').classList.toggle('live', !last || last === 'heat' || last === 'smoke');
   if (!h) return;
   [$('eyebrow').textContent, $('temp').textContent, $('delta').textContent] = h;
   $('delta').classList.toggle('cool', h[3]);
@@ -366,13 +434,18 @@ function renderPanel() {
 
 // Big panel metric follows the active layer: [eyebrow, value, sub-line, reads as good?]
 function headline(p) {
-  if (view === 'smoke') return aq && ['Fine particles (PM2.5) now', `${aq.pm2_5.toFixed(1)} µg/m³`,
-    `AQI ${aq.us_aqi} · AOD ${aq.aerosol_optical_depth.toFixed(2)} · CO ${Math.round(aq.carbon_monoxide)} µg/m³`, aq.us_aqi <= 50];
-  if (view === 'canopy') {
+  if (last === 'smoke') {
+    if (!aq) return null;
+    // CAMS is a ~40 km grid, so precincts differ only by what the plume adds on top.
+    const extra = selected ? plumeAt(mid(ringOf(selected.name))) : 0;
+    return ['Fine particles (PM2.5) now', `${(aq.pm2_5 + extra).toFixed(1)} µg/m³`,
+      extra >= 0.1 ? `+${extra.toFixed(1)} from industry plume · AQI ${aq.us_aqi}` : `AQI ${aq.us_aqi} · AOD ${aq.aerosol_optical_depth.toFixed(2)}`, aq.us_aqi <= 50 && extra < 5];
+  }
+  if (last === 'canopy') {
     const d = p.tree_cover_pct - 40;
     return ['Tree canopy cover', `${p.tree_cover_pct}%`, `${Math.abs(d)} pts ${d < 0 ? 'below' : 'above'} the 40% target`, d >= 0];
   }
-  if (view === 'solar') {
+  if (last === 'solar') {
     if (!buildings.length) return null;
     const m = (selected ? within(ringOf(selected.name)) : buildings).reduce((a, f) => a + f.properties.mwh, 0);
     return ['Rooftop solar potential', m >= 1e4 ? `${Math.round(m / 1e3)} GWh/yr` : `${Math.round(m).toLocaleString()} MWh/yr`,
@@ -434,7 +507,7 @@ function animateTo(to, ms = 1500) {
 function openScenario() {
   if (!buildings.length || !precincts.length) return;
   if (!selected) return select(precincts[0].properties.name), openScenario();
-  if (view !== 'heat') setLayer('heat');
+  if (!on.has('heat')) toggleLayer('heat', true);
   ids = within(ringOf(selected.name)).map((f) => f.id);
   $('s-where').textContent = selected.name;
   document.body.classList.add('scenario');

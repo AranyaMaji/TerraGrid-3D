@@ -78,6 +78,20 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Solar: buildings coloured gold by roof area × irradiance constant; panel shows MWh/yr.
   - Layer dropdown switches all three + heat; legend updates.
 
+- [x] **5b. Mixable layers + layer polish** (owner-raised 2026-10-03, verify in Chrome)
+  - [x] Toolbar: replace the native dropdown and the dead "Layers" button with always-visible toggle chips
+    (Surface heat / Smoke / Tree canopy / Solar), any combination on. Legend stacks one row per active layer;
+    panel headline follows the last layer switched on.
+  - [x] Mixing rules: overlays stack; building walls = heat (or neutral if heat off); solar paints a thin roof cap
+    only (so heat + solar combine); canopy adds trees; smoke adds haze + plume.
+  - [x] Solar on rooftops only, counting building parts too (the Parramatta Square tower was dark: its parts were skipped).
+  - [x] PM2.5 per precinct: CAMS is a ~40 km grid so every precinct got the same 11.7. Add the plume's
+    contribution at each precinct centre on top of the live city value.
+  - [x] Canopy oomph: bake 30 m Landsat NDVI (same 9 Jan scene, Planetary Computer) to replace 250 m MODIS
+    at city zoom, and grow 3D trees on vegetated pixels inside the building box.
+  - Done 2026-10-03: `scripts/fetch-ndvi.py` bakes NDVI (bare ground transparent); ~1 crown per vegetated 30 m pixel,
+    trees load on first Canopy toggle. PM2.5 per precinct = live CAMS + plume model at the precinct centre (CBD 25.0, Harris Park 11.7).
+
 - [ ] **6. Multi-city: Melbourne, then London** (~15 min each)
   - City switcher in nav/search. Globe fly between cities. Reuse tile `building-3d` (no Overpass) with precinct-level
     heat tint only; Open-Meteo per city. Skip if time is short.
