@@ -95,7 +95,7 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
 - [x] **5c. Panel shows every layer's metric at once** (owner-raised 2026-10-03)
   - Big number is always air temperature; below it one row per layer (roof surface °C, PM2.5, canopy %, solar GWh/yr)
     for the selected precinct, always visible; rows always coloured, not clickable (owner).
-  - Tree cover tile (duplicated the canopy row) replaced by Days over 35°C /yr (precinct `hot_days`, illustrative 12–17).
+  - Tree cover tile (duplicated the canopy row) replaced by Residents (precinct `population`, ~2021 census suburb counts; owner picked it over days >35°C).
 
 - [ ] **5d. Realistic trees and flora** (later, owner-raised 2026-10-03)
   - Replace the octagon crowns with real 3D tree models (e.g. a few low-poly glTF species instanced via a

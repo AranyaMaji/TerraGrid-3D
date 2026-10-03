@@ -82,7 +82,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 
 /* side panel */
 .panel {
-  width: 450px; flex: none; overflow-y: auto;
+  width: 450px; flex: none; overflow-y: auto; display: flex; flex-direction: column;
   background: var(--panel); border-left: 1px solid var(--border);
   padding: 26px 32px;
 }
@@ -95,14 +95,14 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .ptabs button { padding: 10px 24px; font-size: 17px; color: #475569; border-bottom: 3px solid transparent; margin-bottom: -1px; }
 .ptabs button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--teal); }
 .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; }
-.big { font-size: 58px; font-weight: 800; color: var(--heat); letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px; }
+.big { font-size: 62px; font-weight: 800; color: var(--heat); letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px; }
 .delta { font-size: 20px; color: var(--heat); font-weight: 500; }
 .muted { color: var(--muted); font-size: 17px; margin-top: 10px; }
 .muted.sm, .sm { font-size: 14px; margin-top: 0; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
-.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; }
-.lrows { margin-top: 16px; display: grid; gap: 6px; }
-.lrow { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 8px; background: color-mix(in srgb, var(--c) 8%, #fff); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; }
+.lrows { margin-top: 16px; display: grid; gap: 8px; }
+.lrow { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 8px; background: color-mix(in srgb, var(--c) 8%, #fff); }
 .lrow svg { color: var(--c); }
 .lrow > div:first-of-type { flex: 1; min-width: 0; }
 .lrow-l { font-size: 14px; font-weight: 600; }
@@ -118,7 +118,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .period > svg { width: 26px; height: 26px; }
 .strong { font-weight: 600; font-size: 18px; margin: 6px 0 4px; }
 .cta {
-  width: 100%; height: 56px; margin-top: 16px; border-radius: 8px;
+  width: 100%; height: 56px; margin-top: 18px; border-radius: 8px;
   background: var(--teal); color: #fff; font-size: 19px; font-weight: 500;
   display: flex; align-items: center; justify-content: center; gap: 14px;
   box-shadow: 0 4px 12px rgba(15, 139, 133, 0.3);
@@ -156,10 +156,15 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .pin-name { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
 .pin.poi:hover { z-index: 5; }
 
+/* Spare panel height is shared between sections via auto margins; padding keeps the minimum gaps, so it never overflows. */
+.lrows { padding: 16px 0; }
+.panel > .stats { padding-bottom: 18px; }
+.lrows, .panel > .stats, .panel > .cta, .scn { margin-top: auto; }
+
 /* scenario card: replaces the stat tiles while open */
 .scn { display: none; }
 .scenario .scn { display: block; }
-.scenario .stats, .scenario .panel > .cta, .scenario .panel > .link { display: none; }
+.scenario .stats, .scenario .panel > .cta { display: none; }
 .scn { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 20px; }
 .scn-h { display: flex; align-items: center; gap: 12px; }
 .scn-where { font-size: 18px; font-weight: 600; margin-top: 2px; }

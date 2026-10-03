@@ -10,7 +10,7 @@ maplibregl.setWorkerUrl(workerUrl);
 const CITY = {
   name: 'Parramatta', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
   ghi: 1790, plume: { at: [151.026, -33.817], name: 'Camellia industrial' },
-  tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, hot_days: 14, offset: 0,
+  tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, population: 64700, offset: 0,
 };
 const OCEANIA = [150, -25];
 
@@ -421,7 +421,7 @@ function renderPanel() {
   $('p-name').textContent = p.name;
   $('p-schools').textContent = p.schools;
   $('p-aged').textContent = p.aged_care;
-  $('p-hot').innerHTML = `${p.hot_days}<span class="stat-u"> /yr</span>`;
+  $('p-pop').textContent = `${(p.population / 1000).toFixed(1)}k`;
   $('p-age').textContent = `${p.age65_pct}%`;
   // Every layer's metric is always shown, whether or not it is on the map. Icon/colour from the toolbar chip.
   $('lrows').innerHTML = Object.keys(LAYERS).map((k) => {
