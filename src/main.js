@@ -641,7 +641,16 @@ function buildingPopup(e) {
     const a = j.address ?? {}, street = [a.house_number, a.road].filter(Boolean).join(' ');
     el.querySelector('.bp-name').textContent = j.name || street || 'Building';
     el.querySelector('.bp-addr').textContent = [j.name ? street : '', a.suburb || a.city_district || a.city].filter(Boolean).join(', ');
+    // Program roofs keep their address, so the council's lists show streets instead of codes.
+    const r = prog[pk(f.id)];
+    if (r && street && !r.addr) r.addr = [street, a.suburb || a.city_district || a.city].filter(Boolean).join(', '), saveProg();
   }).catch(() => {});
+}
+
+function flyToBuilding(f) {
+  const [lng, lat] = mid(f.geometry.coordinates[0]);
+  map.flyTo({ center: [lng, lat], zoom: 17.5, pitch: 60, duration: 1400 });
+  map.once('moveend', () => buildingPopup({ features: [{ id: f.id }], lngLat: { lng, lat } }));
 }
 
 function select(name) {
@@ -852,9 +861,7 @@ function clearPicks() {
 
 $('o-top').onclick = (e) => {
   const c = picks?.[e.target.closest('li')?.dataset.i];
-  if (!c) return;
-  map.flyTo({ center: c.c, zoom: 17.5, pitch: 60, duration: 1400 });
-  map.once('moveend', () => buildingPopup({ features: [{ id: c.f.id }], lngLat: { lng: c.c[0], lat: c.c[1] } }));
+  if (c) flyToBuilding(c.f);
 };
 
 document.querySelector('.panel > .cta').onclick = openScenario;
@@ -914,7 +921,7 @@ const NEXT = { applied: ['Confirm ownership', 'enrolled'], enrolled: ['Mark coat
 const MINE = { applied: 'The council will confirm you own this property against its rates records before any work.',
   enrolled: "You're enrolled. The council will book a licensed installer.", coated: 'Coating done. Waiting for the next satellite pass to confirm.',
   verified: 'Verified: satellite data shows your roof running cooler.' };
-let prog = {}, view = 'council', letters = [], li = 0;
+let prog = {}, view = 'council', letters = [], li = 0, open = null; // open: stage whose roof list the card shows
 try { prog = JSON.parse(localStorage.getItem('tg-program')) ?? {}; } catch {}
 const pk = (id) => `${CITY.key}:${id}`;
 const saving = (f) => Math.round(f.properties.area * SAVE).toLocaleString();
@@ -924,14 +931,29 @@ function saveProg() {
   renderProgram();
 }
 
-// Stage caps on the map + the pipeline counts card.
+// Stage caps on the map + the pipeline card. Each stage opens a list of its roofs (newest first); a row flies to the
+// building and opens its popup, so the council never hunts the map. "Applied" needs council action, so it's flagged.
 function renderProgram() {
   const here = buildings.filter((f) => prog[pk(f.id)]), st = (f) => prog[pk(f.id)].st;
   map.getSource('program')?.setData({ type: 'FeatureCollection', features: here.map((f) => ({ ...f, properties: { ...f.properties, st: st(f) } })) });
-  $('prog').innerHTML = '<b>Cool roof program</b>' + Object.entries(STAGES).map(([k, [t, c]]) =>
-    `<span style="--c:${c}">${t} <em>${here.filter((f) => st(f) === k).length}</em></span>`).join('');
+  const n = (k) => here.filter((f) => st(f) === k).length;
+  const list = here.filter((f) => st(f) === open).sort((a, b) => (prog[pk(b.id)].t ?? 0) - (prog[pk(a.id)].t ?? 0));
+  $('prog').innerHTML = '<div class="prog-row"><b>Cool roof program</b>' + Object.entries(STAGES).map(([k, [t, c]]) =>
+    `<button data-s="${k}" class="${k === open ? 'on' : ''}${k === 'applied' && n(k) ? ' todo' : ''}" style="--c:${c}">${t} <em>${n(k)}</em></button>`).join('') + '</div>' +
+    (open ? `<ol class="prog-list">${list.map((f) => {
+      const r = prog[pk(f.id)], t = f.properties.lst;
+      return `<li data-id="${f.id}"><b>${esc(r.addr ?? (r.code ? `Roof ${r.code}` : 'Roof (rates application)'))}</b>` +
+        `<span>${[t != null && `${t.toFixed(1)}°C roof`, r.addr && r.code, r.via && `via ${r.via}`].filter(Boolean).join(' · ')}</span></li>`;
+    }).join('') || '<li class="empty">No roofs at this stage yet</li>'}</ol>` : '');
   $('prog').hidden = !here.length;
 }
+
+$('prog').onclick = (e) => {
+  const s = e.target.closest('[data-s]')?.dataset.s, id = e.target.closest('[data-id]')?.dataset.id;
+  if (s) open = open === s ? null : s, renderProgram();
+  const f = id && buildings.find((b) => String(b.id) === id);
+  if (f) flyToBuilding(f);
+};
 
 // Popup section. Council: stage, code and the next action. Public: savings and an application form; an owner only
 // ever sees the status of a building they applied for, never offers to other people.
@@ -960,6 +982,7 @@ function wireProg(el, f) {
     if (act === 'apply') e.target.hidden = true, box.querySelector('form').hidden = false, box.querySelector('input').focus();
     if (act === 'next') {
       r.st = NEXT[r.st][1];
+      r.t = Date.now();
       if (r.st === 'enrolled' && !r.via) r.via = 'rates check';
       saveProg(); redraw();
     }
@@ -976,9 +999,9 @@ function wireProg(el, f) {
     // Letter code: the letter only reached the rates-record owner, so a match enrols straight away.
     if (/^CP-\d{4}$/.test(c)) {
       if (r?.code !== c) return err("That code isn't for this building. Check your letter.");
-      Object.assign(r, { st: r.st === 'offered' ? 'enrolled' : r.st, via: 'letter code', mine: true });
+      Object.assign(r, { st: r.st === 'offered' ? 'enrolled' : r.st, via: 'letter code', mine: true, t: Date.now() });
     } else if (/^\d{5,}$/.test(c.replace(/[\s-]/g, ''))) {
-      prog[pk(f.id)] = { ...r, st: !r || r.st === 'offered' ? 'applied' : r.st, via: r?.via ?? 'rates number', mine: true };
+      prog[pk(f.id)] = { ...r, st: !r || r.st === 'offered' ? 'applied' : r.st, via: r?.via ?? 'rates number', mine: true, t: Date.now() };
     } else return err('Enter the code from your letter, or your rates notice number.');
     saveProg(); redraw();
   };
@@ -987,7 +1010,7 @@ function wireProg(el, f) {
 // Send letters to the optimizer's funded roofs (new ones get a code; existing ones keep their stage), then show them.
 function sendOffers() {
   if (!last?.chosen.length) return;
-  for (const c of last.chosen) prog[pk(c.f.id)] ??= { st: 'offered', code: `CP-${1000 + Math.floor(Math.random() * 9000)}` };
+  for (const c of last.chosen) prog[pk(c.f.id)] ??= { st: 'offered', code: `CP-${1000 + Math.floor(Math.random() * 9000)}`, t: Date.now() };
   cancelAnimationFrame(pulse);
   map.getSource('picks').setData(EMPTY);
   $('o-send').textContent = 'View offer letters';
@@ -1039,8 +1062,12 @@ function setView(v) {
   popup.remove();
   $('letter').hidden = true;
   if (map.getLayer('program')) map.setLayoutProperty('program', 'visibility', v === 'council' ? 'visible' : 'none');
+  // Back in the council view, new applications are the first thing to see.
+  if (v === 'council' && buildings.some((f) => prog[pk(f.id)]?.st === 'applied')) open = 'applied', renderProgram();
 }
-document.querySelectorAll('#view button').forEach((b) => (b.onclick = () => setView(b.dataset.v)));document.querySelector('.scn').oninput = () => {
+document.querySelectorAll('#view button').forEach((b) => (b.onclick = () => setView(b.dataset.v)));
+
+document.querySelector('.scn').oninput = () => {
   $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
   if (picks) optimize(); else animateTo(target(), 300);
 };

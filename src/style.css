@@ -241,13 +241,25 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .public .panel > .cta, .public .prog { display: none !important; }
 
 /* Cool roof program: pipeline counts on the map, status in the building popup, offer letters */
-.prog { position: absolute; left: 30px; top: 92px; z-index: 2; display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px 8px 16px; background: var(--panel); border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; white-space: nowrap; }
+.prog { position: absolute; left: 30px; top: 92px; z-index: 2; padding: 8px 10px 8px 16px;
+  background: var(--panel); border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; }
 .prog[hidden] { display: none; }
-.prog > b { margin-right: 6px; font-weight: 600; }
-.prog span { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--page); color: #475569; }
-.prog span::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(15, 27, 45, .15); }
+.prog-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.prog-row > b { margin-right: 6px; font-weight: 600; }
+.prog-row button { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--page); color: #475569; border: 1.5px solid transparent; }
+.prog-row button:hover { border-color: var(--border); }
+.prog-row button.on { border-color: var(--ink); background: #fff; color: var(--ink); }
+.prog-row button::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(15, 27, 45, .15); }
+/* Applied = waiting on the council: tinted so it stands out from the rest */
+.prog-row button.todo { background: color-mix(in srgb, var(--c) 22%, #fff); color: var(--ink); font-weight: 600; }
 .prog em { font-style: normal; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.prog-list { list-style: none; margin: 8px -4px 2px 0; padding: 8px 0 0; border-top: 1px solid var(--border); max-height: 240px; overflow-y: auto; display: grid; gap: 2px; }
+.prog-list li { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.prog-list li:hover { background: #e7f5f4; }
+.prog-list b { font-size: 14px; font-weight: 600; }
+.prog-list span { font-size: 12px; color: var(--muted); }
+.prog-list .empty { cursor: default; color: var(--muted); }
+.prog-list .empty:hover { background: none; }
 .opt-btn.send { width: 100%; margin-top: 12px; }
 .bp-prog { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; }
 .bp-q { font-size: 13px; line-height: 1.4; }
