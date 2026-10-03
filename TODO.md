@@ -160,6 +160,75 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Renders in the panel and in the "Export council brief" print view. Canned fallback if no key / offline.
   - Done when: the brief generates, shows in the panel and prints cleanly. Video ends on this printed artifact.
 
+## Round 2: retrofit priority (teammate feedback 2026-10-04, ordered by judge impact; do before 8/9)
+
+Pitch: a screening and prioritisation tool that tells a government which buildings to fix first, with what, for how much.
+Data stance: real where cheap (Landsat roof °C, OSM footprints/storeys/type, Open-Meteo climate); everything else is
+derived from published benchmarks and shown as if real. UI never says sample/dummy/illustrative.
+
+Shared foundation: ONE per-building energy model in main.js, computed in `loadCity` next to `mwh`, stored on
+`f.properties` (`floor`, `type`, `kwh`, `cool_kwh`, `extra_kwh`, `conf`). Every item below reads it; nothing recomputes it.
+Constants (EUI by type, cooling share, % cooling per °C, $/kWh per city, measure costs/savings/life) live in one
+`ENERGY` table + one `MEASURES` table at the top of main.js. Sanity-check the numbers against published sources
+before baking (NABERS/CBECS-style EUI, AU/UK tariffs, cool-roof and HVAC retrofit costs): ask the owner before
+dispatching a researcher.
+
+Shared blast radius (check all of these on every item):
+`loadCity` (model build) · `renderPanel` + `layerRow` (panel must still fit at 1080p, already ~170 px over at 911 px) ·
+`target`/`draw`/`animateTo` (scenario KPIs) · `optimize` (ranking) · `buildingPopup` · `makeBrief` facts + canned text ·
+`vite.config.js` prompt · print CSS · all 5 cities (proxy-heat cities have no Landsat: confidence differs).
+
+- [ ] **10. Energy model + "extra cooling cost from local heat" headline** (~45 min)
+  - Type: OSM `building` tag. Building files don't keep it: add `type` (and `levels`) to `scripts/fetch-buildings.mjs`
+    output and re-bake via curl-saved Overpass. If Overpass is down: infer (POI school/aged care inside footprint →
+    that type; height > 30 m → office in CBD precincts, apartment elsewhere; else house/retail by area).
+  - Floor area = footprint × storeys (`levels` or height / 3.2). Baseline kWh = floor × EUI[type]; cooling kWh = × cooling share.
+  - Extra from local heat = cooling kWh × k%/°C × max(0, roof °C − city reference). Cost = × $/kWh[city].
+  - Panel: new line under the delta, heat red: "$547,800 / yr extra cooling from local heat" for the precinct (or city).
+    Fits in the space of one lrow; do not add a tile.
+  - Done when: number changes per precinct and per city, looks plausible (Parramatta CBD in the $100k–$1M range), panel fits.
+
+- [ ] **11. Retrofit measures in the scenario: energy saved, cost, payback, buildings reached** (~45 min)
+  - `MEASURES`: cool roofs, tree canopy, rooftop solar, insulation, efficient HVAC, smart controls. Each: applies-to types,
+    cost basis ($/m² roof | $/m² floor | $/tree), % saving of cooling or total kWh, useful life.
+  - Levers: replace the 3 checkboxes with 6 compact toggle chips (same style as the layer chips, saves height).
+  - Replace the hardcoded `target()` KPIs (4.2 °C / 18% / 320 MWh / $48k) with sums over the precinct's buildings:
+    MWh/yr saved, $/yr saved, capex, payback yrs, buildings reached. Keep the count-up animation and cooling colour.
+  - Budget slider still caps spend; optimizer cost = chosen measure's cost, not flat $45/m².
+  - Done when: toggling a measure visibly changes every KPI and payback, Optimize still pulses roofs.
+
+- [ ] **12. Retrofit priority map with adjustable weights + confidence** (~50 min, the core government feature)
+  - New layer chip "Priority": buildings coloured by score (teal ramp), on top of heat. Score per building =
+    w1·savings $/yr + w2·(1/payback) + w3·public/vulnerable (school, aged care, hospital, public building, 65+ share)
+    + heat exposure, each normalised 0–1. Best measure per building = highest saving per $ among those it applies to.
+  - 3 weight sliders (Savings / Payback / Vulnerable people) in the scenario card; dragging recolours live.
+    `optimize()` greedy fill uses this score (replaces roof °C × area / distance), keep "× per $ vs uniform".
+  - Top-targets list: name/address, type, best measure, $/yr saved, payback. Click → fly + popup (exists).
+  - Confidence per input: measured (Landsat roof °C, OSM footprint), estimated (floor area, energy, proxy roof °C),
+    missing (metered energy). Small dot badges in the popup and list; score shows a ± band when inputs are estimated.
+  - Done when: moving a weight reorders the list and recolours the map; popup shows type, best measure, payback, badges.
+
+- [ ] **13. AI picks the measures per suburb (Gemini)** (~30 min)
+  - New `POST /api/rank` beside `/api/brief` in `vite.config.js` (same key handling, same tunnel guard). Input: precinct
+    facts + per-measure computed totals (saved $/yr, capex, payback, buildings reached, residents near). Output JSON:
+    ordered top 3 measures, one-line reason each. AI orders and explains; it never invents numbers (same rule as brief).
+  - Scenario card: "AI recommends" block (Gemini spark icon), clicking it switches the lever chips to that mix.
+  - Feed the ranking into the brief as the plan's order. Canned fallback = sort by saving per $.
+  - Done when: different suburbs get different orders with sensible reasons, fallback works with no key.
+
+- [ ] **14. Suburb ranking ("Compare areas" tab, currently dead)** (~25 min)
+  - Tab opens a ranked list in the panel: every precinct in the city by extra cooling $/yr, with roof °C, vulnerable
+    residents and best measure. Sort toggle (cost / heat / vulnerable). Row click → `select()`. Optional: tint precinct
+    fills by rank. 4–5 precincts per city, so no paging.
+  - Done when: ranking reads at a glance and clicking a row lands on that precinct.
+
+- [ ] **15. Future projection: Now / 2030 / 2050** (~30 min)
+  - Segmented toggle near 2D/3D. Warming per city from Open-Meteo Climate API (CMIP6, keyless; verify endpoint and
+    models first) baked as a ΔT per year into `CITIES`, fallback fixed ΔT per city if the API is awkward.
+  - Shifts: building heat colour (add ΔT before the ramp), extra cooling cost headline, scenario savings and payback
+    (hotter = faster payback, the punchline). Suburb ranking reads the same year.
+  - Done when: flipping to 2050 visibly reddens the city and the $ headline jumps, then the scenario shows a shorter payback.
+
 - [ ] **8. Arduino DS18B20 ground sensor** (~20 min)
   - `arduino/sensor.ino`: Uno R3 + DS18B20 (OneWire + DallasTemperature libs), prints `°C` as one number per line at 9600.
   - Web Serial button "Connect sensor" → live reading on a pulsing pin "Ground sensor · live", panel shows satellite vs ground
