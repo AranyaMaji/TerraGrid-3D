@@ -1053,14 +1053,12 @@ showWeights();
 document.querySelector('.scn').oninput = (e) => {
   $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
   const w = e.target.dataset.w;
-  if (w) { // weight slider: recolour the priority map; re-rank if Optimize has run
+  if (w) { // weight slider: recolour the priority map
     W[w] = +e.target.value;
     showWeights();
     if (on.has('prio')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor()); else toggleLayer('prio', true);
-    if (picks) optimize();
-    return;
   }
-  if (picks) optimize(); else animateTo(target(), 300);
+  optimize(); // any slider re-optimizes instantly; the button does the same
 };
 
 // ---- Live air temperature (city vs reference point) + air quality (Open-Meteo / CAMS) ----
