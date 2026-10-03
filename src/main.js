@@ -63,6 +63,8 @@ function spin() {
   requestAnimationFrame(spin);
 }
 map.on('load', () => {
+  // Compact attribution starts expanded and only collapses on the first drag; collapse it now.
+  document.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
   spin();
   setTimeout(() => !flown && flyIn(), 4000);
 });
