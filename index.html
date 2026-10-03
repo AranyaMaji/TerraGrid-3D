@@ -65,9 +65,10 @@
           </div>
           <div class="nodata"><div class="hatch"></div><span>No data</span></div>
         </div>
+        <div class="legend-src" id="lst-date">MODIS Terra</div>
       </div>
 
-      <div class="note">illustrative map · 3D buildings for context</div>
+      <div class="note">satellite LST live · building heat illustrative</div>
     </section>
 
     <aside class="panel">
@@ -78,10 +79,11 @@
       <div class="sub">Area overview</div>
       <div class="ptabs"><button class="on">Overview</button><button>Sources</button></div>
 
-      <div class="eyebrow">Summer surface temperature</div>
-      <div class="big">41.2°C</div>
-      <div class="delta">+1.7°C above reference</div>
-      <div class="muted">Built-up Sydney · 39.5°C</div>
+      <div class="eyebrow">Air temperature now</div>
+      <div class="big" id="temp">--.-°C</div>
+      <div class="delta" id="delta">&nbsp;</div>
+      <div class="muted" id="ref">Loading live data…</div>
+      <div class="muted sm live" id="stamp">Open-Meteo · live</div>
 
       <hr />
       <div class="stats">

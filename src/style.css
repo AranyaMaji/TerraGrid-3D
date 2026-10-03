@@ -125,3 +125,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .link { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; font-size: 17px; }
 .link.center { display: block; text-align: center; margin-top: 18px; }
 .foot { display: flex; justify-content: space-between; border-top: 1px solid var(--border); margin-top: 28px; padding-top: 22px; }
+.delta.cool { color: var(--teal, #0f8b85); }
+.live { margin-top: 6px; }
+.live::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #34d399; margin-right: 6px; vertical-align: 1px; }
+.legend-src { font-size: 12px; color: var(--muted); margin-top: 8px; }

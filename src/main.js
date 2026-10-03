@@ -45,6 +45,7 @@ map.on('style.load', () => {
     'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0],
   });
   recolour();
+  addHeatLayers();
 });
 
 // Intro: slow spin over Oceania, then fly in.
@@ -90,3 +91,79 @@ function setMode3d(on, animate = true) {
 }
 b2.onclick = () => setMode3d(false);
 b3.onclick = () => setMode3d(true);
+
+// ---- Surface heat: GIBS LST drape + per-building derived heat (illustrative) ----
+const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'heat'], 0],
+  0, C.bld, 0.35, '#7a5a2e', 0.55, '#f59e0b', 0.8, '#e5484d', 1, '#fecdd3'];
+const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+const lstUrl = (d, z = '{z}', y = '{y}', x = '{x}') =>
+  `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_Daily_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
+
+// GIBS lags 1-3 days and 404s on missing dates; probe the Parramatta z7 tile.
+async function latestLstDate() {
+  for (let n = 1; n <= 6; n++) {
+    const ok = await new Promise((r) => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = lstUrl(day(n), 7, 76, 117); });
+    if (ok) return day(n);
+  }
+  return day(3);
+}
+
+// Percentile rank so the ramp spreads evenly whatever the raw units.
+function ranks(vals) {
+  const idx = vals.map((v, i) => i).sort((a, b) => vals[a] - vals[b]), r = new Array(vals.length);
+  idx.forEach((i, k) => (r[i] = k / (vals.length - 1)));
+  return r;
+}
+
+async function addHeatLayers() {
+  const date = await latestLstDate();
+  map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST' });
+  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': 0.55, 'raster-resampling': 'linear' } }, 'building-3d');
+
+  const gj = await (await fetch('/data/buildings-parramatta.geojson')).json();
+  const P = gj.features.map((f) => f.properties);
+  const hash = (f) => { const [x, y] = f.geometry.coordinates[0][0]; const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return s - Math.floor(s); };
+  const rA = ranks(P.map((p) => p.area)), rG = ranks(P.map((p) => p.dist_green)), rH = ranks(P.map((p) => p.height));
+  // ponytail: heuristic heat score (big roofs, far from green, low-rise = hotter), not a physical model.
+  const heat = ranks(gj.features.map((f, i) => 0.35 * rA[i] + 0.3 * rG[i] + 0.15 * (1 - rH[i]) + 0.2 * hash(f)));
+
+  map.addSource('bld', { type: 'geojson', data: gj, attribution: '© OpenStreetMap contributors' });
+  map.addLayer({
+    id: 'bld-heat', type: 'fill-extrusion', source: 'bld',
+    paint: {
+      'fill-extrusion-color': HEAT_COLOR,
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'min_height'],
+      'fill-extrusion-opacity': 1,
+      'fill-extrusion-vertical-gradient': true,
+    },
+  });
+  gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
+  document.getElementById('lst-date').textContent = `MODIS Terra · ${date}`;
+}
+
+document.getElementById('layer').onchange = (e) => {
+  const on = e.target.value === 'Surface heat';
+  if (map.getLayer('lst')) map.setLayoutProperty('lst', 'visibility', on ? 'visible' : 'none');
+  if (map.getLayer('bld-heat')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', on ? HEAT_COLOR : C.bld);
+  document.querySelector('.legend').style.visibility = on ? 'visible' : 'hidden';
+};
+
+// ---- Live air temperature: Parramatta vs coastal Sydney CBD (Open-Meteo, one call) ----
+async function liveTemp() {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=-33.815,-33.8607&longitude=151.003,151.2050&current=temperature_2m,apparent_temperature&timezone=auto';
+  try {
+    const [par, cbd] = await (await fetch(url)).json();
+    const t = par.current.temperature_2m, ref = cbd.current.temperature_2m, d = t - ref;
+    const $ = (id) => document.getElementById(id);
+    $('temp').textContent = `${t.toFixed(1)}°C`;
+    $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} coastal reference`;
+    $('delta').classList.toggle('cool', d < 0);
+    $('ref').textContent = `Feels like ${par.current.apparent_temperature.toFixed(1)}°C · Sydney CBD (coast) ${ref.toFixed(1)}°C`;
+    $('stamp').textContent = `Open-Meteo · live · ${par.current.time.slice(11)} local`;
+  } catch {
+    document.getElementById('stamp').textContent = 'Open-Meteo unavailable';
+  }
+}
+liveTemp();
+setInterval(liveTemp, 10 * 60e3);

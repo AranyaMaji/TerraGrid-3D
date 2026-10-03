@@ -18,7 +18,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Done when: `npm run dev` shows spinning globe → fly-in → extruded Parramatta buildings inside the light UI shell, no console errors.
   - Needs: `docs/API-NOTES.md` §1–2.
 
-- [ ] **2. Surface heat layer, live data, per-building heat** (~45 min)
+- [x] **2. Surface heat layer, live data, per-building heat** (~45 min)
+  - Note: Node fetch can't reach Overpass on this machine; script accepts a curl-saved response as arg. Heat = percentile mix of footprint, distance to green, low-rise, noise. Headline delta is live vs coastal Sydney CBD (not a fixed reference). Tile buildings left visible; ours draw on top.
   - Fetch Parramatta buildings once via Overpass (bbox ~2 km around centre), convert ways → GeoJSON polygons with
     `height` (or `building:levels`×3.2, default 8), save to `data/buildings-parramatta.geojson` (commit it; no runtime Overpass).
     Script: `scripts/fetch-buildings.mjs` (node, no deps).
