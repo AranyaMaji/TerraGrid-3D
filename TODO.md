@@ -211,6 +211,37 @@ Shared blast radius (check all of these on every item):
     missing (metered energy). Small dot badges in the popup and list; score shows a ± band when inputs are estimated.
   - Done when: moving a weight reorders the list and recolours the map; popup shows type, best measure, payback, badges.
 
+- [ ] **12b. Integrate teammate PR #1 (item 7c, cool roof program) onto items 10–12** (~45 min, do FIRST: every later item touches optimize/popup, so conflicts only grow)
+  - PR: `tiasella1802-alt:teammate-changes`, 2 commits (1a3a97c, f0d185d), branched from e6d82a7. Fetched locally as `pr-1`.
+    Adds Public | Council nav toggle, offer letters with CP-#### codes, owner apply form, stage caps
+    (Offered → Applied → Enrolled → Coated → Verified), pipeline card `#prog`, status in localStorage `tg-program`.
+  - How: `git merge --no-ff pr-1` locally (keeps the teammate's commits and authorship), resolve, then one `fix:` commit
+    for the semantic breaks below. Do not merge on GitHub; pushing closes the PR, and that needs the owner's go.
+  - Textual conflicts (trial `git merge-tree`): CHANGELOG.md (keep both lines); main.js ×5:
+    - `loadCity` tail: keep master's `applyLayers()` AND the PR's `renderProgram()`.
+    - `buildingPopup`: take master's popup (type, best fix, payback, priority, confidence dots, `placeName`), append
+      `progHtml(f)` + `wireProg(el, f)`. Drop the PR's own Nominatim fetch; save `r.addr` from `placeName`'s result (cached, 1 req/s).
+    - Scenario constants: master's `ZERO`/`plan()`/`lev` win; drop the PR's `SAVE`.
+    - `makeBrief` energy: master's `target().usd`.
+    - `.scn` oninput: keep master's `showWeights()` handler, then the PR's program block after it.
+  - Semantic breaks (merge cleanly, then fail at runtime):
+    - `showLetter` reads `c.ex`, which master's optimizer no longer sets → crash on Send letters. Add `ex` back in
+      `optimize()` (roof °C over the precinct median), as the PR's note asked.
+    - `c.cost` is now the capex of ALL chosen measures, not a cool-roof coating. The letter says "reflective coating ...
+      $Xk", so it's wrong when the best fix is HVAC or insulation. Letter should name `MEASURES[q.best].name`, `q.best_cap`, `q.best_usd`.
+    - `saving(f)` = area × $3.2 contradicts the energy model. Use `q.best_usd` (letter + public popup).
+    - Program is cool-roof-only but optimizer funds any measure. Rename to "Retrofit program", stage "Coated" → "Installed"
+      (decision for owner; recommended: rename). Keep white cap for Installed.
+    - Owner rule: UI has no "simulated"/"prototype" text. Strip the `bp-note` verified line and the letter's `l-foot`
+      (move both to README "Production path").
+    - Public view: hide the scenario (PR does) and the priority score/± band in the popup (owners shouldn't see a ranking).
+      Keep the confidence dots? Owner call, recommended hide in Public.
+    - Layering: program cap and picks cap share base height+0.8. PR's `fresh` filter keeps them apart; check it survived
+      the merge. Priority wall colours + program caps + solar caps: check no z-fight at z17.
+  - Nav room: Public | Council now sits in nav-right; item 15's Now/2030/2050 toggle goes over the map (near 2D/3D), not the nav.
+  - Done when: in Chrome, Council → Optimize → Send letters (letters show best fix + correct $) → Public → click that
+    building → Apply with the code → Council shows Enrolled; slider drags still re-optimize; no console errors; all 5 cities load.
+
 - [ ] **13. AI picks the measures per suburb (Gemini)** (~30 min)
   - New `POST /api/rank` beside `/api/brief` in `vite.config.js` (same key handling, same tunnel guard). Input: precinct
     facts + per-measure computed totals (saved $/yr, capex, payback, buildings reached, residents near). Output JSON:
