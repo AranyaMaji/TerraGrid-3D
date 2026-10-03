@@ -98,9 +98,19 @@
           <label><input type="checkbox" id="s-trees" checked /> Tree canopy</label>
           <label><input type="checkbox" id="s-solar" checked /> Rooftop solar</label>
         </div>
-        <label class="cov">Coverage <b id="s-cov-v">50%</b>
-          <input type="range" id="s-cov" min="0" max="100" value="50" />
-        </label>
+        <div class="bud">
+          <label class="cov">Budget <b id="s-bud-v">$2.0M</b>
+            <input type="range" id="s-bud" min="0.5" max="5" step="0.1" value="2" />
+          </label>
+          <button class="opt-btn" id="s-opt">Optimize</button>
+        </div>
+        <div class="opt">
+          <div class="opt-m">
+            <div><div class="kpi-v cool" id="o-x">--</div><div class="kpi-l">more cooling per $ vs uniform rollout</div></div>
+            <div><div class="kpi-v" id="o-res">--</div><div class="kpi-l">vulnerable residents protected</div></div>
+          </div>
+          <ol class="targets" id="o-top"></ol>
+        </div>
         <div class="kpis">
           <div><div class="kpi-v cool" id="k-t">−0.0°C</div><div class="kpi-l">Surface temperature</div></div>
           <div><div class="kpi-v cool" id="k-ac">−0%</div><div class="kpi-l">Peak AC demand</div></div>

@@ -138,7 +138,9 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     Done: Nominatim reverse at click time (no re-bake); name kept only for buildings/venues, else street address.
   - Precinct stats derived from the map where possible (buildings count, hottest roofs share, solar) instead of static props.
 
-- [ ] **7a. Budget optimizer: "which roofs get the money"** (~30 min, owner-approved 2026-10-03, replaces "Ask the twin" chatbot)
+- [x] **7a. Budget optimizer: "which roofs get the money"** (~30 min, owner-approved 2026-10-03, replaces "Ask the twin" chatbot)
+  - Done 2026-10-03: budget slider replaces Coverage (coverage = roof area the budget buys at $45/m²). "Hot" = over the precinct median (city median left the cool CBD with almost nothing to fund, so budget >$2M changed nothing). Results replace the KPI grid + levers while optimized; Reset brings them back. Ref points moved to airport stations (SYD, MEL, LHR, NAN). Residents = 450/school + 80/aged care within 200 m of a funded roof + 65+ share of nearby buildings.
+  - Left: scenario panel overflows ~170 px at a 911 px-tall window (base scenario already did); fine at 1080p+. Popup "vs avg" is city median, list "+°C" is precinct median.
   - Pitch chain (one beat per competitor): hazard (FortyGuard) → which roofs (Satellite Vu) → budgeted what-if with
     equity (UrbanFootprint) → bankable brief (ClimateView, item 7b). User = council officer with $2M to justify.
   - Headline delta reworded as "vs airport station" (hyperlocal-vs-airport framing).

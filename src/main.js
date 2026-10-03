@@ -9,19 +9,19 @@ maplibregl.setWorkerUrl(workerUrl);
 // Everything location-specific lives here. Buildings: data/buildings-<key>.geojson (scripts/fetch-buildings.mjs);
 // precincts and POIs carry a `city` key. `box`: [W, S, E, N] of the baked buildings. `surf`: typical summer roof °C for cities outside the Landsat scene.
 const CITIES = [
-  { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.205, -33.8607], refName: 'coastal Sydney',
+  { key: 'parramatta', place: 'Sydney, New South Wales, Australia', box: [150.955, -33.850, 151.045, -33.785], name: 'Parramatta', region: 'Sydney', center: [151.003, -33.815], ref: [151.177, -33.946], refName: 'Sydney Airport station',
     ghi: 1790, plumes: [{ at: [151.026, -33.817], name: 'Camellia industrial' }, { at: [151.0418, -33.827], name: 'Clyde fuel terminal' }],
     tree_cover_pct: 12, age65_pct: 18, population: 64700 },
-  { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.84, -37.96], refName: 'Port Phillip Bay',
+  { key: 'melbourne', place: 'Victoria, Australia', box: [144.930, -37.833, 144.977, -37.791], name: 'Melbourne CBD', region: 'Melbourne', center: [144.962, -37.815], ref: [144.843, -37.669], refName: 'Melbourne Airport station',
     ghi: 1600, surf: 41, plumes: [{ at: [144.928, -37.824], name: 'Port of Melbourne' }, { at: [144.925, -37.806], name: 'Dynon rail freight terminals' }],
     tree_cover_pct: 12, age65_pct: 8, population: 111900 },
-  { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [0.3, 51.25], refName: 'rural Kent',
+  { key: 'london', place: 'England, United Kingdom', box: [-0.131, 51.500, -0.069, 51.530], name: 'Central London', region: 'London', center: [-0.098, 51.512], ref: [-0.454, 51.470], refName: 'Heathrow station',
     ghi: 1000, surf: 33, plumes: [{ at: [-0.075, 51.4985], name: 'Tower Bridge Rd traffic' }, { at: [-0.0798, 51.4915], name: 'Mandela Way industrial area' }],
     tree_cover_pct: 14, age65_pct: 11, population: 53100 },
-  { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.29, -33.83], refName: 'Sydney Heads',
+  { key: 'sydney', place: 'New South Wales, Australia', box: [151.196, -33.893, 151.220, -33.852], name: 'Sydney CBD', region: 'Sydney', center: [151.207, -33.869], ref: [151.177, -33.946], refName: 'Sydney Airport station',
     ghi: 1800, plumes: [{ at: [151.181, -33.866], name: 'Rozelle Interchange stacks' }, { at: [151.2100, -33.8582], name: 'Overseas Passenger Terminal (cruise ships)' }],
     tree_cover_pct: 15, age65_pct: 10, population: 46000 },
-  { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.45, -18.25], refName: 'open ocean',
+  { key: 'suva', place: 'Central Division, Fiji', box: [178.417, -18.158, 178.455, -18.124], name: 'Suva', region: 'Fiji', center: [178.429, -18.139], ref: [178.559, -18.043], refName: 'Nausori Airport station',
     ghi: 1950, surf: 39, plumes: [{ at: [178.4325, -18.1285], name: 'Walu Bay industrial' }],
     tree_cover_pct: 20, age65_pct: 6, population: 93900 },
 ];
@@ -143,7 +143,7 @@ function goCity(c, at, name) {
   // then dive in flat and tilt up on landing. A pitched flight loads masses of horizon tiles and stutters.
   loadSeq++;
   buildings = [];
-  for (const s of ['bld', 'trees', 'precincts']) map.getSource(s)?.setData(EMPTY);
+  for (const s of ['bld', 'trees', 'precincts', 'picks']) map.getSource(s)?.setData(EMPTY);
   markers.forEach((m) => m.remove());
   plumeMarkers.forEach((m) => m.remove());
   liveTemp();
@@ -287,6 +287,11 @@ async function addHeatLayers() {
       'fill-extrusion-opacity': 1,
     },
   });
+  // Optimizer picks: a pulsing teal cap above each funded roof (above the solar cap so they never z-fight).
+  map.addSource('picks', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'picks', type: 'fill-extrusion', source: 'picks', minzoom: 12, paint: {
+    'fill-extrusion-color': '#2dd4bf', 'fill-extrusion-base': ['+', ['get', 'height'], 0.8], 'fill-extrusion-height': ['+', ['get', 'height'], 4],
+  } });
   map.addSource('trees', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'trees', type: 'fill-extrusion', source: 'trees', minzoom: 12.5, layout: vis('trees'), paint: {
     'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'g'], 0, '#84cc16', 1, '#15803d'],
@@ -620,7 +625,7 @@ function renderPanel() {
   if (!live) return;
   const t = live.t + (p.offset || 0), d = t - live.ref;
   $('temp').textContent = `${t.toFixed(1)}°C`;
-  $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} ${CITY.refName}`;
+  $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.refName}`;
   $('delta').classList.toggle('cool', d < 0);
 }
 
@@ -651,8 +656,11 @@ function layerRow(k, p) {
 
 // ---- Scenario simulator: levers cool the selected precinct's buildings; KPIs count up ----
 // Headline numbers are for 50% coverage with all levers on; scale linearly with coverage.
+// Coverage = share of the precinct's roof area the budget buys at a flat cool-roof price.
 const ZERO = { cool: 0, t: 0, ac: 0, mwh: 0, usd: 0 };
-let cur = { ...ZERO }, ids = [], anim = 0;
+const COST = 45; // $/m² cool-roof coating, installed
+let cur = { ...ZERO }, ids = [], anim = 0, scnB = [], picks = null, pulse = 0;
+const budget = () => $('s-bud').value * 1e6;
 
 function inside([x, y], ring) {
   let c = false;
@@ -668,10 +676,11 @@ const ringOf = (name) => precincts.find((p) => p.properties.name === name).geome
 const within = (ring) => buildings.filter((f) => f.geometry.coordinates[0].some((p) => inside(p, ring)));
 
 function target() {
-  const k = $('s-cov').value / 50, roofs = +$('s-roofs').checked, trees = +$('s-trees').checked, solar = +$('s-solar').checked;
+  const area = scnB.reduce((a, f) => a + f.properties.area, 0);
+  const k = Math.min(100, (100 * budget()) / (COST * area || 1)) / 50, roofs = +$('s-roofs').checked, trees = +$('s-trees').checked, solar = +$('s-solar').checked;
   const ac = 18 * k * (roofs + trees) / 2, mwh = 320 * k * solar;
   return {
-    cool: Math.min(1, k) * (0.45 * roofs + 0.45 * trees + 0.1 * solar),
+    cool: (picks ? 1 : Math.min(1, k)) * (0.45 * roofs + 0.45 * trees + 0.1 * solar),
     t: 4.2 * k * (0.45 * roofs + 0.55 * trees), ac, mwh,
     usd: 48000 * (0.6 * ac / 18 + 0.4 * mwh / 320),
   };
@@ -701,7 +710,8 @@ function openScenario() {
   if (!buildings.length || !precincts.length) return;
   if (!selected) return select(precincts[0].properties.name), openScenario();
   if (!on.has('heat')) toggleLayer('heat', true);
-  ids = within(ringOf(selected.name)).map((f) => f.id);
+  scnB = within(ringOf(selected.name));
+  ids = scnB.map((f) => f.id);
   $('s-where').textContent = selected.name;
   document.body.classList.add('scenario');
   draw({ ...ZERO });
@@ -711,17 +721,92 @@ function openScenario() {
 function closeScenario() {
   cancelAnimationFrame(anim);
   draw({ ...ZERO });
-  ids = [];
+  ids = []; scnB = [];
+  clearPicks();
   document.body.classList.remove('scenario');
 }
 
+// ---- Budget optimizer: which roofs get the money ----
+// Score = roof °C over the precinct median × roof area / (distance to nearest school or aged care + 100 m).
+// Greedy fill in score order at COST $/m² until the budget runs out. "× per $" compares against spending
+// the same budget evenly over every roof in the precinct (uniform rollout), on the same score.
+function optimize() {
+  if (!scnB.length) return;
+  const kx = Math.cos((CITY.center[1] * Math.PI) / 180) * 111320, ky = 110540;
+  const dist = ([x, y], [u, v]) => Math.hypot((x - u) * kx, (y - v) * ky);
+  // Hot = over the precinct's own median, so the budget always has roofs to bind on (a cool CBD would have few over the city's).
+  const ts = scnB.map((f) => f.properties.lst).filter((t) => t != null).sort((a, b) => a - b), med = ts[ts.length >> 1] ?? lstMed;
+  const cand = scnB.map((f) => {
+    const c = mid(f.geometry.coordinates[0]);
+    let d = 500, near = null;
+    for (const p of pois) { const e = dist(c, p.geometry.coordinates); if (!near || e < d) d = e, near = p.properties.name; }
+    const ex = Math.max(0, (f.properties.lst ?? med) - med), cost = f.properties.area * COST;
+    return { f, c, d, near, ex, cost, s: (ex * f.properties.area) / (d + 100) };
+  }).sort((a, b) => b.s - a.s);
+  let left = budget();
+  const chosen = [];
+  for (const c of cand) if (c.s > 0 && c.cost <= left) chosen.push(c), left -= c.cost;
+  const sum = (l, k) => l.reduce((a, c) => a + c[k], 0);
+  const x = (sum(chosen, 's') / (budget() - left || 1)) / (sum(cand, 's') / (sum(cand, 'cost') || 1));
+
+  // Vulnerable residents: pupils and aged-care residents at facilities within 200 m of a funded roof,
+  // plus the precinct's 65+ residents in proportion to its buildings within 200 m of one.
+  const close = (pt) => chosen.some((c) => dist(c.c, pt) < 200);
+  const fac = pois.filter((p) => close(p.geometry.coordinates)).reduce((a, p) => a + (p.properties.type === 'school' ? 450 : 80), 0);
+  const share = cand.filter((c) => close(c.c)).length / (cand.length || 1);
+  const res = fac + Math.round(selected.population * (selected.age65_pct / 100) * share);
+
+  for (const f of scnB) map.setFeatureState({ source: 'bld', id: f.id }, { cool: 0 });
+  const again = !!picks;
+  picks = chosen;
+  ids = chosen.map((c) => c.f.id);
+  map.getSource('picks').setData({ type: 'FeatureCollection', features: chosen.map((c) => c.f) });
+  document.body.classList.add('optimized');
+  $('o-x').textContent = `${x.toFixed(1)}×`;
+  $('o-res').textContent = res.toLocaleString();
+  $('o-top').innerHTML = chosen.slice(0, 5).map((c, i) =>
+    `<li data-i="${i}"><div><b>${c.near ? `Near ${esc(c.near)}` : 'Roof'}</b>` +
+    `<span>+${c.ex.toFixed(1)}°C · ${Math.round(c.d)} m</span></div>` +
+    `<em>$${Math.round(c.cost / 1000)}k</em></li>`).join('');
+  cancelAnimationFrame(pulse);
+  const beat = (now) => {
+    map.setPaintProperty('picks', 'fill-extrusion-color', `hsl(173, 80%, ${45 + 25 * (0.5 + 0.5 * Math.sin(now / 250))}%)`);
+    pulse = requestAnimationFrame(beat);
+  };
+  pulse = requestAnimationFrame(beat);
+  // First run: funded roofs fade to cool. Budget drags re-run it: keep them cool, no flicker.
+  if (!again) cur = { ...cur, cool: 0 };
+  animateTo(target(), again ? 300 : 1500);
+}
+
+function clearPicks() {
+  cancelAnimationFrame(pulse);
+  picks = null;
+  map.getSource('picks')?.setData(EMPTY);
+  document.body.classList.remove('optimized');
+}
+
+$('o-top').onclick = (e) => {
+  const c = picks?.[e.target.closest('li')?.dataset.i];
+  if (!c) return;
+  map.flyTo({ center: c.c, zoom: 17.5, pitch: 60, duration: 1400 });
+  map.once('moveend', () => buildingPopup({ features: [{ id: c.f.id }], lngLat: { lng: c.c[0], lat: c.c[1] } }));
+};
+
 document.querySelector('.panel > .cta').onclick = openScenario;
 $('s-back').onclick = closeScenario;
-$('s-reset').onclick = () => animateTo({ ...ZERO });
+$('s-reset').onclick = () => {
+  for (const id of ids) map.setFeatureState({ source: 'bld', id }, { cool: 0 });
+  clearPicks();
+  ids = scnB.map((f) => f.id);
+  cur = { ...cur, cool: 0 };
+  animateTo({ ...ZERO });
+};
+$('s-opt').onclick = optimize;
 $('s-export').onclick = () => window.print();
 document.querySelector('.scn').oninput = () => {
-  $('s-cov-v').textContent = `${$('s-cov').value}%`;
-  animateTo(target(), 300);
+  $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
+  if (picks) optimize(); else animateTo(target(), 300);
 };
 
 // ---- Live air temperature (city vs reference point) + air quality (Open-Meteo / CAMS) ----

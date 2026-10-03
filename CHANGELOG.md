@@ -2,6 +2,8 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Item 7a: budget optimizer in the scenario card ($0.5–5M slider + Optimize): greedy cool-roof fill by heat × area × school/aged-care proximity, funded roofs pulse teal, panel shows cooling-per-$ vs uniform rollout, vulnerable residents protected, top 5 targets (click to fly). Headline delta now vs each city's airport station.
+
 - 2026-10-03 — Repo polish & docs: comprehensive README.md with architecture diagram and data attribution table, MIT License added, .gitignore updated for editor configs, ready for GitHub push.
 - 2026-10-03 — Item 6d: roof row shows % of roofs running hot, solar row the roof count, both from the mapped buildings.
 

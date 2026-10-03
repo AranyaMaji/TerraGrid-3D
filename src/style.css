@@ -188,6 +188,27 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .kpi-v.cool { color: var(--teal); }
 .kpi-l { font-size: 14px; color: var(--muted); }
 .scn .cta { margin-top: 24px; }
+.bud { display: flex; align-items: flex-end; gap: 14px; }
+.bud .cov { flex: 1; }
+.opt-btn { height: 38px; padding: 0 16px; border-radius: 8px; border: 1.5px solid var(--teal); color: var(--teal); font-size: 15px; font-weight: 600; }
+.opt-btn:hover, .optimized .opt-btn { background: var(--teal); color: #fff; }
+/* optimizer results replace the KPI grid; KPIs come back on Reset */
+.opt { display: none; }
+.optimized .opt { display: block; }
+.optimized .kpis, .optimized .levers { display: none; }
+.optimized .bud { margin-top: 14px; }
+.opt-m { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin-top: 18px; }
+.targets { list-style: none; margin-top: 14px; padding: 0; display: grid; gap: 4px; counter-reset: t; }
+.targets li { min-width: 0; counter-increment: t; display: flex; align-items: center; gap: 10px; padding: 3px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.targets li::before { content: counter(t); width: 20px; height: 20px; flex: none; border-radius: 50%; background: var(--teal); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.targets li:hover { background: #e7f5f4; }
+.targets li > div { flex: 1; min-width: 0; }
+.targets li > div { display: flex; align-items: baseline; gap: 8px; }
+.targets span { white-space: nowrap; }
+.opt .kpi-v { font-size: 32px; }
+.targets b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.targets span { font-size: 12px; color: var(--muted); }
+.targets em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ghost.sm { margin-left: auto; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--muted); }
 .ghost.sm:hover { color: var(--ink); }
 
