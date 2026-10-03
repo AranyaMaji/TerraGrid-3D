@@ -195,15 +195,15 @@ let precincts = [], selected = null, label = null, live = null, buildings = [], 
 function pin(cls, text, icon = '', more = '') {
   const el = document.createElement('div');
   el.className = `pin ${cls}`;
-  el.innerHTML = `<div class="pin-body">${icon}<span>${text}${more && `<span class="pin-more">${more}</span>`}</span></div><div class="pin-stem"></div>`;
+  el.innerHTML = `<div class="pin-body">${icon}<span><span class="pin-short">${text}</span>${more && `<span class="pin-more">${more}</span>`}</span></div><div class="pin-stem"></div>`;
   return el;
 }
 
 // Hover detail: facility type + street, and the Landsat surface temp at the site vs the local building average.
-function poiMore({ kind, street }, [lon, lat]) {
+function poiMore({ name, kind, street }, [lon, lat]) {
   const t = lstAt(lon, lat), d = t - lstMed;
   const heat = t == null ? '' : `<b class="${d > 0 ? 'hot' : 'cool'}">${t.toFixed(1)}°C surface · ${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs avg</b>`;
-  return `${kind} · ${street}${heat}`;
+  return `<span class="pin-name">${name}</span>${kind} · ${street}${heat}`;
 }
 
 async function addPrecincts() {
@@ -219,7 +219,7 @@ async function addPrecincts() {
   map.on('mouseenter', 'precinct-fill', () => (map.getCanvas().style.cursor = 'pointer'));
   map.on('mouseleave', 'precinct-fill', () => (map.getCanvas().style.cursor = ''));
   for (const f of pois.features)
-    new maplibregl.Marker({ element: pin('poi', f.properties.name, ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
+    new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
 }
 
 function select(name) {

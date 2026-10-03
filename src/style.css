@@ -142,6 +142,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .pin-more b.cool { color: var(--teal); }
 .pin.poi:hover .pin-body { border-radius: 16px; padding-right: 14px; }
 .pin.poi:hover .pin-more { display: block; }
+.pin.poi:hover .pin-short { display: none; }
+.pin-name { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
 .pin.poi:hover { z-index: 5; }
 
 /* scenario card: replaces the stat tiles while open */
