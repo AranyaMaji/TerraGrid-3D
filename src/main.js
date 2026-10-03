@@ -172,6 +172,7 @@ async function addHeatLayers() {
   });
   gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
   buildings = gj.features;
+  lstAt = sample; lstMed = med;
   addPrecincts();
 }
 
@@ -189,13 +190,20 @@ const ICON = {
   school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',
 };
-let precincts = [], selected = null, label = null, live = null, buildings = [];
+let precincts = [], selected = null, label = null, live = null, buildings = [], lstAt = () => null, lstMed = 0;
 
-function pin(cls, text, icon = '') {
+function pin(cls, text, icon = '', more = '') {
   const el = document.createElement('div');
   el.className = `pin ${cls}`;
-  el.innerHTML = `<div class="pin-body">${icon}<span>${text}</span></div><div class="pin-stem"></div>`;
+  el.innerHTML = `<div class="pin-body">${icon}<span>${text}${more && `<span class="pin-more">${more}</span>`}</span></div><div class="pin-stem"></div>`;
   return el;
+}
+
+// Hover detail: facility type + street, and the Landsat surface temp at the site vs the local building average.
+function poiMore({ kind, street }, [lon, lat]) {
+  const t = lstAt(lon, lat), d = t - lstMed;
+  const heat = t == null ? '' : `<b class="${d > 0 ? 'hot' : 'cool'}">${t.toFixed(1)}°C surface · ${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs avg</b>`;
+  return `${kind} · ${street}${heat}`;
 }
 
 async function addPrecincts() {
@@ -211,7 +219,7 @@ async function addPrecincts() {
   map.on('mouseenter', 'precinct-fill', () => (map.getCanvas().style.cursor = 'pointer'));
   map.on('mouseleave', 'precinct-fill', () => (map.getCanvas().style.cursor = ''));
   for (const f of pois.features)
-    new maplibregl.Marker({ element: pin('poi', f.properties.name, ICON[f.properties.type]), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
+    new maplibregl.Marker({ element: pin('poi', f.properties.name, ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
 }
 
 function select(name) {

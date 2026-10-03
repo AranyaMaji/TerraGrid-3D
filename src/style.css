@@ -135,6 +135,14 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .pin-stem::after { content: ''; position: absolute; left: -4px; bottom: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid #fff; }
 .pin.area .pin-body { background: var(--teal); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 17px; font-weight: 600; }
 .pin.area .pin-stem { height: 28px; }
+.pin.poi .pin-body { pointer-events: auto; cursor: default; }
+.pin-more { display: none; font-size: 12px; font-weight: 400; color: var(--muted); }
+.pin-more b { display: block; font-weight: 600; margin-top: 1px; }
+.pin-more b.hot { color: var(--heat); }
+.pin-more b.cool { color: var(--teal); }
+.pin.poi:hover .pin-body { border-radius: 16px; padding-right: 14px; }
+.pin.poi:hover .pin-more { display: block; }
+.pin.poi:hover { z-index: 5; }
 
 /* scenario card: replaces the stat tiles while open */
 .scn { display: none; }

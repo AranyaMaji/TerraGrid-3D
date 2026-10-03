@@ -64,7 +64,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - "Export council brief (PDF)" button = `window.print()` of the panel (good enough for video).
   - Done when: the magic moment records cleanly in one take.
 
-- [ ] **3b. POI pins show real name + details** (low priority, owner-raised 2026-10-03)
+- [x] **3b. POI pins show real name + details** (low priority, owner-raised 2026-10-03)
+  - Done: 10 real OSM facilities in data/pois.geojson (hand-picked, no tutoring centres or overlapping pairs); hover shows type, street, Landsat surface temp vs avg.
   - Pins currently say just "School" / "Aged care". Show the facility name and a detail or two (e.g. on hover/click).
 
 ## Stretch (priority order)

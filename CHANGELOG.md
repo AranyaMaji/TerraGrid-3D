@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-03 — Item 3b: POI pins are 10 real OSM schools and aged-care homes (Overpass, curl); pins show the name, hover adds type, street and Landsat surface temp vs the local average.
 - 2026-10-03 — Scenario card simulates on open (no Apply button); levers and slider update live; Export brief is the main button, Reset is a small button in the card header.
 - 2026-10-03 — Item 4: scenario simulator. CTA swaps the stat tiles for a card (cool roofs / canopy / solar, coverage slider); Apply eases the precinct's buildings to cyan/green over 1.5 s while KPIs count up; slider updates live; Reset reverses; Export brief = window.print() of the panel.
 - 2026-10-03 — Feat: clickable precincts (teal outline, name pill, camera ease, panel stats), school/aged-care pins, decluttered no-scroll side panel.
