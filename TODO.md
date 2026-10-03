@@ -97,7 +97,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     for the selected precinct, always visible; rows always coloured, not clickable (owner).
   - Tree cover tile (duplicated the canopy row) replaced by Residents (precinct `population`, ~2021 census suburb counts; owner picked it over days >35°C).
 
-- [ ] **5d. Realistic trees and flora** (later, owner-raised 2026-10-03)
+- [x] **5d. Realistic trees and flora** (later, owner-raised 2026-10-03)
+  - Done 2026-10-04 without three.js (owner choice): each tree = trunk + 2–3 stacked crown tiers, species by weight (gum 55%, poplar 20%, fig 25%), per-tree colour; shrub tufts on NDVI 0.25–0.4. Still extrusions, blocky up close.
   - Replace the octagon crowns with real 3D tree models (e.g. a few low-poly glTF species instanced via a
     MapLibre custom layer + three.js, or a model layer if MapLibre gains one). Vary species/size by NDVI; add shrubs/grass
     tufts on low-NDVI green. Needs a new dependency (three.js): ask first.

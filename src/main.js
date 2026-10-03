@@ -294,7 +294,7 @@ async function addHeatLayers() {
   } });
   map.addSource('trees', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'trees', type: 'fill-extrusion', source: 'trees', minzoom: 12.5, layout: vis('trees'), paint: {
-    'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'g'], 0, '#84cc16', 1, '#15803d'],
+    'fill-extrusion-color': ['get', 'c'],
     'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'],
     'fill-extrusion-vertical-gradient': true,
   } });
@@ -464,13 +464,33 @@ function addTrees() {
     for (const f of buildings) for (const [x, y] of f.geometry.coordinates[0]) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
     const L = LANDSAT, sx = (L.e - L.w) / L.px[0], sy = (L.n - L.s) / L.px[1];
     const ky = 1 / 110540, kx = 1 / (111320 * Math.cos((s * Math.PI) / 180)), features = [];
+    const add = (cx, cy, r, b, h, c, sides = 8) => {
+      const a0 = Math.random() * Math.PI;
+      const ring = Array.from({ length: sides + 1 }, (_, i) => { const a = a0 + (i * 2 * Math.PI) / sides; return [cx + Math.cos(a) * r * kx, cy + Math.sin(a) * r * ky]; });
+      features.push({ type: 'Feature', properties: { b, h, c }, geometry: { type: 'Polygon', coordinates: [ring] } });
+    };
+    const pick = (a) => a[(Math.random() * a.length) | 0];
+    // Crown tiers per species, bottom to top: [radius ×r, tier height ×h]. Gum = rounded, poplar = tall narrow, fig = wide flat.
+    const SPECIES = [
+      { w: 0.55, tiers: [[0.75, 0.3], [1, 0.4], [0.6, 0.3]], trunk: 0.4, cols: ['#4d7c0f', '#5f7f1d', '#3f6212', '#65803a'] },
+      { w: 0.2, tiers: [[0.5, 0.35], [0.42, 0.35], [0.25, 0.3]], trunk: 0.2, cols: ['#166534', '#14532d', '#1f6f3a'] },
+      { w: 0.25, tiers: [[1.3, 0.55], [0.95, 0.45]], trunk: 0.45, cols: ['#15803d', '#2f7d32', '#3b7a2a'] },
+    ];
     for (let x = w; x < e; x += sx) for (let y = s; y < n; y += sy) {
       const v = (ndvi(x, y) ?? 0) * 0.8; // NDVI
+      const cx = x + Math.random() * sx, cy = y + Math.random() * sy;
+      if (v >= 0.25 && v < 0.4) { // lightly green: shrub tufts
+        if (Math.random() < 0.25) add(cx, cy, 1 + Math.random(), 0, 0.8 + Math.random(), pick(['#65a30d', '#84cc16', '#6b8e23']), 6);
+        continue;
+      }
       if (v < 0.4 || Math.random() > (v - 0.3) / 0.3) continue;
       const g = Math.min(1, (v - 0.4) / 0.25), r = 3 + 3 * Math.random() + 2 * g, h = 7 + 3 * Math.random() + 10 * g * Math.random();
-      const cx = x + Math.random() * sx, cy = y + Math.random() * sy;
-      const ring = Array.from({ length: 9 }, (_, i) => [cx + Math.cos((i * Math.PI) / 4) * r * kx, cy + Math.sin((i * Math.PI) / 4) * r * ky]);
-      features.push({ type: 'Feature', properties: { h, b: h * 0.35, g }, geometry: { type: 'Polygon', coordinates: [ring] } });
+      let u = Math.random(), sp = SPECIES[0];
+      for (const q of SPECIES) if ((u -= q.w) < 0) { sp = q; break; }
+      const hs = sp === SPECIES[1] ? h * 1.4 : sp === SPECIES[2] ? h * 0.8 : h, c = pick(sp.cols);
+      let z = hs * sp.trunk;
+      add(cx, cy, 0.35 + 0.15 * g, 0, z + 0.5, '#5b4636', 6);
+      for (const [kr, kh] of sp.tiers) { const t = (hs - hs * sp.trunk) * kh; add(cx, cy, r * kr, z, z + t, c); z += t; }
     }
     map.getSource('trees').setData({ type: 'FeatureCollection', features });
   });
