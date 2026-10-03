@@ -1,0 +1,6 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"name":"Parramatta CBD","tree_cover_pct":9,"age65_pct":11,"schools":3,"aged_care":2,"offset":1.4},"geometry":{"type":"Polygon","coordinates":[[[150.9985,-33.8118],[151.0060,-33.8112],[151.0128,-33.8125],[151.0122,-33.8172],[151.0050,-33.8182],[150.9990,-33.8170],[150.9985,-33.8118]]]}},
+{"type":"Feature","properties":{"name":"Harris Park","tree_cover_pct":14,"age65_pct":13,"schools":2,"aged_care":3,"offset":0.9},"geometry":{"type":"Polygon","coordinates":[[[151.0055,-33.8190],[151.0130,-33.8178],[151.0165,-33.8225],[151.0120,-33.8275],[151.0050,-33.8262],[151.0055,-33.8190]]]}},
+{"type":"Feature","properties":{"name":"Westmead","tree_cover_pct":18,"age65_pct":15,"schools":2,"aged_care":4,"offset":0.4},"geometry":{"type":"Polygon","coordinates":[[[150.9800,-33.8030],[150.9905,-33.8010],[150.9945,-33.8075],[150.9920,-33.8125],[150.9815,-33.8118],[150.9800,-33.8030]]]}},
+{"type":"Feature","properties":{"name":"North Parramatta","tree_cover_pct":24,"age65_pct":19,"schools":3,"aged_care":5,"offset":-0.3},"geometry":{"type":"Polygon","coordinates":[[[150.9995,-33.7985],[151.0085,-33.7975],[151.0115,-33.8040],[151.0090,-33.8098],[151.0000,-33.8100],[150.9995,-33.7985]]]}}
+]}

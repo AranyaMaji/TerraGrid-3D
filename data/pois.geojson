@@ -1,0 +1,10 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"type":"school","name":"School"},"geometry":{"type":"Point","coordinates":[151.0035,-33.8160]}},
+{"type":"Feature","properties":{"type":"aged","name":"Aged care"},"geometry":{"type":"Point","coordinates":[151.0095,-33.8140]}},
+{"type":"Feature","properties":{"type":"school","name":"School"},"geometry":{"type":"Point","coordinates":[151.0100,-33.8230]}},
+{"type":"Feature","properties":{"type":"aged","name":"Aged care"},"geometry":{"type":"Point","coordinates":[151.0070,-33.8248]}},
+{"type":"Feature","properties":{"type":"school","name":"School"},"geometry":{"type":"Point","coordinates":[150.9850,-33.8060]}},
+{"type":"Feature","properties":{"type":"aged","name":"Aged care"},"geometry":{"type":"Point","coordinates":[150.9900,-33.8095]}},
+{"type":"Feature","properties":{"type":"school","name":"School"},"geometry":{"type":"Point","coordinates":[151.0050,-33.8040]}},
+{"type":"Feature","properties":{"type":"aged","name":"Aged care"},"geometry":{"type":"Point","coordinates":[151.0020,-33.8015]}}
+]}

@@ -72,11 +72,6 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .ramp { width: 200px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #2b3a67, #f5c542 50%, #e5484d); }
 .ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
 
-.note {
-  position: absolute; right: 60px; bottom: 30px; z-index: 2;
-  font-size: 13px; color: #334155; background: rgba(255, 255, 255, 0.85);
-  padding: 6px 10px; border-radius: 6px;
-}
 
 /* maplibre controls in the light theme */
 .maplibregl-ctrl-group { border-radius: 8px !important; box-shadow: var(--shadow) !important; }
@@ -91,7 +86,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .crumbs { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; }
 .crumbs .close { margin-left: auto; }
 .crumbs .close svg { width: 22px; height: 22px; }
-.panel h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin: 18px 0 2px; }
+.panel h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin: 14px 0 26px; }
 .sub { font-size: 18px; color: #475569; }
 .ptabs { display: flex; border-bottom: 1px solid var(--border); margin: 22px 0 32px; }
 .ptabs button { padding: 10px 24px; font-size: 17px; color: #475569; border-bottom: 3px solid transparent; margin-bottom: -1px; }
@@ -102,18 +97,18 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .muted { color: var(--muted); font-size: 17px; margin-top: 10px; }
 .muted.sm, .sm { font-size: 14px; margin-top: 0; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
-.stats { display: grid; grid-template-columns: 1fr 1fr; }
-.stat + .stat { border-left: 1px solid var(--border); padding-left: 36px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 28px; border-top: 1px solid var(--border); margin-top: 26px; padding-top: 24px; }
+.stat:nth-child(even) { border-left: 1px solid var(--border); padding-left: 28px; }
 .stat-h { display: flex; align-items: center; gap: 14px; font-size: 16px; font-weight: 500; }
 .stat-h svg { width: 28px; height: 28px; color: var(--teal); }
-.stat:last-child .stat-h svg { color: var(--ink); }
-.stat-v { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; margin-top: 14px; }
+.stat:nth-child(n+2) .stat-h svg { color: var(--ink); }
+.stat-v { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
 .stat-u { color: var(--muted); font-size: 17px; }
 .period { display: flex; gap: 22px; }
 .period > svg { width: 26px; height: 26px; }
 .strong { font-weight: 600; font-size: 18px; margin: 6px 0 4px; }
 .cta {
-  width: 100%; height: 56px; margin-top: 36px; border-radius: 8px;
+  width: 100%; height: 56px; margin-top: 30px; border-radius: 8px;
   background: var(--teal); color: #fff; font-size: 19px; font-weight: 500;
   display: flex; align-items: center; justify-content: center; gap: 14px;
   box-shadow: 0 4px 12px rgba(15, 139, 133, 0.3);
@@ -126,3 +121,17 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .live { margin-top: 6px; }
 .live::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #34d399; margin-right: 6px; vertical-align: 1px; }
 .legend-src { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* map pins (POIs + selected precinct label) */
+.pin { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.far .pin { display: none; }
+.pin-body {
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  background: #fff; color: var(--ink); border-radius: 999px; padding: 4px 12px 4px 4px;
+  font-size: 13px; font-weight: 500; box-shadow: var(--shadow);
+}
+.pin-body svg { width: 28px; height: 28px; padding: 6px; border-radius: 50%; background: var(--ink); color: #fff; stroke-width: 2; }
+.pin-stem { position: relative; width: 2px; height: 20px; background: var(--teal); }
+.pin-stem::after { content: ''; position: absolute; left: -4px; bottom: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid #fff; }
+.pin.area .pin-body { background: var(--teal); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 17px; font-weight: 600; }
+.pin.area .pin-stem { height: 28px; }

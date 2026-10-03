@@ -46,7 +46,8 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Same problem in 3D: tile buildings are hidden from z14, so outside our 4.4 km OSM box there are NO buildings at street zoom. Either widen the OSM box, or keep tile buildings visible outside it.
   - Done 2026-10-03: buildings on a ±1.5 °C thermal ramp (slate blue → yellow → red, owner-picked) around the building median (45.8 °C); deviation damped by min(1, 20 m / height) so towers sit nearer average (CBD still reads cool: it is, by the river). Landsat re-baked over Greater Sydney (2 scenes mosaicked, 12% edge feather) by `scripts/fetch-landsat.py`. OSM box widened to ~8×7 km (8,078 buildings); MapLibre `within` ignores polygon features so tile buildings could not be masked by area.
 
-- [ ] **3. Precinct selection + side panel + POI pins** (~40 min)
+- [x] **3. Precinct selection + side panel + POI pins** (~40 min)
+  - Note: owner trimmed the panel 2026-10-03: no subtext, no Sources tab, no observation period, no data-date toast; 2×2 tiles (tree, 65+, schools, aged care), fits without scrolling.
   - `data/precincts.geojson`: 3–4 hand-drawn polygons in Parramatta (e.g. CBD, Harris Park, Westmead, North Parramatta)
     with props: name, tree_cover_pct, age65_pct, schools, aged_care (illustrative, plausible).
   - Click a precinct → teal outline + label pill (design), camera eases to it, side panel fills: name, headline temp
@@ -61,6 +62,9 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
     (scale by coverage %). Reset button reverses.
   - "Export council brief (PDF)" button = `window.print()` of the panel (good enough for video).
   - Done when: the magic moment records cleanly in one take.
+
+- [ ] **3b. POI pins show real name + details** (low priority, owner-raised 2026-10-03)
+  - Pins currently say just "School" / "Aged care". Show the facility name and a detail or two (e.g. on hover/click).
 
 ## Stretch (priority order)
 

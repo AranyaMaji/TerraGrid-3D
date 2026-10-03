@@ -79,6 +79,7 @@ function flyIn() {
 function restartIntro() {
   flown = true; // demo replays manually, no auto timer
   map.stop();
+  select(null);
   map.jumpTo({ center: OCEANIA, zoom: 1.6, pitch: 0, bearing: 0 });
   spinning = true;
   spin();
@@ -167,7 +168,7 @@ async function addHeatLayers() {
     },
   });
   gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
-  document.getElementById('lst-date').textContent = `Landsat 8 · 9 Jan 2026`;
+  addPrecincts();
 }
 
 document.getElementById('layer').onchange = (e) => {
@@ -177,20 +178,80 @@ document.getElementById('layer').onchange = (e) => {
   document.querySelector('.legend').style.visibility = on ? 'visible' : 'hidden';
 };
 
+// ---- Precincts + POI pins (stats in data/ are illustrative) ----
+const $ = (id) => document.getElementById(id);
+const CITY = { name: 'Parramatta', tree_cover_pct: 12, age65_pct: 18, schools: 11, aged_care: 14, offset: 0 };
+const ICON = {
+  school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
+  aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',
+};
+let precincts = [], selected = null, label = null, live = null;
+
+function pin(cls, text, icon = '') {
+  const el = document.createElement('div');
+  el.className = `pin ${cls}`;
+  el.innerHTML = `<div class="pin-body">${icon}<span>${text}</span></div><div class="pin-stem"></div>`;
+  return el;
+}
+
+async function addPrecincts() {
+  const [pre, pois] = await Promise.all(['precincts', 'pois'].map((n) => fetch(`/data/${n}.geojson`).then((r) => r.json())));
+  precincts = pre.features;
+  const sel = ['boolean', ['feature-state', 'sel'], false];
+  map.addSource('precincts', { type: 'geojson', data: pre, promoteId: 'name' });
+  map.addLayer({ id: 'precinct-fill', type: 'fill', source: 'precincts', paint: { 'fill-color': '#0f8b85', 'fill-opacity': ['case', sel, 0.3, 0.06] } }, 'bld-heat');
+  // Outline drawn over the buildings so it reads in 3D, like the design.
+  map.addLayer({ id: 'precinct-line', type: 'line', source: 'precincts', layout: { 'line-join': 'round' },
+    paint: { 'line-color': ['case', sel, '#0f8b85', '#94a3b8'], 'line-width': ['case', sel, 4, 1.2], 'line-opacity': ['case', sel, 1, 0.6] } });
+  map.on('click', 'precinct-fill', (e) => select(e.features[0].properties.name));
+  map.on('mouseenter', 'precinct-fill', () => (map.getCanvas().style.cursor = 'pointer'));
+  map.on('mouseleave', 'precinct-fill', () => (map.getCanvas().style.cursor = ''));
+  for (const f of pois.features)
+    new maplibregl.Marker({ element: pin('poi', f.properties.name, ICON[f.properties.type]), anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
+}
+
+function select(name) {
+  if (selected) map.setFeatureState({ source: 'precincts', id: selected.name }, { sel: false });
+  label?.remove();
+  const f = precincts.find((p) => p.properties.name === name);
+  selected = f?.properties ?? null;
+  if (f) {
+    map.setFeatureState({ source: 'precincts', id: name }, { sel: true });
+    const ring = f.geometry.coordinates[0], xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1]);
+    const b = [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
+    label = new maplibregl.Marker({ element: pin('area', name), anchor: 'bottom' })
+      .setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
+    map.fitBounds(b, { padding: 140, pitch: 55, bearing: -20, maxZoom: 16.5, duration: 1600 });
+  }
+  renderPanel();
+}
+$('p-close').onclick = () => select(null);
+map.on('zoom', () => document.body.classList.toggle('far', map.getZoom() < 13.5));
+document.body.classList.add('far');
+
+function renderPanel() {
+  const p = selected ?? CITY;
+  $('p-name').textContent = p.name;
+  $('p-schools').textContent = p.schools;
+  $('p-aged').textContent = p.aged_care;
+  $('p-tree').textContent = `${p.tree_cover_pct}%`;
+  $('p-age').textContent = `${p.age65_pct}%`;
+  if (!live) return;
+  const t = live.t + p.offset, d = t - live.ref;
+  $('temp').textContent = `${t.toFixed(1)}°C`;
+  $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} coastal Sydney`;
+  $('delta').classList.toggle('cool', d < 0);
+}
+
 // ---- Live air temperature: Parramatta vs coastal Sydney CBD (Open-Meteo, one call) ----
 async function liveTemp() {
   const url = 'https://api.open-meteo.com/v1/forecast?latitude=-33.815,-33.8607&longitude=151.003,151.2050&current=temperature_2m,apparent_temperature&timezone=auto';
   try {
     const [par, cbd] = await (await fetch(url)).json();
-    const t = par.current.temperature_2m, ref = cbd.current.temperature_2m, d = t - ref;
-    const $ = (id) => document.getElementById(id);
-    $('temp').textContent = `${t.toFixed(1)}°C`;
-    $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C ${d >= 0 ? 'above' : 'below'} coastal reference`;
-    $('delta').classList.toggle('cool', d < 0);
-    $('ref').textContent = `Feels like ${par.current.apparent_temperature.toFixed(1)}°C · Sydney CBD (coast) ${ref.toFixed(1)}°C`;
-    $('stamp').textContent = `Open-Meteo · live · ${par.current.time.slice(11)} local`;
+    live = { t: par.current.temperature_2m, feels: par.current.apparent_temperature, ref: cbd.current.temperature_2m, time: par.current.time.slice(11) };
+    renderPanel();
   } catch {
-    document.getElementById('stamp').textContent = 'Open-Meteo unavailable';
+    $('delta').textContent = 'Live data unavailable';
   }
 }
 liveTemp();
