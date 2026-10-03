@@ -127,8 +127,9 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
 
 - [ ] **6d. Sidebar follows the map** (owner-raised 2026-10-03: "sidebar is dumb about what's on the map")
   - Active layers' rows highlighted/expanded, inactive ones dimmed; legend and rows agree.
-  - [ ] Click a building → small aesthetic popup: name, else address (bake OSM `name` / `addr:*` into the building
+  - [x] Click a building → small aesthetic popup: name, else address (bake OSM `name` / `addr:*` into the building
     files; fall back to Nominatim reverse on click), coords, plus height, roof °C vs avg, solar MWh. (owner-raised)
+    Done: Nominatim reverse at click time (no re-bake); name kept only for buildings/venues, else street address.
   - Precinct stats derived from the map where possible (buildings count, hottest roofs share, solar) instead of static props.
 
 - [ ] **7. AI: "Ask the twin"** (~30 min)

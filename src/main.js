@@ -486,8 +486,32 @@ function addPrecinctLayers() {
   map.addLayer({ id: 'precinct-line', type: 'line', source: 'precincts', layout: { 'line-join': 'round' },
     paint: { 'line-color': ['case', sel, '#0f8b85', '#94a3b8'], 'line-width': ['case', sel, 4, 1.2], 'line-opacity': ['case', sel, 1, 0.6] } });
   map.on('click', 'precinct-fill', (e) => select(e.features[0].properties.name));
+  map.on('click', 'bld-heat', buildingPopup);
+  map.on('mouseenter', 'bld-heat', () => (map.getCanvas().style.cursor = 'pointer'));
   map.on('mouseenter', 'precinct-fill', () => (map.getCanvas().style.cursor = 'pointer'));
   map.on('mouseleave', 'precinct-fill', () => (map.getCanvas().style.cursor = ''));
+}
+
+// Click a building: name or street address (Nominatim reverse, filled in when it answers), coords, roof heat, solar.
+const popup = new maplibregl.Popup({ className: 'bpop', closeButton: false, maxWidth: '280px', offset: 12 });
+function buildingPopup(e) {
+  const f = buildings.find((b) => b.id === e.features[0].id);
+  if (!f) return;
+  const { lng, lat } = e.lngLat, p = f.properties, d = p.lst - lstMed;
+  const heat = p.lst == null ? '<b>--</b>' : `<b class="${d > 0 ? 'hot' : 'cool'}">${p.lst.toFixed(1)}°C</b><i>${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs avg</i>`;
+  popup.setLngLat(e.lngLat).setHTML(`<div class="bp-name">Building</div><div class="bp-addr">&nbsp;</div>` +
+    `<div class="bp-grid"><div><span>Roof</span>${heat}</div><div><span>Height</span><b>${Math.round(p.height)} m</b></div>` +
+    `<div><span>Solar</span><b>${Math.round(p.mwh)}</b><i>MWh/yr</i></div></div>` +
+    `<div class="bp-xy">${Math.abs(lat).toFixed(5)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lng).toFixed(5)}° ${lng < 0 ? 'W' : 'E'}</div>`).addTo(map);
+  const el = popup.getElement();
+  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=${lat}&lon=${lng}`).then((r) => r.json()).then((j) => {
+    if (popup.getElement() !== el) return;
+    // Reverse geocoding returns the nearest named object; keep its name only if it's a building or venue, not a sign or bench.
+    if (!/^(building|amenity|tourism|office|shop|leisure|historic)$/.test(j.class)) j.name = '';
+    const a = j.address ?? {}, street = [a.house_number, a.road].filter(Boolean).join(' ');
+    el.querySelector('.bp-name').textContent = j.name || street || 'Building';
+    el.querySelector('.bp-addr').textContent = [j.name ? street : '', a.suburb || a.city_district || a.city].filter(Boolean).join(', ');
+  }).catch(() => {});
 }
 
 function select(name) {
