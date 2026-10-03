@@ -2,6 +2,8 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 7c: cool roof program. Public | Council toggle; council sends coded offer letters to the optimizer's funded roofs, owners apply from the public map with the code or a rates number, stages (Offered → Verified) show as roof caps and a pipeline card.
+
 - 2026-10-04 — Trees in every city: OSM mapped trees + park/wood scatter (`scripts/fetch-green.mjs`, `data/green-*.geojson`); Sydney CBD no longer uses its cloudy NDVI, so no trees in the harbour.
 
 - 2026-10-04 — Item 5d: trees get trunks and tiered crowns in three species shapes (round gum, tall narrow, wide spreading) with varied greens, plus shrub tufts on lightly vegetated pixels. No new dependency.

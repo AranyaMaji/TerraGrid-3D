@@ -17,6 +17,7 @@
       <button class="tab">Scenarios</button>
     </nav>
     <div class="nav-right">
+      <div class="view" id="view"><button data-v="public">Public</button><button data-v="council" class="on">Council</button></div>
       <button class="pill" id="demo">Demo</button>
       <span class="sep"></span>
       <a class="nav-link" href="#">Data &amp; methods</a>
@@ -50,6 +51,7 @@
       </div>
 
       <div class="legend" id="legend"></div>
+      <div class="prog" id="prog" hidden></div>
 
     </section>
 
@@ -86,6 +88,7 @@
       <button class="cta">Test canopy scenario
         <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
+      <div class="pub-hint"><b>Own a building here?</b> Click it on the map to check your roof's heat and apply for a council-funded cool roof.</div>
 
       <section class="scn">
         <div class="scn-h">
@@ -110,6 +113,7 @@
             <div><div class="kpi-v" id="o-res">--</div><div class="kpi-l">vulnerable residents protected</div></div>
           </div>
           <ol class="targets" id="o-top"></ol>
+          <button class="opt-btn send" id="o-send"></button>
         </div>
         <div class="brief">
           <div class="eyebrow">Council brief</div><div class="b-meta" id="b-meta"></div>
@@ -127,6 +131,25 @@
       </section>
     </aside>
   </main>
+
+  <div class="letter-wrap" id="letter" hidden>
+    <article class="letter">
+      <div class="l-top"><div class="eyebrow">Cool roof program</div><div class="l-date" id="l-date"></div></div>
+      <div class="l-to">To the owner of<b id="l-to"></b></div>
+      <h2>Your roof qualifies for a fully funded cool-roof coating</h2>
+      <p id="l-hot"></p>
+      <p id="l-fund"></p>
+      <div class="l-code">Your code <b id="l-code"></b><span>To accept, open TerraGrid, switch to Public, click your building and enter this code.</span></div>
+      <p class="l-foot">Prototype letter. In production it goes to the owner's address from the council's rates records, and ownership is confirmed before any work or payment.</p>
+      <div class="l-nav">
+        <button class="icon-btn" id="l-prev" aria-label="Previous letter"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span id="l-n"></span>
+        <button class="icon-btn" id="l-next" aria-label="Next letter"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="ghost sm" id="l-print">Print</button>
+        <button class="opt-btn" id="l-close">Done</button>
+      </div>
+    </article>
+  </div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
