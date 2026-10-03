@@ -1,6 +1,10 @@
 import * as maplibregl from 'maplibre-gl';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './style.css';
+
+// Vite's dep pre-bundling breaks MapLibre's own worker lookup; without the worker no vector tiles render.
+maplibregl.setWorkerUrl(workerUrl);
 
 const PARRAMATTA = [151.003, -33.815];
 const OCEANIA = [150, -25];
@@ -35,6 +39,8 @@ function recolour() {
     else if (l.type === 'symbol') { set('text-color', '#94a3b8'); set('text-halo-color', C.bg); }
   }
 }
+
+window.map = map; // console debugging
 
 map.on('style.load', () => {
   map.setProjection({ type: 'globe' });
@@ -97,15 +103,15 @@ const HEAT_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'h
   0, C.bld, 0.35, '#7a5a2e', 0.55, '#f59e0b', 0.8, '#e5484d', 1, '#fecdd3'];
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const lstUrl = (d, z = '{z}', y = '{y}', x = '{x}') =>
-  `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_Daily_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
+  `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_L3_Land_Surface_Temp_8Day_Day/default/${d}/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`;
 
-// GIBS lags 1-3 days and 404s on missing dates; probe the Parramatta z7 tile.
+// 8-day composite (daily has big cloud/swath gaps). GIBS 404s until a period is processed; probe back.
 async function latestLstDate() {
-  for (let n = 1; n <= 6; n++) {
+  for (let n = 1; n <= 24; n++) {
     const ok = await new Promise((r) => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = lstUrl(day(n), 7, 76, 117); });
     if (ok) return day(n);
   }
-  return day(3);
+  return day(16);
 }
 
 // Percentile rank so the ramp spreads evenly whatever the raw units.
@@ -117,8 +123,8 @@ function ranks(vals) {
 
 async function addHeatLayers() {
   const date = await latestLstDate();
-  map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST' });
-  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': 0.55, 'raster-resampling': 'linear' } }, 'building-3d');
+  map.addSource('lst', { type: 'raster', tiles: [lstUrl(date)], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day' });
+  map.addLayer({ id: 'lst', type: 'raster', source: 'lst', paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 11, 0.3, 12.5, 0], 'raster-resampling': 'linear' } }, 'building-3d');
 
   const gj = await (await fetch('/data/buildings-parramatta.geojson')).json();
   const P = gj.features.map((f) => f.properties);
@@ -139,7 +145,7 @@ async function addHeatLayers() {
     },
   });
   gj.features.forEach((f, i) => map.setFeatureState({ source: 'bld', id: f.id }, { heat: heat[i] }));
-  document.getElementById('lst-date').textContent = `MODIS Terra · ${date}`;
+  document.getElementById('lst-date').textContent = `MODIS Terra 8-day · from ${date}`;
 }
 
 document.getElementById('layer').onchange = (e) => {

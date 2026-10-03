@@ -34,7 +34,13 @@ If time or tokens run out, stop after any item: the video can be cut from whatev
   - Done when: buildings glow by heat, satellite LST drapes under them, panel shows a live temperature with timestamp.
   - Needs: `docs/API-NOTES.md` §3–5.
 
-- [ ] **3. Precinct selection + side panel + POI pins** (~40 min)
+- [ ] **2b. Visual pass on item 2 (verify in a VISIBLE Chrome tab; hidden tabs throttle and show half-drawn frames)** (~20 min)
+  - Fixed 2026-10-03: MapLibre worker never loaded under Vite (no basemap/vector tiles at all) → `setWorkerUrl`. Daily LST → 8-day composite (fewer cloud gaps). LST fades out by z12.5 (1 km pixels are a flat wash at street level).
+  - Check: intro → street view settles cleanly; building heat colours read well (small houses currently pink, towers dark — tune ramp/weights if it looks wrong).
+  - Legend ramp (amber→red 30–45) does not match GIBS's own LST palette (green/yellow). Either draw GIBS's colormap in the legend or recolour.
+  - Resolution ceiling: MODIS LST is 1 km, the best keyless tiled LST. 100 m Landsat LST needs an account + offline processing → only if time allows; otherwise pitch it as "regional satellite → per-building model".
+
+ + side panel + POI pins** (~40 min)
   - `data/precincts.geojson`: 3–4 hand-drawn polygons in Parramatta (e.g. CBD, Harris Park, Westmead, North Parramatta)
     with props: name, tree_cover_pct, age65_pct, schools, aged_care (illustrative, plausible).
   - Click a precinct → teal outline + label pill (design), camera eases to it, side panel fills: name, headline temp
