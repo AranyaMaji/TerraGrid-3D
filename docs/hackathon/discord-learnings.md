@@ -6,32 +6,34 @@ Comprehensive operational findings, judging rubrics, submission specifications, 
 
 ## 1. Submission Specifications & Junction Portal Requirements
 
-Extracted from organizer Terence Huynh's guidance and screenshots in `event-questions` (`1555813584691269652`) and `#❓-faq-and-resources`:
+Extracted from organizer Terence Huynh's guidance and screenshots in `event-questions` (Thread `1555813584691269652`), `#❓-faq-and-resources`, and `#general-chat`:
 
 * **Submission Portal:** Junction Event Dashboard (`https://hackjunction.app/participate/52`) -> *Project Submission*.
-* **Status:** Submissions opened Saturday at 15:00 AEDT. Can be edited repeatedly until deadline.
+* **Status:** Submissions opened Saturday at 15:00 AEDT. Can be edited repeatedly until the deadline.
 * **Hard Deadline:** **Sunday, 4 Oct 2026, 21:00 AEDT** (Note: daylight savings started Sunday 2:00 AM, UTC+11:00).
 * **Specific Fields on Junction:**
-  1. **Project Name:** Maximum 30 characters (can differ from team name).
-  2. **Punchline:** Maximum 200 characters (single-line summary).
-  3. **Description:** Maximum 5,000 characters, Markdown supported. Must include:
+  1. **Project Name:** Maximum **30 characters** (can differ from team name).  
+     *Our selection:* `TerraGrid 3D` (12 chars).
+  2. **Punchline:** Maximum **200 characters** (single-line summary).  
+     *Recommended:* *"Satellite-borne urban thermal digital twin & AI council brief generator helping cities optimize cool-roof and canopy budgets before heat extremes strike."* (164 chars).
+  3. **Description:** Maximum **5,000 characters**, Markdown supported. Must include:
      - Which COP31 priority (or priorities) targeted.
      - What problem you are solving and why it matters.
      - Your solution and how it solves the identified problem.
      - How you built it (technical architecture/stack).
      - Impact and target audience ("why people should use it").
-  4. **Project Demo:** Link to live demo (optional, but highly recommended).
+  4. **Project Demo:** Link to live demo (optional, but organizers noted as a major differentiator).
   5. **Source Code:** Link to public GitHub repository.
   6. **Video:** Link to 2-minute pitch video (Required; YouTube upload recommended).
   7. **Other Link:** Optional link for supporting assets.
   8. **Presentation:** PDF upload preferred for slides/supporting deck.
-  9. **Third-Party & AI Tools Disclosure:** Mandatory requirement. Must disclose AI coding tools, libraries, and external datasets (can be in repo README, Description, or Presentation PDF).
+  9. **Third-Party & AI Tools Disclosure:** Mandatory requirement. Must disclose AI coding tools, libraries, and external datasets (in repo README, Description, or Presentation PDF).
 
 ---
 
 ## 2. Official Judging Rubric & Weights
 
-Direct from organizer Terence Huynh (`1555365862406488064`):
+Direct from organizer Terence Huynh (Thread `1555365862406488064`):
 
 | Criterion | Weight | What Judges Look For |
 |---|---|---|
@@ -47,7 +49,7 @@ Direct from organizer Terence Huynh (`1555365862406488064`):
 Extracted from organizer responses (`_Purple_DG`, `zoe`, `Huong Hoang`, `Sana` threads) and mentor notes:
 
 * **Length:** Exactly **2 minutes** maximum.
-* **Format:** Spoken voiceover + visual aids (slides + product demo recording).
+* **Format:** Spoken voiceover + visual aids (slides + screen recording / live product demo).
 * **Demo Content:** If technical, judges strongly value a clear screen capture demonstrating that the build is operational.
 * **On-Camera Appearance:** Team members do **not** need to appear on webcam. Voiceover with demo/slides is completely valid.
 * **Subtitles:** Fully permitted and recommended.
@@ -62,10 +64,15 @@ Extracted from `#📝-rules` and `event-questions`:
 
 * **Team Size:** 3 to 5 members strictly enforced. Solo participation is prohibited.
 * **Regional Structure:** Teams registered under Australia, New Zealand, or Pacific. EU students may join AU/NZ/Pacific teams (no EU-only teams).
-* **AI Tooling Policy:** Generative AI tools (Copilot, Claude, Gemini, ChatGPT, image/code generation) are **explicitly permitted** provided:
+* **Prototype Requirement vs. Policy Proposals (Thread `1555253800648974497`):**
+  - SharonO clarified that pure essay-style or text proposal pitches are **not** accepted.
+  - Submissions require either a **working prototype / proof of concept** where core functionality is demonstrably operational, or a realistic clickable simulation (e.g. Figma) if no developer.
+* **Multi-Part COP31 Priorities (Thread `1555206302945509396`):**
+  - Terence Huynh confirmed: *"If there is two or more parts - you can choose to focus on one."*
+* **AI Tooling Policy (Thread `1554089917359980624`):** Generative AI tools (Copilot, Claude, Gemini, ChatGPT, image/code generation) are **explicitly permitted** provided:
   - All tools and models used are transparently listed in the submission disclosure.
   - Team maintains originality and licensing compliance.
-* **Timing & Scaffolding:** No pre-built code or assets prior to 2 Oct 09:00 AEST. Small bug fixes after the deadline are permitted, but no major features.
+* **Timing & Scaffolding (Thread `1552829875646369859`):** No pre-built code or assets prior to 2 Oct 09:00 AEST. Pre-event research and planning were allowed. Small bug fixes after the deadline are permitted, but no major features.
 
 ---
 
@@ -74,7 +81,7 @@ Extracted from `#📝-rules` and `event-questions`:
 Extracted from `#ask-a-mentor`, `#whois`, and `Sandy Isaac` announcements:
 
 * **Sunday Pitch Open Mic:**
-  - Active Sunday 8:00 AM – 7:00 PM AEST/AEDT.
+  - Active Sunday **8:00 AM – 7:00 PM AEDT** in voice channel `🎙️ Open Mic`.
   - Structure: 2-minute live pitch practice followed by 5 minutes of direct feedback from mentors.
   - Drop-in basis (mute while others are presenting).
 * **Mentor Core Insights:**
