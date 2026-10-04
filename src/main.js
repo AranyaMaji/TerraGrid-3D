@@ -110,7 +110,10 @@ const OSM_TYPE = {
   other: 'roof shelter garage garages carport shed construction ruins bridge church place_of_worship cathedral chapel',
 };
 const TYPE_OF = Object.fromEntries(Object.entries(OSM_TYPE).flatMap(([k, v]) => v.split(' ').map((t) => [t, k])));
-let CITY = CITIES.find((c) => c.key === new URLSearchParams(location.search).get('city')) ?? CITIES[0];
+// Start city: ?city=, else the last one picked, else Sydney CBD.
+let lastCity = null;
+try { lastCity = localStorage.getItem('tg-city'); } catch {}
+let CITY = CITIES.find((c) => c.key === (new URLSearchParams(location.search).get('city') ?? lastCity)) ?? CITIES.find((c) => c.key === 'sydney');
 const OCEANIA = [150, -25];
 
 const map = new maplibregl.Map({
@@ -242,6 +245,7 @@ function goCity(c, at, name) {
   }
   select(null);
   CITY = c;
+  try { localStorage.setItem('tg-city', c.key); } catch {}
   live = aq = null;
   $('crumb').textContent = c.region;
   flown = true;
@@ -319,12 +323,12 @@ $('zin').onclick = () => map.zoomIn();
 $('zout').onclick = () => map.zoomOut();
 
 // ---- Surface heat: GIBS LST drape + per-building Landsat heat ----
-// Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (slate blue), 0 = average (yellow), +1 = hotter (red).
+// Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (blue; slate read as unlit on the dark canvas), 0 = average (yellow), +1 = hotter (red).
 // Scenario: feature-state `cool` 0..1 blends toward cyan (was hottest) / green (was coolest).
 const HEAT = ['coalesce', ['feature-state', 'heat'], 0];
 const coolBlend = (base) => ['interpolate', ['linear'], ['coalesce', ['feature-state', 'cool'], 0],
   0, base, 1, ['interpolate', ['linear'], HEAT, -1, '#34d399', 1, '#22d3ee']];
-const HEAT_COLOR = coolBlend(['interpolate', ['linear'], HEAT, -1, '#2b3a67', 0, '#f5c542', 1, '#e5484d']);
+const HEAT_COLOR = coolBlend(['interpolate', ['linear'], HEAT, -1, '#4c7dff', -0.4, '#93c5fd', 0, '#f5c542', 1, '#e5484d']);
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const gibsUrl = (layer, z, d) =>
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${d}/GoogleMapsCompatible_Level${z}/{z}/{y}/{x}.png`;
@@ -544,7 +548,7 @@ function roofMWh(f) {
 const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#3b2a12', 0.5, '#b45309', 0.85, '#f59e0b', 1, '#fde68a'];
 const LAYERS = {
   heat: { ids: ['lst', 'landsat'],
-    legend: ['Building surface heat', '#2b3a67, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? (lstMed + dT()).toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
+    legend: ['Building surface heat', '#4c7dff, #93c5fd 30%, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? (lstMed + dT()).toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
   smoke: { ids: ['smoke', 'plume'],
     legend: ['Aerosol optical depth', '#fef3c7, #f59e0b 50%, #7c2d12', 'Clear', 'Smoky', () => 'NASA MODIS · CAMS'] },
   canopy: { ids: ['canopy', 'ndvi', 'trees'],
