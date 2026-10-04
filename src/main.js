@@ -1227,9 +1227,6 @@ $('ai-list').onclick = (e) => {
   levChanged();
 };
 $('s-edit').onclick = () => { const l = $('levers'); l.hidden = !l.hidden; $('s-edit').textContent = l.hidden ? 'Edit' : 'Done'; };
-const UNIT = { roof: 'm² roof', floor: 'm² floor', tree: 'tree' };
-$('s-costs').innerHTML = Object.values(MEASURES).map((m) => `<li><b>${m.name}</b> $${m.rate} / ${UNIT[m.basis]} · lasts ${m.life} yrs</li>`).join('')
-  + '<li>Savings priced at the local electricity tariff; payback = upfront cost ÷ yearly savings.</li>';
 $('s-ai').onclick = () => {
   if (!rec) return;
   lev.clear();
@@ -1495,13 +1492,23 @@ function showWeights() {
   for (const s of document.querySelectorAll('[data-w]')) s.previousElementSibling.textContent = `${Math.round((100 * W[s.dataset.w]) / t)}%`;
 }
 showWeights();
+// Priority presets set the three weight sliders; moving a slider by hand makes it Custom.
+function markPri(b) {
+  for (const x of $('s-pri').children) x.classList.toggle('on', x === b);
+  $('s-pri-d').textContent = b ? b.dataset.d : 'Your own mix of the three weights.';
+}
+$('s-pri').onclick = (e) => {
+  const b = e.target.closest('button'), s = document.querySelectorAll('[data-w]');
+  if (!b) return;
+  b.dataset.v.split(',').forEach((v, i) => (s[i].value = v));
+  s[0].dispatchEvent(new Event('input', { bubbles: true }));
+  markPri(b);
+};
 document.querySelector('.scn').oninput = (e) => {
   $('s-bud-v').textContent = `A$${(+$('s-bud').value).toFixed(1)}M`;
-  const w = e.target.dataset.w, pri = $('s-pri');
-  if (e.target === pri) pri.value.split(',').forEach((v, i) => (document.querySelectorAll('[data-w]')[i].value = v)); // preset → the three sliders
-  else if (w) pri.value = ''; // hand-tuned → Custom
-  $('s-pri-d').textContent = pri.selectedOptions[0].dataset.d;
-  if (w || e.target === pri) { // weights changed: recolour the priority map
+  const w = e.target.dataset.w;
+  if (w) { // weights changed: recolour the priority map
+    if (e.isTrusted) markPri(null); // hand-tuned → Custom
     for (const s of document.querySelectorAll('[data-w]')) W[s.dataset.w] = +s.value;
     showWeights();
     if (on.has('prio')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor()); else toggleLayer('prio', true);
