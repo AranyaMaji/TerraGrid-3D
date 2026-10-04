@@ -281,7 +281,7 @@ Shared blast radius (check all of these on every item):
   - Done when: flipping to 2050 visibly reddens the city and the $ headline jumps, then the scenario shows a shorter payback.
 
 - [x] **8. Arduino DS18B20 ground sensor** (~20 min)
-  - Done 2026-10-04: Keyestudio DS18B20 on D2 (OneWire + DallasTemperature). `arduino/sensor/sensor.ino` prints one °C per line at 9600. Toolbar "Sensor" button → Web Serial → pulsing teal pin at the city centre + panel line "Street sensor X °C · ±Y °C vs weather model". Cancelled picker / no board → reading drifts near live air temp. Real-board path untested (sensor not wired yet).
+  - Done 2026-10-04: Keyestudio DS18B20 on D2 (OneWire + DallasTemperature). `arduino/sensor/sensor.ino` prints one °C per line at 9600. Toolbar "Sensor" button → Web Serial → pulsing teal pin at the city centre + panel line "Street sensor X °C · ±Y °C vs weather model". Cancelled picker / no board → reading drifts near live air temp. Verified on the real board in Chrome. Readings amplified 8x from the first value (`GAIN`) so breath shows on camera.
   - `arduino/sensor.ino`: Uno R3 + DS18B20 (OneWire + DallasTemperature libs), prints `°C` as one number per line at 9600.
   - Web Serial button "Connect sensor" → live reading on a pulsing pin "Ground sensor · live", panel shows satellite vs ground
     delta ("calibration"). Simulated fallback if no port.

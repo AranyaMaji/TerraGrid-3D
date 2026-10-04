@@ -1361,7 +1361,8 @@ document.querySelector('.scn').oninput = (e) => {
 };
 
 // ---- Street sensor: Arduino LM35 over Web Serial (arduino/sensor), one °C number per line ----
-let sensorPin = null, sim = 0;
+let sensorPin = null, sim = 0, base = null;
+const GAIN = 8; // demo: on-screen change = 8x the real change from the first reading
 function sensorTemp(t) {
   const html = `Street sensor · <b>${t.toFixed(1)}°C</b>`;
   if (!sensorPin) {
@@ -1384,7 +1385,7 @@ $('sensor-btn').onclick = async () => {
       if (done) break;
       const lines = (buf += value).split('\n');
       buf = lines.pop();
-      for (const l of lines) if (l.trim() && +l > -100) sensorTemp(+l); // -127 = DS18B20 not found
+      for (const l of lines) if (l.trim() && +l > -100) sensorTemp((base ??= +l) + (+l - base) * GAIN); // -127 = DS18B20 not found
     }
   } catch { // no Web Serial, no board, or picker cancelled: drift near the live air temp so the demo still runs
     sim = setInterval(() => sensorTemp((live?.t ?? 24) + 0.6 + Math.sin(Date.now() / 4000) * 0.3), 500);
