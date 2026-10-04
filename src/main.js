@@ -1387,7 +1387,11 @@ $('sensor-btn').onclick = async () => {
       const lines = (buf += value).split('\n');
       buf = lines.pop();
       // Skip the first line (the board resets on open, so it can be half a number); -127 = DS18B20 not found.
-      for (const l of lines.slice(first ? 1 : 0)) { const t = parseFloat(l); if (t > -40 && t < 85) sensorTemp((base ??= t) + (t - base) * GAIN); }
+      for (const l of lines.slice(first ? 1 : 0)) {
+        const t = parseFloat(l);
+        if (t > -40 && t < 85) sensorTemp((base ??= t) + (t - base) * GAIN);
+        console.log(`sensor raw ${l.trim()} °C · base ${base} · shown ${(base + (t - base) * GAIN).toFixed(1)} °C`);
+      }
       if (lines.length) first = false;
     }
   } catch { // no Web Serial, no board, or picker cancelled: drift near the live air temp so the demo still runs
