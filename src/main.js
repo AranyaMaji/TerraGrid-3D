@@ -202,7 +202,7 @@ function restartIntro() {
 document.getElementById('explore').onclick = () => { document.body.classList.remove('fresh'); compare(false); closeScenario(); if (!flown) flyIn(); };
 $('plan').onclick = $('d-plan').onclick = () => {
   document.body.classList.remove('deliver', 'briefed');
-  $('s-export').textContent = 'Export council brief (PDF)';
+  $('s-export').textContent = 'Create council brief';
   if (!document.body.classList.contains('scenario')) openScenario();
 };
 $('deliver').onclick = () => {
@@ -357,8 +357,7 @@ const CORNERS = [[LANDSAT.w, LANDSAT.n], [LANDSAT.e, LANDSAT.n], [LANDSAT.e, LAN
 // Greyscale PNG over the Landsat bounds → (lon, lat) → 0..1 (null outside the scene / no data).
 async function sampler(url) {
   const img = new Image();
-  img.src = url;
-  await img.decode();
+  await new Promise((ok, no) => ((img.onload = ok), (img.onerror = no), (img.src = url))); // not decode(): it stalls in hidden tabs
   const cv = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height });
   const cx = cv.getContext('2d', { willReadFrequently: true });
   cx.drawImage(img, 0, 0);
@@ -375,8 +374,7 @@ async function sampler(url) {
 const IRONBOW = ['#5b21b6', '#b5179e', '#e5484d', '#f59e0b', '#fef3c7'].map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
 async function ironbow(url) {
   const img = new Image();
-  img.src = url;
-  await img.decode();
+  await new Promise((ok, no) => ((img.onload = ok), (img.onerror = no), (img.src = url))); // not decode(): it stalls in hidden tabs
   const cv = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }), cx = cv.getContext('2d');
   cx.drawImage(img, 0, 0);
   const d = cx.getImageData(0, 0, img.width, img.height), px = d.data, n = IRONBOW.length - 1;
@@ -1046,7 +1044,7 @@ function openScenario() {
   if (!on.has('heat')) toggleLayer('heat', true);
   scnB = within(ringOf(selected.name));
   ids = scnB.map((f) => f.id);
-  $('s-where').textContent = selected.name;
+  $('s-where').textContent = $('s-where2').textContent = $('r-where').textContent = selected.name;
   document.body.classList.add('scenario');
   draw({ ...ZERO });
   animateTo(target());
@@ -1092,7 +1090,7 @@ function optimize() {
   const share = cand.filter((c) => close(c.c)).length / (cand.length || 1);
   const res = fac + Math.round(selected.population * (selected.age65_pct / 100) * share);
   last = { x, res, chosen, spent: budget() - left };
-  document.body.classList.remove('briefed'); $('s-export').textContent = 'Export council brief (PDF)';
+  document.body.classList.remove('briefed'); $('s-export').textContent = 'Create council brief';
 
   for (const f of scnB) map.setFeatureState({ source: 'bld', id: f.id }, { cool: 0 });
   const again = !!picks;
@@ -1142,7 +1140,7 @@ function clearPicks() {
   cancelAnimationFrame(pulse);
   picks = null;
   map.getSource('picks')?.setData(EMPTY);
-  document.body.classList.remove('optimized', 'briefed'); $('s-export').textContent = 'Export council brief (PDF)';
+  document.body.classList.remove('optimized', 'briefed'); $('s-export').textContent = 'Create council brief';
 }
 
 $('o-top').onclick = (e) => {
@@ -1162,7 +1160,7 @@ $('s-reset').onclick = () => {
 $('s-opt').onclick = optimize;
 const levChanged = () => {
   for (const b of $('levers').children) b.classList.toggle('on', lev.has(b.dataset.m));
-  $('s-ai').classList.toggle('on', !!rec && lev.size === rec.length && rec.every((t) => lev.has(t.key)));
+  if (rec) showRec();
   if (picks) optimize(); else animateTo(target(), 500);
 };
 $('levers').onclick = (e) => {
@@ -1217,9 +1215,21 @@ const M_WHAT = {
 };
 function showRec() {
   // Plain "what it does" + payback; the AI's own reasons (area-wide totals) go to the brief, not here, so nothing clashes with Results.
-  $('ai-list').innerHTML = rec.map((t) => `<li>${M_ICON[t.key]}<div><b>${MEASURES[t.key].name}</b>${M_WHAT[t.key]}<i>Pays back in ${t.pay} yrs</i></div></li>`).join('');
-  $('s-ai').classList.toggle('on', lev.size === rec.length && rec.every((t) => lev.has(t.key)));
+  $('ai-list').innerHTML = rec.map((t) => `<li data-m="${t.key}" class="${lev.has(t.key) ? 'on' : ''}"><span class="ck"></span>${M_ICON[t.key]}<div><b>${MEASURES[t.key].name}</b>${M_WHAT[t.key]}<i>Pays back in ${t.pay} yrs</i></div></li>`).join('');
+  $('ai-why').innerHTML = rec.map((t) => `<li><b>${MEASURES[t.key].name}:</b> ${esc(t.why)}</li>`).join('');
+  $('s-ai').closest('.ai').classList.toggle('on', lev.size === rec.length && rec.every((t) => lev.has(t.key)));
 }
+// Tick a suggested upgrade on or off, same as its lever.
+$('ai-list').onclick = (e) => {
+  const k = e.target.closest('li')?.dataset.m;
+  if (!k) return;
+  if (!lev.delete(k)) lev.add(k);
+  levChanged();
+};
+$('s-edit').onclick = () => { const l = $('levers'); l.hidden = !l.hidden; $('s-edit').textContent = l.hidden ? 'Edit' : 'Done'; };
+const UNIT = { roof: 'm² roof', floor: 'm² floor', tree: 'tree' };
+$('s-costs').innerHTML = Object.values(MEASURES).map((m) => `<li><b>${m.name}</b> $${m.rate} / ${UNIT[m.basis]} · lasts ${m.life} yrs</li>`).join('')
+  + '<li>Savings priced at the local electricity tariff; payback = upfront cost ÷ yearly savings.</li>';
 $('s-ai').onclick = () => {
   if (!rec) return;
   lev.clear();
@@ -1486,10 +1496,13 @@ function showWeights() {
 }
 showWeights();
 document.querySelector('.scn').oninput = (e) => {
-  $('s-bud-v').textContent = `$${(+$('s-bud').value).toFixed(1)}M`;
-  const w = e.target.dataset.w;
-  if (w) { // weight slider: recolour the priority map
-    W[w] = +e.target.value;
+  $('s-bud-v').textContent = `A$${(+$('s-bud').value).toFixed(1)}M`;
+  const w = e.target.dataset.w, pri = $('s-pri');
+  if (e.target === pri) pri.value.split(',').forEach((v, i) => (document.querySelectorAll('[data-w]')[i].value = v)); // preset → the three sliders
+  else if (w) pri.value = ''; // hand-tuned → Custom
+  $('s-pri-d').textContent = pri.selectedOptions[0].dataset.d;
+  if (w || e.target === pri) { // weights changed: recolour the priority map
+    for (const s of document.querySelectorAll('[data-w]')) W[s.dataset.w] = +s.value;
     showWeights();
     if (on.has('prio')) map.setPaintProperty('bld-heat', 'fill-extrusion-color', wallColor()); else toggleLayer('prio', true);
   }

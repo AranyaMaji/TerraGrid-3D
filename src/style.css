@@ -157,10 +157,27 @@ body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) 
 .ai li i { display: block; font-style: normal; color: var(--teal); font-weight: 500; }
 .ai-go { background: #6d4ae8; border-color: #6d4ae8; color: #fff; }
 .ai-go:hover { background: #5b3bd1; }
-.ai-go.on { background: #fff; color: #6d4ae8; border-color: #c9c0f7; }
-.ai-go .ai-used, .ai-go.on .ai-use { display: none; }
-.ai-go.on .ai-used { display: inline; }
-.optimized .ai { display: none; }
+.ai .pill { display: none; margin-left: auto; align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--teal-l); color: var(--teal); font-size: 12px; font-weight: 600; }
+.ai.on .pill { display: inline; }
+.ai.on #s-ai { display: none; }
+.ai li { cursor: pointer; }
+.ai .ck { flex: none; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line2); background: #fff; }
+.ai li.on .ck { background: var(--teal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4.5 4.5L19 7'/%3E%3C/svg%3E") center / 12px no-repeat; border-color: var(--teal); }
+.ai li:not(.on) > div { opacity: .55; }
+.why summary, .wts summary, .lnk { cursor: pointer; color: #6d4ae8; font-size: 12.5px; font-weight: 600; }
+.why ul { margin: 8px 0 0; padding-left: 16px; display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.why b { color: var(--ink); }
+.lnk { margin-left: auto; background: none; border: 0; padding: 0; }
+.pstep { display: flex; flex-direction: column; gap: 8px; }
+.pstep > .h2 { display: flex; align-items: center; gap: 10px; }
+.pstep > .h2 i { width: 22px; height: 22px; border-radius: 50%; background: #6d4ae8; color: #fff; font-style: normal; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+#s-pri { height: 40px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line2); background: #fff; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); }
+.hint { font-size: 12px; color: var(--muted); }
+.hint.c { text-align: center; }
+.wts summary { color: var(--muted); margin-bottom: 4px; }
+.costs summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; font-weight: 600; }
+.costs ul { margin: 10px 0 0; padding-left: 16px; display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.costs b { color: var(--ink); font-weight: 600; }
 .levers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .levers button { position: relative; padding: 8px 30px 8px 10px; border-radius: 6px; border: 1px solid var(--line2); text-align: left; font-size: 13px; font-weight: 600; line-height: 1.25; }
 .levers button small { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); }
@@ -170,13 +187,20 @@ body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) 
 .wts label { display: block; font-size: 13px; }
 .wts b { float: right; color: var(--muted); font-weight: 600; }
 .wts input, .cov input { width: 100%; accent-color: var(--teal); margin: 4px 0 0; }
-.cov { display: block; font-size: 14px; font-weight: 600; }
-.cov b { float: right; font-size: 20px; line-height: 1.2; }
+.cov { display: block; padding: 10px 14px; border: 1px solid var(--line2); border-radius: 8px; }
+.cov b { display: block; font-size: 22px; line-height: 1.2; font-weight: 700; }
 
 /* ---- plan: results (right) ---- */
-.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.kpis > div { background: var(--surf); border-radius: 8px; padding: 9px 11px; }
-.kpis .kpi-v { font-size: 17px; }
+.kpis { display: flex; flex-direction: column; gap: 16px; }
+.hero-v { font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -.03em; color: var(--teal); margin: 4px 0 2px; }
+.hero-v small { font-size: 20px; letter-spacing: -.01em; }
+.rows { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 0; padding: 14px 0; border-block: 1px solid var(--line); font-size: 14px; }
+.rows dd { margin: 0; font-weight: 700; font-size: 16px; text-align: right; }
+.bens { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 13.5px; }
+.bens li { display: flex; align-items: center; gap: 10px; }
+.bens li > svg { width: 30px; height: 30px; padding: 7px; border-radius: 8px; background: var(--teal-l); color: var(--teal); }
+.bens li > b { margin-left: auto; font-size: 15px; white-space: nowrap; }
+.bens small { font-size: 12px; font-weight: 500; color: var(--muted); }
 .kpi-v { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
 .kpi-v.cool { color: var(--teal); }
 .kpi-l { font-size: 12px; color: var(--muted); }
