@@ -1510,14 +1510,15 @@ document.querySelector('.scn').oninput = (e) => {
 
 // ---- Street sensor: Arduino analog probe on A0 over Web Serial (arduino/sensor), one °C number per line ----
 let sensorPin = null, sim = 0, base = null, port = null;
+const SENSOR_AT = [151.2054, -33.8684]; // 104 Clarence St, Sydney CBD
 const GAIN = 1; // on-screen change = GAIN x the change from the first reading (raise to exaggerate)
 function sensorTemp(t) {
   const html = `<b>${t.toFixed(1)}°C</b> <span class="pin-sub">street sensor</span>`;
   if (!sensorPin) {
-    sensorPin = new maplibregl.Marker({ element: pin('sensor', html, ICON.sensor), anchor: 'bottom' }).setLngLat(CITY.center).addTo(map);
+    sensorPin = new maplibregl.Marker({ element: pin('sensor', html, ICON.sensor), anchor: 'bottom' }).setLngLat(SENSOR_AT).addTo(map);
     $('sensor-btn').classList.add('on');
   }
-  sensorPin.setLngLat(CITY.center).getElement().querySelector('.pin-short').innerHTML = html;
+  sensorPin.getElement().querySelector('.pin-short').innerHTML = html;
   const el = $('sensor'), d = live ? t - live.t : 0;
   el.hidden = false;
   el.innerHTML = `<i></i>Street sensor <b>${t.toFixed(1)}°C</b>${live ? ` · ${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs weather model` : ''}`;

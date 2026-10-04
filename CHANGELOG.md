@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Street sensor pin fixed at 104 Clarence St, Sydney CBD.
 - 2026-10-04 — Rail: Assess renamed Explore, step numbers removed.
 - 2026-10-04 — No camera move on area select or opening Compare; the view stays put.
 - 2026-10-04 — Priority dropdown replaced with four styled preset buttons; Costs & assumptions removed.
