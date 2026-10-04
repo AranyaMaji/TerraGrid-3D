@@ -98,10 +98,12 @@
             <div><div class="eb">Plan · <span id="s-where"></span></div><h1 class="h1">Retrofit scenario</h1></div>
             <div class="hd-a"><button class="btn sm ghost" id="s-reset">Reset</button><button class="ib" id="s-back" aria-label="Back to area"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
           </div>
-          <button class="ai" id="s-ai" title="Use this mix">
-            <svg viewBox="0 0 24 24"><path d="M12 3c.5 4.5 4 8 8.5 8.5C16 12 12.5 15.5 12 20c-.5-4.5-4-8-8.5-8.5C8 11 11.5 7.5 12 3z"/></svg>
-            <div><div class="ai-h">AI recommended mix <span>Use this mix</span></div><ol id="ai-list"></ol></div>
-          </button>
+          <div class="ai">
+            <div class="ai-h"><svg viewBox="0 0 24 24"><path d="M12 3c.5 4.5 4 8 8.5 8.5C16 12 12.5 15.5 12 20c-.5-4.5-4-8-8.5-8.5C8 11 11.5 7.5 12 3z"/></svg>
+              <div><b>AI suggests</b><small>Best three measures for this area</small></div></div>
+            <ol id="ai-list"></ol>
+            <button class="btn ai-go" id="s-ai"><span class="ai-use">Use this mix</span><span class="ai-used">✓ Using this mix</span></button>
+          </div>
           <div class="sec"><h2 class="h2">Measures</h2>
             <div class="levers" id="levers">
               <button class="on" data-m="roofs">Cool roofs<small>$45 / m² roof</small></button><button class="on" data-m="trees">Tree canopy<small>$900 / tree</small></button>

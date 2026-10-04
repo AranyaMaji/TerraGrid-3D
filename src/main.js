@@ -1199,11 +1199,25 @@ async function recommend() {
   } catch {}
   top = top.filter((t, i) => m.some((x) => x.key === t?.key) && t.why && top.findIndex((u) => u?.key === t.key) === i).slice(0, 3);
   for (const c of canned) if (top.length < 3 && !top.some((t) => t.key === c.key)) top.push(c);
+  top = top.map((t) => ({ ...t, pay: m.find((x) => x.key === t.key).payback_yrs }));
   recs.set(key, top);
   if (selected?.name === name && document.body.classList.contains('scenario')) rec = top, showRec();
 }
+const M_ICON = {
+  roofs: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7M5 10v10h14V10"/></svg>',
+  trees: '<svg viewBox="0 0 24 24"><path d="M12 22v-6M12 16a6 6 0 1 0-5.2-3A4 4 0 0 0 12 16a4 4 0 0 0 5.2-3"/></svg>',
+  solar: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>',
+  insul: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7M5 10v10h14V10M9 20v-6h6v6"/></svg>',
+  hvac: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7s2 5-2 7M14 12c4 0 7 1 7 4s-5 2-7-2M12 14c0 4-1 7-4 7s-2-5 2-7M10 12c-4 0-7-1-7-4s5-2 7 2"/></svg>',
+  ctrl: '<svg viewBox="0 0 24 24"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0Z"/></svg>',
+};
+const M_WHAT = {
+  roofs: 'Reflect sun off roofs', trees: 'Shade streets and walls', solar: 'Make power on the roof',
+  insul: 'Keep heat out of buildings', hvac: 'Cool more for less power', ctrl: 'Run cooling only when needed',
+};
 function showRec() {
-  $('ai-list').innerHTML = rec.map((t) => `<li title="${esc(t.why)}"><b>${MEASURES[t.key].name}</b> · ${esc(t.why)}</li>`).join('');
+  // Plain "what it does" + payback; the AI's own reasons (area-wide totals) go to the brief, not here, so nothing clashes with Results.
+  $('ai-list').innerHTML = rec.map((t) => `<li>${M_ICON[t.key]}<div><b>${MEASURES[t.key].name}</b>${M_WHAT[t.key]}<i>Pays back in ${t.pay} yrs</i></div></li>`).join('');
   $('s-ai').classList.toggle('on', lev.size === rec.length && rec.every((t) => lev.has(t.key)));
 }
 $('s-ai').onclick = () => {
