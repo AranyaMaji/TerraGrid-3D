@@ -323,12 +323,12 @@ $('zin').onclick = () => map.zoomIn();
 $('zout').onclick = () => map.zoomOut();
 
 // ---- Surface heat: GIBS LST drape + per-building Landsat heat ----
-// Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (blue; slate read as unlit on the dark canvas), 0 = average (yellow), +1 = hotter (red).
+// Ironbow thermal-camera ramp: -1 = 1.5 °C cooler than the local median (violet), 0 = average (red), +1 = hotter (white-hot).
 // Scenario: feature-state `cool` 0..1 blends toward cyan (was hottest) / green (was coolest).
 const HEAT = ['coalesce', ['feature-state', 'heat'], 0];
 const coolBlend = (base) => ['interpolate', ['linear'], ['coalesce', ['feature-state', 'cool'], 0],
   0, base, 1, ['interpolate', ['linear'], HEAT, -1, '#34d399', 1, '#22d3ee']];
-const HEAT_COLOR = coolBlend(['interpolate', ['linear'], HEAT, -1, '#4c7dff', -0.4, '#93c5fd', 0, '#f5c542', 1, '#e5484d']);
+const HEAT_COLOR = coolBlend(['interpolate', ['linear'], HEAT, -1, '#5b21b6', -0.5, '#b5179e', 0, '#e5484d', 0.5, '#f59e0b', 1, '#fef3c7']);
 const day = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 const gibsUrl = (layer, z, d) =>
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${d}/GoogleMapsCompatible_Level${z}/{z}/{y}/{x}.png`;
@@ -371,14 +371,31 @@ async function sampler(url) {
   };
 }
 
+// Recolour the greyscale Landsat scene with the ironbow ramp so the ground matches the buildings. Returns a data URL.
+const IRONBOW = ['#5b21b6', '#b5179e', '#e5484d', '#f59e0b', '#fef3c7'].map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
+async function ironbow(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const cv = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height }), cx = cv.getContext('2d');
+  cx.drawImage(img, 0, 0);
+  const d = cx.getImageData(0, 0, img.width, img.height), px = d.data, n = IRONBOW.length - 1;
+  for (let i = 0; i < px.length; i += 4) {
+    const t = (px[i] / 255) * n, k = Math.min(n - 1, Math.floor(t)), f = t - k;
+    for (let c = 0; c < 3; c++) px[i + c] = IRONBOW[k][c] + (IRONBOW[k + 1][c] - IRONBOW[k][c]) * f;
+  }
+  cx.putImageData(d, 0, 0);
+  return cv.toDataURL();
+}
+
 async function addHeatLayers() {
   // 8-day composite (daily has big cloud/swath gaps).
-  const lstLayer = 'MODIS_Terra_L3_Land_Surface_Temp_8Day_Day';
+  const lstLayer = 'MODIS_Terra_L3_Land_Surface_Temp_8Day_Day', drape = ironbow('/data/lst-landsat-gray.png');
   map.addSource('lst', { type: 'raster', tiles: [gibsUrl(lstLayer, 7, await latestGibs(lstLayer, 7))], tileSize: 256, maxzoom: 7, attribution: 'NASA GIBS · MODIS Terra LST 8-day · Landsat: USGS via Microsoft Planetary Computer' });
   map.addLayer({ id: 'lst', type: 'raster', source: 'lst', layout: vis('lst'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 10, 0.5, 11, 0] , 'raster-resampling': 'linear' } }, 'building-3d');
   // 100 m Landsat scene takes over from 1 km MODIS at city zoom.
-  map.addSource('landsat', { type: 'image', url: '/data/lst-landsat.png', coordinates: CORNERS });
-  map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', layout: vis('landsat'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.75, 15, 0.45], 'raster-fade-duration': 0 } }, 'building-3d');
+  map.addSource('landsat', { type: 'image', url: await drape, coordinates: CORNERS });
+  map.addLayer({ id: 'landsat', type: 'raster', source: 'landsat', layout: vis('landsat'), paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 9.5, 0, 11, 0.9, 15, 0.75], 'raster-fade-duration': 0 } }, 'building-3d');
 
   map.addSource('bld', { type: 'geojson', data: EMPTY, attribution: '© OpenStreetMap contributors' });
   map.addLayer({
@@ -548,7 +565,7 @@ function roofMWh(f) {
 const SOLAR_COLOR = ['interpolate', ['linear'], ['coalesce', ['feature-state', 'solar'], 0], 0, '#3b2a12', 0.5, '#b45309', 0.85, '#f59e0b', 1, '#fde68a'];
 const LAYERS = {
   heat: { ids: ['lst', 'landsat'],
-    legend: ['Building surface heat', '#4c7dff, #93c5fd 30%, #f5c542 50%, #e5484d', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? (lstMed + dT()).toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
+    legend: ['Building surface heat', '#5b21b6, #b5179e 25%, #e5484d 50%, #f59e0b 75%, #fef3c7', 'Cooler', 'Hotter', () => `avg <b>${lstMed ? (lstMed + dT()).toFixed(1) : '--'}°C</b> · ${CITY.surf ? 'summer roofs' : 'Landsat'}`] },
   smoke: { ids: ['smoke', 'plume'],
     legend: ['Aerosol optical depth', '#fef3c7, #f59e0b 50%, #7c2d12', 'Clear', 'Smoky', () => 'NASA MODIS · CAMS'] },
   canopy: { ids: ['canopy', 'ndvi', 'trees'],
