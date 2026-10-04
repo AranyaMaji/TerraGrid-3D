@@ -1,210 +1,167 @@
-# TerraGrid 3D — Urban Climate Resilience & Heat Digital Twin
+# TerraGrid 3D — Urban Heat Retrofit Planner
 
 [![Climate Hack-tion 2026](https://img.shields.io/badge/Climate%20Hack--tion%202026-Track%203%3A%20Resilient%20Cities-0f8b85.svg)](https://github.com/AranyaMaji/TerraGrid-3D)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
 [![MapLibre GL](https://img.shields.io/badge/MapLibre%20GL-v6.11-396afc.svg)](https://maplibre.org/)
 
-> **3D urban heat and climate resilience digital twin for municipal councils.**  
-> Blending satellite radiometry, atmospheric physics, and 3D urban topology to diagnose heat vulnerability, trace industrial particulate plumes, and simulate cool-roof and urban canopy interventions with live impact KPIs.
+> **A 3D digital twin that shows a council which roofs are costing its residents the most in heat, and which retrofits to fund first.**
 
-Built for the **EU / MLAI Climate Hack-tion 2026** (Track 3: Resilient Cities & Buildings).
-
----
-
-## Overview & Problem Statement
-
-Urban Heat Islands (UHIs) cause urban centres to experience surface temperatures up to 10–15 °C higher than surrounding rural baselines. Extreme surface heat combined with particulate air pollution creates acute health hazards for vulnerable demographics (children and elderly residents in aged-care facilities) and drives severe peaks in electrical grid demand for cooling.
-
-Most municipal climate tools remain trapped in static 2D GIS heat maps or slow offline simulation packages that require days to compute. **TerraGrid 3D** delivers a web-based, real-time 3D digital twin combining:
-
-- **100 m satellite thermal radiometry** (Landsat 8 TIRS) directly applied to individual 3D building envelopes.
-- **Atmospheric hazard dispersion** (Copernicus CAMS particulate forecasts + NASA GIBS aerosol data + real-time animated Gaussian smoke plumes).
-- **Urban demographic overlays** (Census age-vulnerability, school facilities, and aged-care centers).
-- **Rapid scenario simulation** allowing planners to test high-albedo cool roofs, urban canopy expansion, and rooftop solar arrays with instant quantitative feedback on temperature reduction, peak AC demand mitigation, and energy cost savings.
+Built for the **EU / MLAI Climate Hack-tion 2026**, Track 3: Resilient Cities & Buildings.
 
 ---
 
-## Key Features
+## The problem
 
-### 1. Multi-City 3D Built Environment
-- Pre-baked LOD1 extruded 3D building geometry from OpenStreetMap across five distinct urban microclimates:
-  - **Parramatta, Australia**: Western Sydney’s acute inland heat basin.
-  - **Sydney CBD & Harbour, Australia**: High-density coastal commercial corridor.
-  - **Melbourne CBD, Australia**: Temperate urban canyon environment.
-  - **Central London, United Kingdom**: Historic European high-density core.
-  - **Suva, Fiji**: Vulnerable Pacific Island coastal capital.
-- Smooth multi-scale navigation: Pulls back to an interactive spinning globe, dynamically handles level-of-detail transitions, and dives into high-resolution 3D street views.
+Western Sydney summers run 10 °C+ hotter than the coast. Dark roofs and bare streets push surface temperatures past 50 °C, drive up air-conditioning bills and peak grid demand, and hit the people least able to cope: children in schools, older residents, aged-care homes.
 
-### 2. True Remote Sensing Radiometry
-- **Landsat 8 Level 2 Surface Temperature**: 100 m thermal infrared sensor data covering Greater Sydney, edge-feathered to seamlessly integrate with regional baselines.
-- **Footprint-Specific Thermal Assignment**: Individual building polygons are assigned radiometric surface temperatures derived from satellite observation.
-- **Calibrated Diverging Thermal Ramp**: A thermal-camera spectrum (slate blue $\rightarrow$ yellow $\rightarrow$ thermal red) mapped over $\pm 1.5$ °C relative to the urban baseline, with height damping for tall towers to minimize boundary-layer bias.
-- **NASA GIBS MODIS LST**: Global 8-day composite Land Surface Temperature drape providing regional and global thermal context.
+Councils have money for cool roofs, trees and solar, but no fast way to answer: *which buildings first, and what does each dollar buy?* Their tools are static 2D heat maps or consultant studies that take weeks.
 
-### 3. Composable Environmental Hazard Layers
-All layers can be activated simultaneously or isolated with dedicated toggle chips:
-- **Surface Heat**: Real radiometric surface temperatures highlighting high-emissivity rooftops and asphalt heat traps.
-- **Smoke & Particulate Aerosols**: Combines NASA GIBS Aerosol Optical Depth (AOD) with live Copernicus CAMS PM2.5 / AQI forecasts and an animated real-time Gaussian dispersion smoke plume mapped from actual industrial point sources (e.g., Camellia industrial corridor).
-- **Tree Canopy & Urban Forest**: 30 m Landsat NDVI vegetation drape coupled with dynamically generated 3D volumetric tree canopy crowns grown on vegetated urban pixels.
-- **Rooftop Solar Potential**: Computes usable building roof footprint area $\times$ local solar irradiance constants to project annual clean power yield (MWh/yr).
+## What TerraGrid 3D does
 
-### 4. Precinct Vulnerability & Critical Infrastructure
-- **Census Demographics**: Suburb-level overlays tracking population density, vulnerable elderly cohorts (Age 65+), and school counts.
-- **Point of Interest (POI) Inspection**: Real-world schools and aged-care facilities with interactive hover pills displaying local surface temperature anomalies relative to the precinct average.
-- **3D Building Inspector**: Click any building to reverse-geocode the street address (via Nominatim), retrieve building height, thermal variance, and solar yield.
-- **Global Address Search**: Instant geocoding with Photon suggestions, automatic city detection, and 3D camera transitions.
+One page, four steps, on real satellite and building data for five cities (Parramatta, Sydney CBD, Melbourne CBD, Central London, Suva in Fiji):
 
-### 5. Urban Cooling Scenario Simulator ("Test Canopy Scenario")
-- **Interactive Resilience Levers**:
-  - **Cool Roofs**: High-albedo reflective coatings applied to building envelopes.
-  - **Tree Canopy**: Strategic street-tree and urban forest expansion.
-  - **Rooftop Solar**: Photovoltaic deployment across suitable roof areas.
-- **Dynamic Coverage Slider**: Scale adoption from 0% to 100% with real-time smooth colour transitions on 3D building models.
-- **Live Quantified KPIs**:
-  - $\Delta$ Surface Temperature (°C reduction)
-  - Peak Air-Conditioning Demand Reduction (%)
-  - Clean Renewable Solar Energy Generated (MWh/year)
-  - Municipal & Residential Energy Cost Savings ($/year)
-- **One-Click Council Brief Export**: Formats the scenario results and KPIs into a printable/exportable PDF council report.
+1. **Explore** — fly from a globe into the city. Every building is coloured by its real Landsat roof temperature. Toggle surface heat, smoke and PM2.5, tree canopy and solar potential, alone or together. Click any building or precinct for its numbers.
+2. **Compare** — rank every precinct by extra cooling cost, roof heat or vulnerable residents. Switch between **Now, 2030 and 2050** to see how warming changes the ranking.
+3. **Plan** — pick from six retrofit measures (cool roofs, trees, rooftop solar, insulation, efficient HVAC, smart controls), set a budget, and choose a priority (biggest savings, fastest payback, protect vulnerable, balanced). The optimizer funds the best roofs first and shows savings per year, payback, upfront cost, MWh, CO₂ avoided, and how much better it does than a uniform rollout. Gemini recommends the top 3 measures for that suburb with a reason each.
+4. **Deliver** — generate a one-page council brief (hazard, funded plan, return on investment), then run the **retrofit program**: send coded offer letters to owners of the funded buildings, let owners apply from the public map, and track each roof from Offered to Verified.
+
+A **street sensor** (Arduino over Web Serial) drops a live temperature pin on the map and compares it with the weather model.
 
 ---
 
-## Architecture & Data Flow
+## Quickstart
 
-```mermaid
-flowchart TD
-    subgraph DataSources["External Data & Earth Observation"]
-        USGS["USGS / NASA Landsat 8\n(100m LST & 30m NDVI via Planetary Computer)"]
-        NASA["NASA GIBS WMTS\n(MODIS LST 8-Day & AOD)"]
-        CAMS["Copernicus CAMS & Open-Meteo\n(Real-time Temp & PM2.5 / AQI)"]
-        OSM["OpenStreetMap / Overpass\n(3D Buildings, Heights, POIs)"]
-        NOM["Nominatim & Komoot Photon\n(Reverse Geocoding & Address Suggestions)"]
-    end
-
-    subgraph Preprocessing["Data Ingestion & Baking (scripts/)"]
-        BLD["fetch-buildings.mjs\n(GeoJSON polygons + heights)"]
-        LST["fetch-landsat.py\n(Thermal mosaic & feathered drape)"]
-        NDVI["fetch-ndvi.py\n(Vegetation density & tree synthesis)"]
-        POI["fetch-pois.mjs\n(Schools & Aged-care facilities)"]
-    end
-
-    subgraph ClientEngine["Client Application (src/)"]
-        MAP["MapLibre GL v6 Canvas\n(Globe Projection, 3D Fill-Extrusions, Shaders)"]
-        STATE["Dynamic Feature State\n(Thermal ramps, solar caps, scenario lerps)"]
-        PLUME["Canvas Dispersion Plume\n(Gaussian particle wind simulation)"]
-        HUD["Reactive HUD & Side Panel\n(Precinct demographics, live KPIs, layer sync)"]
-        SIM["Scenario Engine\n(Multi-lever thermal & economic calculator)"]
-    end
-
-    USGS --> LST & NDVI
-    OSM --> BLD & POI
-    NASA & CAMS --> ClientEngine
-    NOM --> ClientEngine
-    Preprocessing --> ClientEngine
-```
-
----
-
-## Data Sources & Attribution
-
-| Dataset / Service | Provider | Purpose in TerraGrid 3D |
-| :--- | :--- | :--- |
-| **Landsat 8 Collection 2 (TIRS / OLI)** | USGS / NASA / Microsoft Planetary Computer | 100 m thermal surface temperature (LST) and 30 m NDVI vegetation drape |
-| **MODIS Terra / Aqua** | NASA GIBS | Global 8-day composite Land Surface Temperature & Aerosol Optical Depth (AOD) |
-| **Copernicus Atmosphere (CAMS)** | ECMWF / Copernicus via Open-Meteo | Real-time atmospheric PM2.5, air quality index, and live 2 m ambient temperatures |
-| **OpenStreetMap & Overpass** | OpenStreetMap Contributors | 3D building outlines, heights, levels, schools, and aged-care facilities |
-| **OpenFreeMap Liberty** | OpenFreeMap / MapLibre | Keyless high-performance vector basemap tiles |
-| **Nominatim & Photon** | OpenStreetMap / Komoot | Reverse address geocoding on building clicks and instant address autocompletion |
-
----
-
-## Quickstart & Local Setup
-
-### Prerequisites
-- Node.js (v18 or higher recommended)
-- Modern Chromium browser (Google Chrome, Microsoft Edge, or Brave)
-
-### Installation
+Needs Node.js 18+ and Chrome (or another Chromium browser).
 
 ```bash
-# Clone the repository
 git clone https://github.com/AranyaMaji/TerraGrid-3D.git
 cd TerraGrid-3D
-
-# Install dependencies (only vite and maplibre-gl)
 npm install
-
-# Start local development server
 npm run dev
 ```
 
-Open the displayed localhost URL (typically `http://localhost:5173`) in Chrome.
+Open the printed URL (usually `http://localhost:5173`). Everything works without any keys.
 
-### Production Build
+**Optional — live Gemini features.** The AI ranking and council brief call Gemini through the dev server, so the key never reaches the browser. Without a key they fall back to a built-in ranking and a template brief.
 
 ```bash
-# Build production bundle to dist/
-npm run build
+GEMINI_API_KEY=your-key npm run dev
+```
 
-# Preview production build locally
-npm run preview
+`GEMINI_MODEL` overrides the model (default `gemini-3.5-flash-lite`).
+
+**Optional — street sensor.** Flash `arduino/sensor/sensor.ino` to an Arduino Uno with a DS18B20 module on A0 (wiring in the file header), close the Serial Monitor, then click **Sensor** in the app and pick the port. Without a board the pin still shows a reading near the live air temperature.
+
+The dev server also tries to start a Cloudflare tunnel used for our team preview. If `cloudflared` is not installed it prints a warning and carries on.
+
+Production build: `npm run build`, then `npm run preview`.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Sources["External data"]
+        LS["Landsat 8 via Microsoft Planetary Computer<br/>100 m surface temp, 30 m NDVI"]
+        OSM["OpenStreetMap / Overpass<br/>buildings, heights, trees, schools, aged care"]
+        GIBS["NASA GIBS<br/>MODIS LST, aerosol optical depth"]
+        OM["Open-Meteo<br/>live temp, CAMS PM2.5 / AQI, CMIP6 trends"]
+        GEO["Nominatim + Photon<br/>addresses and search"]
+    end
+
+    subgraph Bake["Baked once (scripts/ → data/)"]
+        S1["fetch-buildings.mjs"]
+        S2["fetch-landsat.py, fetch-ndvi.py"]
+        S3["fetch-green.mjs, fetch-pois.mjs"]
+    end
+
+    subgraph App["Browser app (src/main.js)"]
+        MAP["MapLibre GL 3D map<br/>globe, extrusions, trees, plume"]
+        EN["Per-building energy model<br/>type, floor area, EUI, cooling share"]
+        OPT["Budget optimizer<br/>score per $ vs uniform rollout"]
+        UI["Explore / Compare / Plan / Deliver panels<br/>retrofit program, sensor pin"]
+    end
+
+    subgraph Dev["Vite dev server (vite.config.js)"]
+        API["/api/rank and /api/brief<br/>key stays server-side"]
+    end
+
+    LS --> S2
+    OSM --> S1 & S3
+    Bake --> App
+    GIBS & OM & GEO --> App
+    App <--> API
+    API <--> GEM["Google Gemini API"]
+    ARD["Arduino sensor"] -- Web Serial --> App
+```
+
+### How the numbers are made
+
+- **Roof heat** is the Landsat 8 surface temperature at each building footprint, compared with the area average. Tall towers are damped, since a 100 m pixel mostly sees the street around them.
+- **Energy and cost** come from a per-building model: building type from OSM, floor area from footprint × levels, typical energy use per m² for that type (NABERS / CBECS-style medians), and the share of it that goes to cooling. Local heat above the reference station adds cooling load.
+- **Retrofit savings** apply typical reductions per measure to each building, priced by area. The optimizer fills the budget greedily by priority score per dollar.
+- **2030 / 2050** warm every roof by the city's summer-max trend, the mean of 7 CMIP6 HighResMIP models from the Open-Meteo Climate API.
+- **Gemini only orders and explains.** It receives the computed totals and is told to quote them exactly and invent no figures.
+
+These are planning estimates from public data, not engineering audits.
+
+---
+
+## Repository layout
+
+```
+├── index.html            Single-page app shell
+├── src/main.js           Map, layers, energy model, optimizer, panels, program, sensor
+├── src/style.css         Design tokens and layout
+├── vite.config.js        Dev server: Gemini proxy (/api/rank, /api/brief), preview tunnel
+├── data/                 Baked buildings, trees, POIs, precincts, Landsat rasters
+├── scripts/              One-off fetchers that produced data/
+├── arduino/sensor/       Street sensor sketch
+├── docs/                 API notes, design reference, hackathon brief
+├── CHANGELOG.md          What shipped, item by item
+└── TODO.md               Build order
 ```
 
 ---
 
-## Keyboard & Interaction Shortcuts
+## Third-party & AI tools disclosure
 
-- **Click Any Building**: Inspect street address, building height, thermal differential vs local average, and solar yield.
-- **Click Any Precinct**: Focus camera on neighbourhood, display demographic breakdown and precinct-specific environmental readings.
-- **Search Bar**: Type any suburb, city, or street address to jump directly to it with smooth flight.
-- **2D / 3D Toggle**: Switch camera pitch between planar top-down view (0°) and isometric 3D perspective (60°).
-- **Layer Chips**: Toggle or combine Heat, Smoke, Canopy, and Solar layers at will.
-- **Test Canopy Scenario**: Open scenario card to simulate resilience interventions and export a council brief.
+### AI tools
 
----
+| Tool | How we used it |
+| :--- | :--- |
+| **Claude Code** (Anthropic, Claude Opus models) | Main coding assistant. Wrote most of the code, the data scripts and these docs, working from our task list, design and decisions. Every change was reviewed and checked in the browser by the team. |
+| **OpenAI Codex** | Coding assistant for some build sessions, same workflow as above. |
+| **Google Gemini API** (`gemini-3.5-flash-lite`) | Runs inside the app. Ranks the top 3 retrofit measures per suburb and writes the council brief text from numbers the app computed. |
 
-## Repository Structure
+No AI-generated images or datasets are used. All data comes from the sources below.
 
-```
-├── data/                      # Baked building geometries, thermal rasters & POIs
-│   ├── buildings-*.geojson    # 3D building footprints & heights for each city
-│   ├── lst-landsat*.png       # 100m feathered thermal surface temperature drapes
-│   ├── ndvi-landsat*.png      # 30m NDVI vegetation drapes
-│   ├── pois.geojson           # Verified schools and aged-care facilities
-│   └── precincts.geojson      # Municipal precinct boundaries & census data
-├── docs/                      # Technical notes, API verification, hackathon specs
-│   ├── API-NOTES.md           # Endpoints, queries, and projection parameters
-│   ├── design-reference.png   # Design system reference
-│   └── hackathon/             # Competition briefing, tracks, and resources
-├── scripts/                   # Data extraction and pre-baking pipelines
-│   ├── fetch-buildings.mjs    # OSM Overpass building polygon harvester
-│   ├── fetch-landsat.py       # Planetary Computer Landsat LST processor
-│   ├── fetch-ndvi.py          # Landsat NDVI and 3D tree crown generator
-│   └── fetch-pois.mjs         # Nominatim/OSM POI harvester
-├── src/                       # Application source code
-│   ├── main.js                # Core digital twin engine (MapLibre, state, HUD, simulation)
-│   └── style.css              # Technical UI design tokens & layout
-├── index.html                 # Single-page application shell
-├── package.json               # Lightweight dependency manifest
-├── CHANGELOG.md               # Shipped features log
-├── TODO.md                    # Roadmap and feature tracker
-└── LICENSE                    # MIT License
-```
+### Libraries
 
----
+| Library | License | Use |
+| :--- | :--- | :--- |
+| [MapLibre GL JS](https://maplibre.org/) 6 | BSD-3-Clause | 3D map rendering |
+| [Vite](https://vitejs.dev/) 8 | MIT | Dev server and build |
+| [Inter](https://fonts.google.com/specimen/Inter) (Google Fonts) | OFL | UI font |
 
-## Production path
+The Landsat bake scripts also use [Pillow](https://python-pillow.org/) (MIT-CMU). They are not needed to run the app.
 
-The retrofit program (offer letters, owner applications, stage tracking) keeps its status in the browser for the demo.
-In production:
+### Data and services
 
-- Letters go to the owner's address from the council's rates records, and ownership is confirmed before any work or payment.
-- The council view sits behind a staff login.
-- Payment waits for the installer's invoice and the next Landsat pass showing the roof running cooler.
+| Source | Provider | Use |
+| :--- | :--- | :--- |
+| Landsat 8 Collection 2 L2 (surface temperature, NDVI) | USGS / NASA, via Microsoft Planetary Computer | Roof heat and vegetation drapes |
+| MODIS LST and aerosol optical depth | NASA GIBS | Regional heat and smoke context |
+| Weather, CAMS air quality, CMIP6 climate trends | Open-Meteo (data from ECMWF / Copernicus and CMIP6 models) | Live temperature, PM2.5 / AQI, 2030 / 2050 projections |
+| Buildings, heights, trees, parks, schools, aged care | © OpenStreetMap contributors (ODbL), via Overpass | 3D city, trees, vulnerable sites |
+| Basemap tiles | OpenFreeMap | Vector basemap |
+| Geocoding and search | Nominatim (OSM), Photon (Komoot) | Building addresses, address search |
+| Precinct outlines, residents, age 65+ share, tree cover | Compiled by the team for each demo area (`data/precincts.geojson`) | Precinct panel and vulnerability weighting |
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+Code is [MIT](LICENSE). Map data © OpenStreetMap contributors, available under the ODbL.

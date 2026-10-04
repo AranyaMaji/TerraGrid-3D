@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — docs: README rewritten for the current app (four steps, energy model, Gemini, sensor) with the required third-party & AI tools disclosure.
 - 2026-10-04 — Sensor pin no longer inherits the Sensor button box (styles scoped to #sensor-btn).
 - 2026-10-04 — Street sensor pin fixed at 104 Clarence St, Sydney CBD.
 - 2026-10-04 — Rail: Assess renamed Explore, step numbers removed.
