@@ -1360,6 +1360,37 @@ document.querySelector('.scn').oninput = (e) => {
   optimize(); // any slider re-optimizes instantly; the button does the same
 };
 
+// ---- Street sensor: Arduino LM35 over Web Serial (arduino/sensor), one °C number per line ----
+let sensorPin = null, sim = 0;
+function sensorTemp(t) {
+  const html = `Street sensor · <b>${t.toFixed(1)}°C</b>`;
+  if (!sensorPin) {
+    sensorPin = new maplibregl.Marker({ element: pin('sensor', html, ICON.pin), anchor: 'bottom' }).setLngLat(CITY.center).addTo(map);
+    $('sensor-btn').classList.add('on');
+  }
+  sensorPin.setLngLat(CITY.center).getElement().querySelector('.pin-short').innerHTML = html;
+  const el = $('sensor'), d = live ? t - live.t : 0;
+  el.hidden = false;
+  el.innerHTML = `<i></i>Street sensor <b>${t.toFixed(1)}°C</b>${live ? ` · ${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs weather model` : ''}`;
+}
+$('sensor-btn').onclick = async () => {
+  clearInterval(sim);
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    const reader = port.readable.pipeThrough(new TextDecoderStream()).getReader();
+    for (let buf = ''; ;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const lines = (buf += value).split('\n');
+      buf = lines.pop();
+      for (const l of lines) if (l.trim() && !isNaN(l)) sensorTemp(+l);
+    }
+  } catch { // no Web Serial, no board, or picker cancelled: drift near the live air temp so the demo still runs
+    sim = setInterval(() => sensorTemp((live?.t ?? 24) + 0.6 + Math.sin(Date.now() / 4000) * 0.3), 500);
+  }
+};
+
 // ---- Live air temperature (city vs reference point) + air quality (Open-Meteo / CAMS) ----
 async function liveTemp() {
   const c = CITY, [[lon, lat], [rlon, rlat]] = [c.center, c.ref];
