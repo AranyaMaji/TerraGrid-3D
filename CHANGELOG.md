@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Left panel hidden on load and after closing it; selecting an area recentres without zooming out.
 - 2026-10-04 — Thermal-camera look: ironbow ramp (violet → magenta → red → amber → white-hot) on buildings, legend and the Landsat ground drape (recoloured in-browser from the greyscale scene, stronger opacity).
 - 2026-10-04 — Cooler-than-median buildings now bright blue instead of near-black slate; site opens on the last-picked city (default Sydney CBD), not Parramatta.
 - 2026-10-04 — Map UI pass: category-coloured pins with hover cards and far-zoom dots, boundaries on the ground under the 3D buildings (hover, selected casing, red compare ranks), popup priority bar, flat layer icons.

@@ -199,7 +199,7 @@ function restartIntro() {
 }
 
 // Workflow rail: Assess → Compare → Plan → Deliver. Steps map onto the body classes the panels already key off.
-document.getElementById('explore').onclick = () => { compare(false); closeScenario(); if (!flown) flyIn(); };
+document.getElementById('explore').onclick = () => { document.body.classList.remove('fresh'); compare(false); closeScenario(); if (!flown) flyIn(); };
 $('plan').onclick = $('d-plan').onclick = () => {
   document.body.classList.remove('deliver', 'briefed');
   $('s-export').textContent = 'Export council brief (PDF)';
@@ -867,7 +867,7 @@ function flyToBuilding(f) {
 const PAD = { top: 90, bottom: 60, left: 430, right: 120 };
 
 function select(name) {
-  if (name) compare(false);
+  if (name) compare(false), document.body.classList.remove('fresh');
   if (name === selected?.name) return;
   closeScenario();
   if (selected) map.setFeatureState({ source: 'precincts', id: selected.name }, { sel: false });
@@ -880,12 +880,14 @@ function select(name) {
     const b = [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
     label = new maplibregl.Marker({ element: pin('area', name), anchor: 'bottom' })
       .setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
-    map.fitBounds(b, { padding: PAD, pitch: 55, bearing: -20, maxZoom: 16.5, duration: 1600 });
+    // Frame the area, but never zoom out to do it: already closer in, just recentre.
+    const cam = map.cameraForBounds(b, { padding: PAD, bearing: -20, maxZoom: 16.5 });
+    map.easeTo({ ...cam, zoom: Math.max(cam.zoom, map.getZoom()), pitch: 55, duration: 1600 });
   }
   showPins();
   renderPanel();
 }
-$('p-close').onclick = () => select(null);
+$('p-close').onclick = () => (select(null), document.body.classList.add('fresh'));
 map.on('zoom', () => document.body.classList.toggle('far', map.getZoom() < 13.5));
 document.body.classList.add('far');
 

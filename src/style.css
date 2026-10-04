@@ -74,6 +74,8 @@ h1, h2, h3, p, ol { margin: 0; }
 .left { left: 12px; top: 12px; bottom: 12px; width: 372px; display: flex; flex-direction: column; }
 .right { right: 12px; top: 12px; bottom: 12px; width: 348px; display: none; flex-direction: column; }
 .scenario .right { display: flex; }
+/* No panel on page load until an area is picked (or Assess / Compare / Plan is opened). */
+body.fresh:not(.compare):not(.scenario) .left { display: none; }
 .left > section { display: none; flex-direction: column; flex: 1; min-height: 0; }
 body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) .scn, .deliver .dlv { display: flex; }
 .pb { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; }
