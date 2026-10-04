@@ -1,5 +1,7 @@
 # TerraGrid 3D — Urban Heat Retrofit Planner
 
+### TerraGrid 3D. From hundreds of pages to a plan a council can fund on Monday.
+
 [![Climate Hack-tion 2026](https://img.shields.io/badge/Climate%20Hack--tion%202026-Track%203%3A%20Resilient%20Cities-0f8b85.svg)](https://github.com/AranyaMaji/TerraGrid-3D)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
