@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Map UI pass: category-coloured pins with hover cards and far-zoom dots, boundaries on the ground under the 3D buildings (hover, selected casing, red compare ranks), popup priority bar, flat layer icons.
 - 2026-10-04 — Item 16b: offer-letter review dialog (recipient list, print one or all, send all, keyboard), cleaner area header, aligned map controls, no rail lines.
 - 2026-10-04 — Item 16: UI redesign — map-first layout, workflow rail (Assess / Compare / Plan / Deliver), floating light panels, layers card with inline legends.
 - 2026-10-04 — Item 8: Arduino DS18B20 street sensor streams °C over Web Serial to a live map pin and a panel line vs the weather model.

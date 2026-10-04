@@ -455,7 +455,7 @@ async function loadCity() {
   pois = all.features.filter((f) => f.properties.city === c.key);
   showPins();
   plumeMarkers.forEach((m) => m.remove());
-  plumeMarkers = c.plumes.map(({ at, name }) => new maplibregl.Marker({ element: pin('poi', 'Industrial', ICON.factory, `<span class="pin-name">${name}</span>Emission source`), anchor: 'bottom' }).setLngLat(at).addTo(map));
+  plumeMarkers = c.plumes.map(({ at, name }) => new maplibregl.Marker({ element: pin('poi ind', 'Industrial', ICON.factory, `<span class="pin-name">${name}</span><span class="pin-sub">Emission source</span>`), anchor: 'bottom' }).setLngLat(at).addTo(map));
   plumeMarkers.forEach((m) => (m.getElement().style.display = on.has('smoke') ? '' : 'none'));
 
   treesP = null;
@@ -727,6 +727,7 @@ function plumeFrame(now) {
 function $(id) { return document.getElementById(id); }
 const ICON = {
   pin: '<svg viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  sensor: '<svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0M8.5 12a3.5 3.5 0 0 1 7 0"/><circle cx="12" cy="12" r="1"/><path d="M12 13v8"/></svg>',
   factory: '<svg viewBox="0 0 24 24"><path d="M2 20V10l6 4v-4l6 4V4h4l2 16Z"/></svg>',
   school: '<svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>',
   aged: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>',
@@ -743,8 +744,9 @@ function pin(cls, text, icon = '', more = '') {
 // Hover detail: facility type + street, and the Landsat surface temp at the site vs the local building average.
 function poiMore({ name, kind, street }, [lon, lat]) {
   const t = lstAt(lon, lat), d = t - lstMed;
-  const heat = t == null ? '' : `<b class="${d > 0 ? 'hot' : 'cool'}">${t.toFixed(1)}°C surface · ${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs avg</b>`;
-  return `<span class="pin-name">${name}</span>${[kind, street].filter(Boolean).join(' · ')}${heat}`;
+  const c = d > 0 ? 'hot' : 'cool';
+  const heat = t == null ? '' : `<span class="pin-t">Surface<b class="${c}">${t.toFixed(1)}°C</b><i class="${c}">${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}° vs avg</i></span>`;
+  return `<span class="pin-name">${name}</span><span class="pin-sub">${[kind, street].filter(Boolean).join(' · ')}</span>${heat}`;
 }
 
 // Facilities in the selected precinct, else the whole city box (pois are baked per box).
@@ -763,17 +765,31 @@ function showPins() {
     }
   }
   markers.forEach((m) => m.remove());
-  markers = list.map((f) => new maplibregl.Marker({ element: pin('poi', f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' })
+  markers = list.map((f) => new maplibregl.Marker({ element: pin(`poi ${f.properties.type}`, f.properties.type === 'school' ? 'School' : 'Aged care', ICON[f.properties.type], poiMore(f.properties, f.geometry.coordinates)), anchor: 'bottom' })
     .setLngLat(f.geometry.coordinates).addTo(map));
 }
 
 function addPrecinctLayers() {
   const sel = ['boolean', ['feature-state', 'sel'], false];
   map.addSource('precincts', { type: 'geojson', data: EMPTY, promoteId: 'name' });
-  map.addLayer({ id: 'precinct-fill', type: 'fill', source: 'precincts', paint: { 'fill-color': '#0f8b85', 'fill-opacity': ['case', sel, 0.3, ['coalesce', ['feature-state', 'rk'], 0.06]] } }, 'bld-heat');
-  // Outline drawn over the buildings so it reads in 3D, like the design.
+  const hov = ['boolean', ['feature-state', 'hover'], false], rkN = ['to-number', ['coalesce', ['feature-state', 'rk'], 0]], rk = ['>', rkN, 0];
+  map.addLayer({ id: 'precinct-fill', type: 'fill', source: 'precincts', paint: {
+    'fill-color': ['case', sel, '#14b8a6', rk, '#c4363c', '#ffffff'],
+    'fill-opacity': ['case', sel, 0.12, rk, ['*', 1.4, rkN], hov, 0.06, 0] } }, 'bld-heat');
+  // Lines sit on the ground under the 3D buildings (buildings in front hide them) instead of floating over the roofs.
+  map.addLayer({ id: 'precinct-casing', type: 'line', source: 'precincts', layout: { 'line-join': 'round' },
+    paint: { 'line-color': '#0b1220', 'line-width': ['case', sel, 7, 0], 'line-opacity': 0.7 } }, 'bld-heat');
   map.addLayer({ id: 'precinct-line', type: 'line', source: 'precincts', layout: { 'line-join': 'round' },
-    paint: { 'line-color': ['case', sel, '#0f8b85', '#94a3b8'], 'line-width': ['case', sel, 4, 1.2], 'line-opacity': ['case', sel, 1, 0.6] } });
+    paint: { 'line-color': ['case', sel, '#14b8a6', rk, '#f87171', '#ffffff'], 'line-width': ['case', sel, 3, hov, 2, rk, 1.5, 1.2],
+      'line-opacity': ['case', sel, 1, hov, 0.9, rk, 0.85, 0.55] } }, 'bld-heat');
+  let hovered = null;
+  const hover = (id) => {
+    if (hovered) map.setFeatureState({ source: 'precincts', id: hovered }, { hover: false });
+    hovered = id;
+    if (id) map.setFeatureState({ source: 'precincts', id }, { hover: true });
+  };
+  map.on('mousemove', 'precinct-fill', (e) => e.features[0].id !== hovered && hover(e.features[0].id));
+  map.on('mouseleave', 'precinct-fill', () => hover(null));
   map.on('click', 'precinct-fill', (e) => select(e.features[0].properties.name));
   map.on('click', 'bld-heat', buildingPopup);
   map.on('mouseenter', 'bld-heat', () => (map.getCanvas().style.cursor = 'pointer'));
@@ -806,7 +822,7 @@ function buildingPopup(e) {
     `<div class="bp-grid"><div><span>Roof</span>${heat}</div><div><span>Height</span><b>${Math.round(p.height)} m</b></div>` +
     `<div><span>Solar</span><b>${Math.round(p.mwh)}</b><i>MWh/yr</i></div>` +
     `<div><span>Type</span><b>${TYPE_NAME[p.type]}</b></div><div><span>Best fix</span><b>${p.best ? MEASURES[p.best].name : '--'}</b></div><div><span>Payback</span>${pay}</div></div>` +
-    `<div class="bp-prio"><span>Retrofit priority</span><b>${pct(p)}</b><i>± ${band(p)} / 100</i></div>${dots(p, true)}` +
+    `<div class="bp-prio"><span>Retrofit priority</span><b>${pct(p)}</b><i>± ${band(p)} / 100</i></div><div class="bp-bar"><i style="width:${pct(p)}%"></i></div>${dots(p, true)}` +
     `<div class="bp-xy">${Math.abs(lat).toFixed(5)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lng).toFixed(5)}° ${lng < 0 ? 'W' : 'E'}</div>` + progHtml(f)).addTo(map);
   const el = popup.getElement();
   wireProg(el, f);
@@ -1447,9 +1463,9 @@ document.querySelector('.scn').oninput = (e) => {
 let sensorPin = null, sim = 0, base = null, port = null;
 const GAIN = 1; // on-screen change = GAIN x the change from the first reading (raise to exaggerate)
 function sensorTemp(t) {
-  const html = `Street sensor · <b>${t.toFixed(1)}°C</b>`;
+  const html = `<b>${t.toFixed(1)}°C</b> <span class="pin-sub">street sensor</span>`;
   if (!sensorPin) {
-    sensorPin = new maplibregl.Marker({ element: pin('sensor', html, ICON.pin), anchor: 'bottom' }).setLngLat(CITY.center).addTo(map);
+    sensorPin = new maplibregl.Marker({ element: pin('sensor', html, ICON.sensor), anchor: 'bottom' }).setLngLat(CITY.center).addTo(map);
     $('sensor-btn').classList.add('on');
   }
   sensorPin.setLngLat(CITY.center).getElement().querySelector('.pin-short').innerHTML = html;
