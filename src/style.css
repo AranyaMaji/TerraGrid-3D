@@ -61,9 +61,7 @@ h1, h2, h3, p, ol { margin: 0; }
 .rail { position: fixed; left: 0; top: 56px; bottom: 0; width: 76px; z-index: 5; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; background: #fff; border-right: 1px solid var(--line); }
 .step { position: relative; width: 64px; padding: 10px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 5px; border-radius: 8px; color: var(--muted); font-size: 12px; font-weight: 500; }
 .step:hover { color: var(--ink); background: var(--surf); }
-.step .n { position: absolute; top: 6px; right: 10px; font-size: 10px; font-weight: 600; color: var(--faint); }
 .step.active { color: var(--teal); background: var(--teal-l); font-weight: 600; }
-.step.active .n { color: var(--teal); }
 .public .rail { display: none; }
 
 /* ---- map stage + floating panels ---- */
@@ -74,7 +72,7 @@ h1, h2, h3, p, ol { margin: 0; }
 .left { left: 12px; top: 12px; bottom: 12px; width: 372px; display: flex; flex-direction: column; }
 .right { right: 12px; top: 12px; bottom: 12px; width: 348px; display: none; flex-direction: column; }
 .scenario .right { display: flex; }
-/* No panel on page load until an area is picked (or Assess / Compare / Plan is opened). */
+/* No panel on page load until an area is picked (or Explore / Compare / Plan is opened). */
 body.fresh:not(.compare):not(.scenario) .left { display: none; }
 .left > section { display: none; flex-direction: column; flex: 1; min-height: 0; }
 body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) .scn, .deliver .dlv { display: flex; }

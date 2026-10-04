@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Rail: Assess renamed Explore, step numbers removed.
 - 2026-10-04 — No camera move on area select or opening Compare; the view stays put.
 - 2026-10-04 — Priority dropdown replaced with four styled preset buttons; Costs & assumptions removed.
 - 2026-10-04 — Plan and results panels redesigned: numbered steps (budget, priority presets with fine-tune, AI upgrade checklist with Edit / Why / costs), results led by yearly savings with cost rows and benefit list; image loads no longer stall in hidden tabs.

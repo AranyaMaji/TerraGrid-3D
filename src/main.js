@@ -198,7 +198,7 @@ function restartIntro() {
   setTimeout(flyIn, 4000);
 }
 
-// Workflow rail: Assess → Compare → Plan → Deliver. Steps map onto the body classes the panels already key off.
+// Workflow rail: Explore → Compare → Plan → Deliver. Steps map onto the body classes the panels already key off.
 document.getElementById('explore').onclick = () => { document.body.classList.remove('fresh'); compare(false); closeScenario(); if (!flown) flyIn(); };
 $('plan').onclick = $('d-plan').onclick = () => {
   document.body.classList.remove('deliver', 'briefed');
