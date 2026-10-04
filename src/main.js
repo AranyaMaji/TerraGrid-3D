@@ -1362,7 +1362,7 @@ document.querySelector('.scn').oninput = (e) => {
 
 // ---- Street sensor: Arduino DS18B20 over Web Serial (arduino/sensor), one °C number per line ----
 let sensorPin = null, sim = 0, base = null, port = null;
-const GAIN = 8; // demo: on-screen change = 8x the real change from the first reading
+const GAIN = 16; // demo: on-screen change = 16x the real change; the sensor step (0.0625 °C) shows as 1 °C
 function sensorTemp(t) {
   const html = `Street sensor · <b>${t.toFixed(1)}°C</b>`;
   if (!sensorPin) {
