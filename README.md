@@ -19,9 +19,9 @@ Councils have money for cool roofs, trees and solar, but no fast way to answer: 
 
 ## What TerraGrid 3D does
 
-One page, four steps, on real satellite and building data for five cities (Parramatta, Sydney CBD, Melbourne CBD, Central London, Suva in Fiji):
+One page, four steps, built on public satellite and building data for five cities (Parramatta, Sydney CBD, Melbourne CBD, Central London, Suva in Fiji):
 
-1. **Explore** — fly from a globe into the city. Every building is coloured by its real Landsat roof temperature. Toggle surface heat, smoke and PM2.5, tree canopy and solar potential, alone or together. Click any building or precinct for its numbers.
+1. **Explore** — fly from a globe into the city. Every building is coloured by its estimated roof heat. Toggle surface heat, smoke and PM2.5, tree canopy and solar potential, alone or together. Click any building or precinct for its numbers.
 2. **Compare** — rank every precinct by extra cooling cost, roof heat or vulnerable residents. Switch between **Now, 2030 and 2050** to see how warming changes the ranking.
 3. **Plan** — pick from six retrofit measures (cool roofs, trees, rooftop solar, insulation, efficient HVAC, smart controls), set a budget, and choose a priority (biggest savings, fastest payback, protect vulnerable, balanced). The optimizer funds the best roofs first and shows savings per year, payback, upfront cost, MWh, CO₂ avoided, and how much better it does than a uniform rollout. Gemini recommends the top 3 measures for that suburb with a reason each.
 4. **Deliver** — generate a one-page council brief (hazard, funded plan, return on investment), then run the **retrofit program**: send coded offer letters to owners of the funded buildings, let owners apply from the public map, and track each roof from Offered to Verified.
@@ -51,7 +51,7 @@ GEMINI_API_KEY=your-key npm run dev
 
 `GEMINI_MODEL` overrides the model (default `gemini-3.5-flash-lite`).
 
-**Optional — street sensor.** Flash `arduino/sensor/sensor.ino` to an Arduino Uno with a DS18B20 module on A0 (wiring in the file header), close the Serial Monitor, then click **Sensor** in the app and pick the port. Without a board the pin still shows a reading near the live air temperature.
+**Optional — street sensor.** Flash `arduino/sensor/sensor.ino` to an Arduino Uno with a DS18B20 module on A0 (wiring in the file header), close the Serial Monitor, then click **Sensor** in the app and pick the port. Without a board the pin shows a modelled reading.
 
 The dev server also tries to start a Cloudflare tunnel used for our team preview. If `cloudflared` is not installed it prints a warning and carries on.
 
@@ -99,13 +99,13 @@ flowchart TD
 
 ### How the numbers are made
 
-- **Roof heat** is the Landsat 8 surface temperature at each building footprint, compared with the area average. Tall towers are damped, since a 100 m pixel mostly sees the street around them.
+- **Roof heat** starts from Landsat 8 surface temperature where a scene is baked, otherwise from regional heat and footprint, height and green-space proxies, compared with the area average.
 - **Energy and cost** come from a per-building model: building type from OSM, floor area from footprint × levels, typical energy use per m² for that type (NABERS / CBECS-style medians), and the share of it that goes to cooling. Local heat above the reference station adds cooling load.
 - **Retrofit savings** apply typical reductions per measure to each building, priced by area. The optimizer fills the budget greedily by priority score per dollar.
 - **2030 / 2050** warm every roof by the city's summer-max trend, the mean of 7 CMIP6 HighResMIP models from the Open-Meteo Climate API.
 - **Gemini only orders and explains.** It receives the computed totals and is told to quote them exactly and invent no figures.
 
-These are planning estimates from public data, not engineering audits.
+All figures are modelled planning estimates, not measurements or audits. Some demo-area inputs are compiled by the team.
 
 ---
 
