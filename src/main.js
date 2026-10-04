@@ -861,9 +861,6 @@ function flyToBuilding(f) {
   map.once('moveend', () => buildingPopup({ features: [{ id: f.id }], lngLat: { lng, lat } }));
 }
 
-// Keep fitted areas clear of the floating panels (left panel + layers card, right results panel).
-const PAD = { top: 90, bottom: 60, left: 430, right: 120 };
-
 function select(name) {
   if (name) compare(false), document.body.classList.remove('fresh');
   if (name === selected?.name) return;
@@ -878,9 +875,6 @@ function select(name) {
     const b = [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
     label = new maplibregl.Marker({ element: pin('area', name), anchor: 'bottom' })
       .setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
-    // Frame the area, but never zoom out to do it: already closer in, just recentre.
-    const cam = map.cameraForBounds(b, { padding: PAD, bearing: -20, maxZoom: 16.5 });
-    map.easeTo({ ...cam, zoom: Math.max(cam.zoom, map.getZoom()), pitch: 55, duration: 1600 });
   }
   showPins();
   renderPanel();
@@ -922,8 +916,6 @@ function compare(open) {
   $('compare').classList.toggle('active', open);
   if (!open) return precincts.forEach((p) => map.setFeatureState({ source: 'precincts', id: p.properties.name }, { rk: null }));
   select(null);
-  const pts = precincts.flatMap((p) => p.geometry.coordinates[0]), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-  if (pts.length) map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: PAD, pitch: 45, bearing: -20, duration: 1600 });
   renderCompare();
 }
 function renderCompare() {
