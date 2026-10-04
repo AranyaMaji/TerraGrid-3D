@@ -1384,7 +1384,7 @@ $('sensor-btn').onclick = async () => {
       if (done) break;
       const lines = (buf += value).split('\n');
       buf = lines.pop();
-      for (const l of lines) if (l.trim() && !isNaN(l)) sensorTemp(+l);
+      for (const l of lines) if (l.trim() && +l > -100) sensorTemp(+l); // -127 = DS18B20 not found
     }
   } catch { // no Web Serial, no board, or picker cancelled: drift near the live air temp so the demo still runs
     sim = setInterval(() => sensorTemp((live?.t ?? 24) + 0.6 + Math.sin(Date.now() / 4000) * 0.3), 500);

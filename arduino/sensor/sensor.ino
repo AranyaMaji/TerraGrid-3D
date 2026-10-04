@@ -1,18 +1,24 @@
-// TerraGrid street sensor: Arduino Uno + XC3700 (LM35, 10 mV per °C).
-// Wiring: S (signal) -> A0, + (VCC) -> 5V, - (GND) -> GND.
+// TerraGrid street sensor: Arduino Uno + Keyestudio DS18B20 module.
+// Wiring: S -> D2, V -> 5V, G -> GND. Reads -127 = no sensor found (check wiring).
+// Needs libraries: OneWire, DallasTemperature (Library Manager).
 // Prints the temperature in °C, one number per line, twice a second at 9600 baud.
 // The web app reads it over Web Serial ("Sensor" button). Close the IDE Serial Monitor first.
 
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
 const float OFFSET_C = 0.0;  // calibration: add/subtract if it reads off vs a known thermometer
+
+OneWire wire(2);
+DallasTemperature sensor(&wire);
 
 void setup() {
   Serial.begin(9600);
+  sensor.begin();
 }
 
 void loop() {
-  long sum = 0;
-  for (int i = 0; i < 20; i++) sum += analogRead(A0);  // average 20 reads to smooth noise
-  float volts = sum / 20.0 * 5.0 / 1023.0;
-  Serial.println(volts * 100.0 + OFFSET_C, 1);         // 10 mV per °C
+  sensor.requestTemperatures();
+  Serial.println(sensor.getTempCByIndex(0) + OFFSET_C, 1);
   delay(500);
 }
