@@ -7,7 +7,7 @@
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
 [![MapLibre GL](https://img.shields.io/badge/MapLibre%20GL-v6.11-396afc.svg)](https://maplibre.org/)
 
-> **A 3D digital twin that shows a council which roofs are costing its residents the most in heat, and which retrofits to fund first.**
+> **A 3D digital twin that shows a council which roofs are costing its residents the most, in heat, cooling bills, smoke and PM2.5, lost canopy, untapped solar, carbon and more, now and out to 2050, and which retrofits to fund first.**
 
 Built for the **EU / MLAI Climate Hack-tion 2026**, Track 3: Resilient Cities & Buildings.
 
