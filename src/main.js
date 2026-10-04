@@ -1360,8 +1360,8 @@ document.querySelector('.scn').oninput = (e) => {
   optimize(); // any slider re-optimizes instantly; the button does the same
 };
 
-// ---- Street sensor: Arduino LM35 over Web Serial (arduino/sensor), one °C number per line ----
-let sensorPin = null, sim = 0, base = null;
+// ---- Street sensor: Arduino DS18B20 over Web Serial (arduino/sensor), one °C number per line ----
+let sensorPin = null, sim = 0, base = null, port = null;
 const GAIN = 8; // demo: on-screen change = 8x the real change from the first reading
 function sensorTemp(t) {
   const html = `Street sensor · <b>${t.toFixed(1)}°C</b>`;
@@ -1375,19 +1375,23 @@ function sensorTemp(t) {
   el.innerHTML = `<i></i>Street sensor <b>${t.toFixed(1)}°C</b>${live ? ` · ${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs weather model` : ''}`;
 }
 $('sensor-btn').onclick = async () => {
+  if (port) return; // already connected; a second open() would fail and start the fallback alongside
   clearInterval(sim);
   try {
-    const port = await navigator.serial.requestPort();
+    port = await navigator.serial.requestPort();
     await port.open({ baudRate: 9600 });
     const reader = port.readable.pipeThrough(new TextDecoderStream()).getReader();
-    for (let buf = ''; ;) {
+    for (let buf = '', first = true; ;) {
       const { value, done } = await reader.read();
       if (done) break;
       const lines = (buf += value).split('\n');
       buf = lines.pop();
-      for (const l of lines) if (l.trim() && +l > -100) sensorTemp((base ??= +l) + (+l - base) * GAIN); // -127 = DS18B20 not found
+      // Skip the first line (the board resets on open, so it can be half a number); -127 = DS18B20 not found.
+      for (const l of lines.slice(first ? 1 : 0)) { const t = parseFloat(l); if (t > -40 && t < 85) sensorTemp((base ??= t) + (t - base) * GAIN); }
+      if (lines.length) first = false;
     }
   } catch { // no Web Serial, no board, or picker cancelled: drift near the live air temp so the demo still runs
+    port = null;
     sim = setInterval(() => sensorTemp((live?.t ?? 24) + 0.6 + Math.sin(Date.now() / 4000) * 0.3), 500);
   }
 };
