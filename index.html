@@ -6,143 +6,135 @@
   <title>TerraGrid 3D</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <header class="nav">
-    <div class="logo">TerraGrid 3D</div>
-    <nav class="tabs">
-      <button class="tab active" id="explore">Explore</button>
-      <button class="tab" id="compare">Compare areas</button>
-      <button class="tab">Scenarios</button>
-    </nav>
-    <div class="nav-right">
-      <div class="view" id="view"><button data-v="public">Public</button><button data-v="council" class="on">Council</button></div>
-      <button class="pill" id="demo">Demo</button>
-      <span class="sep"></span>
-      <a class="nav-link" href="#">Data &amp; methods</a>
-      <span class="sep"></span>
-      <button class="icon-btn" aria-label="Help">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>
-      </button>
+  <header class="top">
+    <div class="brand"><span class="mark"><svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg></span>TerraGrid</div>
+    <span class="vr"></span>
+    <button class="loc" id="loc" title="Switch city"><span id="crumb">Sydney</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" id="search" placeholder="Search an address, suburb or city" autocomplete="off" spellcheck="false" />
+      <ul id="sugg" class="sugg" hidden></ul>
+    </label>
+    <div class="seg yr" id="year" aria-label="Projection year">
+      <button data-y="2026" class="on">Now</button><button data-y="2030">2030</button><button data-y="2050">2050</button>
     </div>
+    <div class="seg" id="view" aria-label="Audience"><button data-v="council" class="on">Council</button><button data-v="public">Public</button></div>
+    <span class="vr"></span>
+    <button class="tl" id="demo"><svg viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></svg>Tour</button>
+    <a class="tl" href="#">Methods</a>
+    <button class="ib" aria-label="Help"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
   </header>
 
-  <main class="app">
-    <section class="map-wrap">
-      <div id="map"></div>
+  <nav class="rail" aria-label="Workflow">
+    <button class="step active" id="explore"><span class="n">1</span><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Assess</button>
+    <span class="link"></span>
+    <button class="step" id="compare"><span class="n">2</span><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Compare</button>
+    <span class="link"></span>
+    <button class="step" id="plan"><span class="n">3</span><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Plan</button>
+    <span class="link"></span>
+    <button class="step" id="deliver"><span class="n">4</span><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Deliver</button>
+  </nav>
 
-      <div class="toolbar">
-        <label class="ctl search">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="text" id="search" placeholder="Search any address or city" autocomplete="off" spellcheck="false" />
-          <ul id="sugg" class="sugg" hidden></ul>
-        </label>
-        <div class="ctl chips" id="layers">
-          <button data-k="heat" class="on" style="--c:#e5484d"><svg viewBox="0 0 24 24"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0Z"/></svg>Heat</button>
-          <button data-k="smoke" style="--c:#a16207"><svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/></svg>Smoke</button>
-          <button data-k="canopy" style="--c:#15803d"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg>Canopy</button>
-          <button data-k="solar" style="--c:#d97706"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Solar</button>
-          <button data-k="prio" style="--c:#0f8b85"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Priority</button>
-        </div>
-        <div class="ctl seg">
-          <button id="btn-2d">2D</button>
-          <button id="btn-3d" class="on">3D</button>
-        </div>
-        <div class="ctl seg" id="year">
-          <button data-y="2026" class="on">Now</button>
-          <button data-y="2030">2030</button>
-          <button data-y="2050">2050</button>
-        </div>
-        <div class="ctl seg"><button id="sensor-btn" title="Connect the Arduino street sensor">Sensor</button></div>
-      </div>
+  <main class="stage">
+    <div id="map"></div>
 
-      <div class="legend" id="legend"></div>
-      <div class="prog" id="prog" hidden></div>
-
+    <section class="pnl layers" id="layers" aria-label="Map layers">
+      <button data-k="heat" class="lt on" style="--c:#c4363c"><span class="lsw"><svg viewBox="0 0 24 24"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0Z"/></svg></span>Surface heat<span class="tg"></span></button>
+      <div class="lg" id="lg-heat"></div>
+      <button data-k="smoke" class="lt" style="--c:#8a6136"><span class="lsw"><svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/></svg></span>Smoke &amp; PM2.5<span class="tg"></span></button>
+      <div class="lg" id="lg-smoke"></div>
+      <button data-k="canopy" class="lt" style="--c:#2f8a4c"><span class="lsw"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg></span>Tree canopy<span class="tg"></span></button>
+      <div class="lg" id="lg-canopy"></div>
+      <button data-k="solar" class="lt" style="--c:#b7860b"><span class="lsw"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>Solar potential<span class="tg"></span></button>
+      <div class="lg" id="lg-solar"></div>
+      <button data-k="prio" class="lt" style="--c:#0f766e"><span class="lsw"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Retrofit priority<span class="tg"></span></button>
+      <div class="lg" id="lg-prio"></div>
     </section>
 
-    <aside class="panel">
-      <div class="crumbs"><span id="crumb">Sydney</span> / <span>Selected area</span>
-        <button class="icon-btn close" id="p-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </div>
-      <h1 id="p-name">Parramatta</h1>
+    <div class="ctrls">
+      <button class="sensor" id="sensor-btn" title="Connect the Arduino street sensor"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0M8.5 12a3.5 3.5 0 0 1 7 0"/><circle cx="12" cy="12" r="1"/><path d="M12 13v8"/></svg>Sensor</button>
+      <div class="cg"><button id="btn-2d">2D</button><button id="btn-3d" class="on">3D</button></div>
+    </div>
 
-      <div class="eyebrow live" id="eyebrow">Air temperature now</div>
-      <div class="big" id="temp">--.-°C</div>
-      <div class="delta" id="delta">&nbsp;</div>
-      <div class="extra" id="extra"></div>
-      <div class="s-line" id="sensor" hidden></div>
-      <section class="cmp">
-        <div class="eyebrow">Rank areas by</div>
-        <div class="levers" id="c-sort"><button class="on" data-s="usd">Cooling cost</button><button data-s="heat">Roof heat</button><button data-s="vul">Vulnerable</button></div>
-        <ol class="cmp-list" id="c-list"></ol>
+    <!-- Left panel: one section per workflow step -->
+    <aside class="pnl left" id="left">
+      <section class="area">
+        <div class="pb">
+          <div class="hd"><div><div class="eb">Selected area</div><h1 class="h1" id="p-name">Parramatta</h1></div>
+            <button class="ib" id="p-close" aria-label="Clear selection"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+          <div class="now">
+            <div><div class="eb live" id="eyebrow">Air temperature now</div><div class="big" id="temp">--.-°C</div></div>
+            <div class="delta" id="delta">&nbsp;</div>
+          </div>
+          <div class="s-line" id="sensor" hidden></div>
+          <div class="card cost"><div class="cost-v" id="extra"></div><div class="sub" id="extra-l">Extra cooling cost caused by local heat</div></div>
+          <div class="sec"><h2 class="h2">What the map shows here</h2><div class="lrows" id="lrows"></div></div>
+          <div class="sec"><h2 class="h2">People &amp; places</h2>
+            <div class="g2 stats">
+              <div class="tile"><div class="l"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>Residents</div><div class="v" id="p-pop">--</div></div>
+              <div class="tile"><div class="l"><svg viewBox="0 0 24 24"><circle cx="11" cy="4.5" r="2"/><path d="M11 8v6l-3 7M11 14l3 7M8 11l3-3 3 2 2 1M18 12v9"/></svg>Age 65+</div><div class="v" id="p-age">--</div></div>
+              <div class="tile"><div class="l"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>Schools</div><div class="v" id="p-schools">--</div></div>
+              <div class="tile"><div class="l"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"/><path d="M12 17s-3-1.8-3-4a1.6 1.6 0 0 1 3-1 1.6 1.6 0 0 1 3 1c0 2.2-3 4-3 4z"/></svg>Aged care</div><div class="v" id="p-aged">--</div></div>
+            </div></div>
+          <div class="pub-hint"><b>Own a building here?</b> Click it on the map to check your roof's heat and apply for a council-funded retrofit.</div>
+        </div>
+        <div class="pf council"><button class="btn pri grow" id="p-plan">Plan retrofits for this area<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button class="btn" id="p-cmp">Compare</button></div>
       </section>
-      <div class="lrows" id="lrows"></div>
 
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-h"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/><circle cx="4.5" cy="10" r="2"/><circle cx="19.5" cy="10" r="2"/><path d="M1 19v-1a3.5 3.5 0 0 1 4-3.4M23 19v-1a3.5 3.5 0 0 0-4-3.4"/></svg>Residents</div>
-          <div class="stat-v" id="p-pop">64.7k</div>
+      <section class="cmp">
+        <div class="pb">
+          <div><div class="eb">Compare areas</div><h1 class="h1">Where heat costs most</h1></div>
+          <div class="sec"><div class="eb">Rank by</div>
+            <div class="seg full" id="c-sort"><button class="on" data-s="usd">Cooling cost</button><button data-s="heat">Roof heat</button><button data-s="vul">Vulnerable</button></div></div>
+          <ol class="cmp-list" id="c-list"></ol>
         </div>
-        <div class="stat">
-          <div class="stat-h"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="8" r="3"/><path d="M16 15a5 5 0 0 1 6 5v1"/></svg>Age 65+</div>
-          <div class="stat-v" id="p-age">18%</div>
-        </div>
-        <div class="stat">
-          <div class="stat-h"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>Schools</div>
-          <div class="stat-v" id="p-schools">11</div>
-        </div>
-        <div class="stat">
-          <div class="stat-h"><svg viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>Aged care</div>
-          <div class="stat-v" id="p-aged">14</div>
-        </div>
-      </div>
-
-      <button class="cta">Test canopy scenario
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </button>
-      <div class="pub-hint"><b>Own a building here?</b> Click it on the map to check your roof's heat and apply for a council-funded retrofit.</div>
+      </section>
 
       <section class="scn">
-        <div class="scn-h">
-          <button class="icon-btn" id="s-back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-          <div><div class="eyebrow">Cooling scenario</div><div class="scn-where" id="s-where"></div></div>
-          <button class="ghost sm" id="s-reset">Reset</button>
-        </div>
-        <button class="ai" id="s-ai" title="Use this mix">
-          <svg viewBox="0 0 24 24"><defs><linearGradient id="spark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8ef7"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path fill="url(#spark)" d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z"/></svg>
-          <div><div class="ai-h">AI recommends <span>Use this mix</span></div><ol id="ai-list"></ol></div>
-        </button>
-        <div class="levers" id="levers">
-          <button class="on" data-m="roofs">Cool roofs</button><button class="on" data-m="trees">Tree canopy</button><button class="on" data-m="solar">Rooftop solar</button>
-          <button class="on" data-m="insul">Insulation</button><button class="on" data-m="hvac">Efficient HVAC</button><button class="on" data-m="ctrl">Smart controls</button>
-        </div>
-        <div class="wts">
-          <label>Savings <b></b><input type="range" data-w="nS" min="0" max="2" step="0.1" value="1" /></label>
-          <label>Payback <b></b><input type="range" data-w="nP" min="0" max="2" step="0.1" value="1" /></label>
-          <label>Vulnerable <b></b><input type="range" data-w="nV" min="0" max="2" step="0.1" value="1" /></label>
-        </div>
-        <div class="bud">
-          <label class="cov">Budget <b id="s-bud-v">$2.0M</b>
-            <input type="range" id="s-bud" min="0.5" max="5" step="0.1" value="2" />
-          </label>
-          <button class="opt-btn" id="s-opt">Optimize</button>
-        </div>
-        <div class="opt">
-          <div class="opt-m">
-            <div><div class="kpi-v cool" id="o-x">--</div><div class="kpi-l">more cooling per $ vs uniform rollout</div></div>
-            <div><div class="kpi-v" id="o-res">--</div><div class="kpi-l">vulnerable residents protected</div></div>
+        <div class="pb">
+          <div class="hd">
+            <div><div class="eb">Plan · <span id="s-where"></span></div><h1 class="h1">Retrofit scenario</h1></div>
+            <div class="hd-a"><button class="btn sm ghost" id="s-reset">Reset</button><button class="ib" id="s-back" aria-label="Back to area"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
           </div>
-          <ol class="targets" id="o-top"></ol>
-          <button class="opt-btn send" id="o-send"></button>
+          <button class="ai" id="s-ai" title="Use this mix">
+            <svg viewBox="0 0 24 24"><path d="M12 3c.5 4.5 4 8 8.5 8.5C16 12 12.5 15.5 12 20c-.5-4.5-4-8-8.5-8.5C8 11 11.5 7.5 12 3z"/></svg>
+            <div><div class="ai-h">AI recommended mix <span>Use this mix</span></div><ol id="ai-list"></ol></div>
+          </button>
+          <div class="sec"><h2 class="h2">Measures</h2>
+            <div class="levers" id="levers">
+              <button class="on" data-m="roofs">Cool roofs<small>$45 / m² roof</small></button><button class="on" data-m="trees">Tree canopy<small>$900 / tree</small></button>
+              <button class="on" data-m="solar">Rooftop solar<small>$180 / m² roof</small></button><button class="on" data-m="insul">Insulation<small>$35 / m² roof</small></button>
+              <button class="on" data-m="hvac">Efficient HVAC<small>$60 / m² floor</small></button><button class="on" data-m="ctrl">Smart controls<small>$8 / m² floor</small></button>
+            </div></div>
+          <div class="sec wts"><h2 class="h2">What matters most</h2>
+            <label>Savings <b></b><input type="range" data-w="nS" min="0" max="2" step="0.1" value="1" /></label>
+            <label>Payback <b></b><input type="range" data-w="nP" min="0" max="2" step="0.1" value="1" /></label>
+            <label>Vulnerable people <b></b><input type="range" data-w="nV" min="0" max="2" step="0.1" value="1" /></label>
+          </div>
+          <div class="card bud">
+            <label class="cov">Budget <b id="s-bud-v">$2.0M</b><input type="range" id="s-bud" min="0.5" max="5" step="0.1" value="2" /></label>
+          </div>
         </div>
-        <div class="brief">
-          <div class="eyebrow">Council brief</div><div class="b-meta" id="b-meta"></div>
-          <h3>Heat hazard</h3><p id="b-hazard"></p>
-          <h3>Funded plan</h3><p id="b-plan"></p>
-          <h3>Return on investment</h3><p id="b-roi"></p>
+        <div class="pf"><button class="btn pri grow" id="s-opt"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Optimize</button></div>
+      </section>
+
+      <section class="dlv">
+        <div class="pb">
+          <div><div class="eb">Deliver</div><h1 class="h1">Retrofit program</h1></div>
+          <div class="prog" id="prog" hidden></div>
+          <p class="dlv-empty">No buildings in the program yet. Optimize a plan, then send offer letters to the owners.</p>
         </div>
+        <div class="pf"><button class="btn grow" id="d-letters">Offer letters</button><button class="btn grow" id="d-plan">Back to plan</button></div>
+      </section>
+    </aside>
+
+    <!-- Right panel: scenario results, then the council brief -->
+    <aside class="pnl right" id="res">
+      <div class="pb">
+        <div class="hd"><div class="eb">Results</div></div>
         <div class="kpis">
           <div><div class="kpi-v cool" id="k-usd">$0k</div><div class="kpi-l">Saved per year</div></div>
           <div><div class="kpi-v" id="k-pay">0.0 yrs</div><div class="kpi-l">Payback</div></div>
@@ -151,25 +143,39 @@
           <div><div class="kpi-v cool" id="k-co2">0</div><div class="kpi-l">t CO₂/yr avoided</div></div>
           <div><div class="kpi-v" id="k-n">0</div><div class="kpi-l">Buildings reached</div></div>
         </div>
-        <button class="cta" id="s-export">Export council brief (PDF)</button>
-      </section>
+        <div class="opt">
+          <div class="opt-x"><div class="kpi-v cool" id="o-x">--</div><div class="kpi-l">more cooling per dollar than a uniform rollout</div></div>
+          <div class="card opt-r"><b id="o-res">--</b> vulnerable residents protected</div>
+          <div class="sec"><h2 class="h2">Fund these first</h2><ol class="targets" id="o-top"></ol></div>
+        </div>
+        <div class="brief">
+          <div class="eb">Council brief</div><div class="b-meta" id="b-meta"></div>
+          <h3>Heat hazard</h3><p id="b-hazard"></p>
+          <h3>Funded plan</h3><p id="b-plan"></p>
+          <h3>Return on investment</h3><p id="b-roi"></p>
+        </div>
+      </div>
+      <div class="pf col">
+        <button class="btn pri" id="o-send"></button>
+        <button class="btn" id="s-export">Export council brief (PDF)</button>
+      </div>
     </aside>
   </main>
 
   <div class="letter-wrap" id="letter" hidden>
     <article class="letter">
-      <div class="l-top"><div class="eyebrow">Retrofit program</div><div class="l-date" id="l-date"></div></div>
+      <div class="l-top"><div class="eb">Retrofit program</div><div class="l-date" id="l-date"></div></div>
       <div class="l-to">To the owner of<b id="l-to"></b></div>
       <h2>Your building qualifies for a fully funded energy retrofit</h2>
       <p id="l-hot"></p>
       <p id="l-fund"></p>
       <div class="l-code">Your code <b id="l-code"></b><span>To accept, open TerraGrid, switch to Public, click your building and enter this code.</span></div>
       <div class="l-nav">
-        <button class="icon-btn" id="l-prev" aria-label="Previous letter"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="ib" id="l-prev" aria-label="Previous letter"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <span id="l-n"></span>
-        <button class="icon-btn" id="l-next" aria-label="Next letter"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-        <button class="ghost sm" id="l-print">Print</button>
-        <button class="opt-btn" id="l-close">Done</button>
+        <button class="ib" id="l-next" aria-label="Next letter"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="btn sm" id="l-print">Print</button>
+        <button class="btn sm pri" id="l-close">Done</button>
       </div>
     </article>
   </div>

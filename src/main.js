@@ -195,7 +195,30 @@ function restartIntro() {
   setTimeout(flyIn, 4000);
 }
 
-document.getElementById('explore').onclick = () => (compare(false), flyIn());
+// Workflow rail: Assess → Compare → Plan → Deliver. Steps map onto the body classes the panels already key off.
+document.getElementById('explore').onclick = () => { compare(false); closeScenario(); if (!flown) flyIn(); };
+$('plan').onclick = $('d-plan').onclick = () => {
+  document.body.classList.remove('deliver', 'briefed');
+  $('s-export').textContent = 'Export council brief (PDF)';
+  if (!document.body.classList.contains('scenario')) openScenario();
+};
+$('deliver').onclick = () => {
+  if (!document.body.classList.contains('scenario')) openScenario();
+  if (!document.body.classList.contains('scenario')) return;
+  document.body.classList.add('deliver');
+  renderProgram();
+  if (!document.body.classList.contains('briefed')) makeBrief();
+};
+$('d-letters').onclick = () => (last?.chosen.length ? sendOffers() : $('plan').onclick());
+$('p-cmp').onclick = () => compare(true);
+$('loc').onclick = () => $('search').focus();
+function syncRail() {
+  const c = document.body.classList;
+  if (!c.contains('scenario') && c.contains('deliver')) c.remove('deliver'); // remove() rewrites the attribute even when absent, which would re-fire the observer forever
+  const m = c.contains('deliver') ? 'deliver' : c.contains('scenario') ? 'plan' : c.contains('compare') ? 'compare' : 'explore';
+  for (const id of ['explore', 'compare', 'plan', 'deliver']) $(id).classList.toggle('active', id === m);
+}
+new MutationObserver(syncRail).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 document.getElementById('demo').onclick = restartIntro;
 
 // City switch: flyTo's zoom-out arc takes it up to the globe and back down; data swaps in while it flies.
@@ -535,13 +558,13 @@ const on = new Set(['heat']);
 const vis = (id) => ({ visibility: [...on].some((k) => LAYERS[k].ids.includes(id)) ? 'visible' : 'none' });
 const wallColor = () => (on.has('prio') && buildings.length ? coolBlend(prioColor()) : on.has('heat') ? HEAT_COLOR : C.bld);
 
+// Each active layer's colour key sits right under its toggle in the layers card.
 function renderLegend() {
-  $('legend').innerHTML = Object.keys(LAYERS).filter((k) => on.has(k)).map((k) => {
-    const [title, ramp, lo, hi, src] = LAYERS[k].legend;
-    return `<div class="leg"><div class="legend-title">${title}</div><div class="ramp" style="background:linear-gradient(90deg, ${ramp})"></div>` +
-      `<div class="ticks"><span>${lo}</span><span>${hi}</span></div><div class="legend-src">${src()}</div></div>`;
-  }).join('');
-  $('legend').hidden = !on.size;
+  for (const k of Object.keys(LAYERS)) {
+    const [title, ramp, lo, hi, src] = LAYERS[k].legend, el = $(`lg-${k}`);
+    el.title = `${title} · ${src().replace(/<[^>]+>/g, '')}`;
+    el.innerHTML = on.has(k) ? `<span>${lo}</span><div class="ramp" style="background:linear-gradient(90deg, ${ramp})"></div><span>${hi}</span>` : '';
+  }
 }
 
 function toggleLayer(k, state = !on.has(k)) {
@@ -801,6 +824,9 @@ function flyToBuilding(f) {
   map.once('moveend', () => buildingPopup({ features: [{ id: f.id }], lngLat: { lng, lat } }));
 }
 
+// Keep fitted areas clear of the floating panels (left panel + layers card, right results panel).
+const PAD = { top: 90, bottom: 60, left: 430, right: 120 };
+
 function select(name) {
   if (name) compare(false);
   if (name === selected?.name) return;
@@ -815,7 +841,7 @@ function select(name) {
     const b = [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
     label = new maplibregl.Marker({ element: pin('area', name), anchor: 'bottom' })
       .setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
-    map.fitBounds(b, { padding: 140, pitch: 55, bearing: -20, maxZoom: 16.5, duration: 1600 });
+    map.fitBounds(b, { padding: PAD, pitch: 55, bearing: -20, maxZoom: 16.5, duration: 1600 });
   }
   showPins();
   renderPanel();
@@ -844,7 +870,8 @@ function renderPanel() {
   $('delta').textContent = `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°C vs ${CITY.refName}`;
   $('delta').classList.toggle('cool', d < 0);
   const usd = (selected ? within(ringOf(selected.name)) : buildings).reduce((s, f) => s + (f.properties.extra_kwh || 0), 0) * CITY['kwh$'];
-  $('extra').textContent = buildings.length ? `${CITY.cur}${(Math.round(usd / 100) * 100).toLocaleString()} / yr extra cooling ${year > 2026 ? `by ${year}` : 'from local heat'}` : '';
+  $('extra').innerHTML = buildings.length ? `${CITY.cur}${(Math.round(usd / 100) * 100).toLocaleString()}<small> / yr</small>` : '';
+  $('extra-l').textContent = `Extra cooling cost ${year > 2026 ? `by ${year}, ` : ''}caused by local heat`;
 }
 
 // ---- Compare areas: every precinct ranked by extra cooling $, roof heat or vulnerable residents ----
@@ -857,7 +884,7 @@ function compare(open) {
   if (!open) return precincts.forEach((p) => map.setFeatureState({ source: 'precincts', id: p.properties.name }, { rk: null }));
   select(null);
   const pts = precincts.flatMap((p) => p.geometry.coordinates[0]), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-  if (pts.length) map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: 120, pitch: 45, bearing: -20, duration: 1600 });
+  if (pts.length) map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: PAD, pitch: 45, bearing: -20, duration: 1600 });
   renderCompare();
 }
 function renderCompare() {
@@ -1082,7 +1109,7 @@ $('o-top').onclick = (e) => {
   if (c) flyToBuilding(c.f);
 };
 
-document.querySelector('.panel > .cta').onclick = openScenario;
+$('p-plan').onclick = openScenario;
 $('s-back').onclick = closeScenario;
 $('s-reset').onclick = () => {
   for (const id of ids) map.setFeatureState({ source: 'bld', id }, { cool: 0 });

@@ -286,6 +286,9 @@ Shared blast radius (check all of these on every item):
   - Web Serial button "Connect sensor" → live reading on a pulsing pin "Ground sensor · live", panel shows satellite vs ground
     delta ("calibration"). Simulated fallback if no port.
 
+- [x] **16. UI redesign: map-first workflow** (owner-raised 2026-10-04)
+  - Done 2026-10-04: design approved on a Design canvas first. Light floating panels over a full-bleed map; left rail Assess / Compare / Plan / Deliver replaces the tabs; plan inputs left, results right; Deliver = program pipeline + brief; layers card with inline legends at the top of the map; Public Sans + Source Serif. Markers unchanged (await owner approval).
+
 - [ ] **9. Capture mode + repo polish** (~25 min)
   - Key `c` hides chrome and runs a cinematic path: globe spin → fly-in → orbit precinct → scenario apply. For recording.
   - [x] New root `README.md`: project pitch, architecture diagram (mermaid), data sources & attribution table, run instructions, licence (MIT).

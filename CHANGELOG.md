@@ -2,6 +2,7 @@
 
 One line per shipped TODO item. Newest first.
 
+- 2026-10-04 — Item 16: UI redesign — map-first layout, workflow rail (Assess / Compare / Plan / Deliver), floating light panels, layers card with inline legends.
 - 2026-10-04 — Item 8: Arduino DS18B20 street sensor streams °C over Web Serial to a live map pin and a panel line vs the weather model.
 - 2026-10-04 — Item 15: Now / 2030 / 2050 toggle warms roofs by each city's CMIP6 trend; heat colours, extra cooling cost, scenario payback and area ranking all follow the year.
 - 2026-10-04 — Item 14: "Compare areas" tab ranks every precinct by extra cooling cost, roof heat or vulnerable residents, with best measure; row click selects the precinct.
