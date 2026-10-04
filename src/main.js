@@ -120,7 +120,7 @@ const map = new maplibregl.Map({
   zoom: 1.6,
   attributionControl: { compact: true },
 });
-map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+// Zoom buttons live in .ctrls with 2D/3D and the sensor (see below), so the stack lines up.
 
 // Recolour liberty to the dark canvas.
 const greens = []; // park/wood fill layers, brightened by the canopy layer
@@ -315,6 +315,8 @@ function setMode3d(on, animate = true) {
 }
 b2.onclick = () => setMode3d(false);
 b3.onclick = () => setMode3d(true);
+$('zin').onclick = () => map.zoomIn();
+$('zout').onclick = () => map.zoomOut();
 
 // ---- Surface heat: GIBS LST drape + per-building Landsat heat ----
 // Thermal-camera ramp: -1 = 1.5 °C cooler than the local median (slate blue), 0 = average (yellow), +1 = hotter (red).
@@ -1060,7 +1062,7 @@ function optimize() {
   // Roofs already in the program show their stage cap instead of the pulse.
   const fresh = chosen.filter((c) => !prog[pk(c.f.id)]);
   map.getSource('picks').setData({ type: 'FeatureCollection', features: fresh.map((c) => c.f) });
-  $('o-send').textContent = fresh.length ? `Send offer letters to ${fresh.length} owners` : 'View offer letters';
+  $('o-send').textContent = fresh.length ? `Review ${fresh.length} offer letters` : 'View offer letters';
   document.body.classList.add('optimized');
   $('o-x').textContent = `${x.toFixed(1)}×`;
   $('o-res').textContent = res.toLocaleString();
@@ -1309,53 +1311,107 @@ function wireProg(el, f) {
   };
 }
 
-// Send letters to the optimizer's funded roofs (new ones get a code; existing ones keep their stage), then show them.
+// Offer letters for the optimizer's funded roofs. They open as drafts to review; "Send all" puts every unsent one into
+// the program (new ones keep their draft code, roofs already in the program keep their stage).
+let draft = {}, addrT = 0;
+const offerRec = (c) => prog[pk(c.f.id)] ?? (draft[c.f.id] ??= { st: 'offered', code: `CP-${1000 + Math.floor(Math.random() * 9000)}`, t: Date.now() });
 function sendOffers() {
   if (!last?.chosen.length) return;
-  for (const c of last.chosen) prog[pk(c.f.id)] ??= { st: 'offered', code: `CP-${1000 + Math.floor(Math.random() * 9000)}`, t: Date.now() };
+  letters = last.chosen;
+  draft = {};
+  showLetter(0);
+}
+function sendAll() {
+  for (const c of letters) prog[pk(c.f.id)] ??= offerRec(c);
   cancelAnimationFrame(pulse);
   map.getSource('picks').setData(EMPTY);
   $('o-send').textContent = 'View offer letters';
   saveProg();
-  letters = last.chosen;
-  showLetter(0);
+  renderLetters();
+}
+
+const toLine = (c) => {
+  const r = offerRec(c), at = mid(c.f.geometry.coordinates[0]);
+  return r.addr ?? `Property at ${Math.abs(at[1]).toFixed(5)}° ${at[1] < 0 ? 'S' : 'N'}, ${Math.abs(at[0]).toFixed(5)}° ${at[0] < 0 ? 'W' : 'E'}`;
+};
+function letterHtml(c) {
+  const { f } = c, [m, cap] = fix(f.properties);
+  const hot = CITY.surf
+    ? `Our heat model estimates your roof runs ${c.ex.toFixed(1)}°C hotter than nearby roofs in summer.`
+    : `Satellite data (Landsat 8) shows your roof reached ${f.properties.lst.toFixed(1)}°C on ${LANDSAT.day}, ${c.ex.toFixed(1)}°C hotter than nearby roofs.`;
+  const fund = `The council will fund ${m.toLowerCase()} for your building (about ${CITY.cur}${Math.round(cap / 1000).toLocaleString()}k) ` +
+    `at no cost to you. It could save around ${CITY.cur}${saving(f)} a year on energy` +
+    (c.near && c.d < 400 ? ` and help keep ${c.near}, ${Math.round(c.d)} m away, cooler during heatwaves.` : '.');
+  return `<div class="l-top"><span>${CITY.region} retrofit program</span><span>${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>` +
+    `<div class="l-to">To the owner of<b>${esc(toLine(c))}</b></div><h3>Your building qualifies for a fully funded energy retrofit</h3><p>${hot}</p><p>${fund}</p>` +
+    `<div class="l-code"><div>Your code <b>${offerRec(c).code}</b></div><span>To accept, open TerraGrid, switch to Public, click your building and enter this code.</span></div>`;
+}
+
+function renderLetters() {
+  const unsent = letters.filter((c) => !prog[pk(c.f.id)]).length;
+  $('l-title').textContent = `Offer letters · ${letters.length}`;
+  $('l-list').innerHTML = letters.map((c, i) => {
+    const r = prog[pk(c.f.id)], t = c.f.properties.lst;
+    return `<li data-i="${i}" class="${i === li ? 'on' : ''}"><span class="l-i">${i + 1}</span><div><b>${esc(offerRec(c).addr ?? `Roof ${offerRec(c).code}`)}</b>` +
+      `<small>${[t != null && `${t.toFixed(1)}°C roof`, fix(c.f.properties)[0]].filter(Boolean).join(' · ')}</small></div>` +
+      `<span class="l-st${r ? ' sent' : ''}">${r ? STAGES[r.st][0] : 'Draft'}</span></li>`;
+  }).join('');
+  $('l-paper').innerHTML = letterHtml(letters[li]);
+  $('l-n').textContent = `${li + 1} of ${letters.length}`;
+  $('l-send').textContent = unsent ? `Send ${unsent === letters.length ? 'all ' : ''}${unsent} letter${unsent > 1 ? 's' : ''}` : 'All letters sent';
+  $('l-send').disabled = !unsent;
 }
 
 function showLetter(i) {
   li = (i + letters.length) % letters.length;
-  const c = letters[li], { f } = c, r = prog[pk(f.id)], at = mid(f.geometry.coordinates[0]);
-  $('l-date').textContent = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
-  $('l-to').textContent = r.addr ?? `Property at ${Math.abs(at[1]).toFixed(5)}° ${at[1] < 0 ? 'S' : 'N'}, ${Math.abs(at[0]).toFixed(5)}° ${at[0] < 0 ? 'W' : 'E'}`;
-  $('l-hot').textContent = CITY.surf
-    ? `Our heat model estimates your roof runs ${c.ex.toFixed(1)}°C hotter than nearby roofs in summer.`
-    : `Satellite data (Landsat 8) shows your roof reached ${f.properties.lst.toFixed(1)}°C on ${LANDSAT.day}, ${c.ex.toFixed(1)}°C hotter than nearby roofs.`;
-  const [m, cap] = fix(f.properties);
-  $('l-fund').textContent = `The council will fund ${m.toLowerCase()} for your building (about ${CITY.cur}${Math.round(cap / 1000).toLocaleString()}k) ` +
-    `at no cost to you. It could save around ${CITY.cur}${saving(f)} a year on energy` +
-    (c.near && c.d < 400 ? ` and help keep ${c.near}, ${Math.round(c.d)} m away, cooler during heatwaves.` : '.');
-  $('l-code').textContent = r.code;
-  $('l-n').textContent = `Letter ${li + 1} of ${letters.length}`;
+  renderLetters();
   $('letter').hidden = false;
-  if (r.addr) return;
-  // Nominatim allows ~1 request/s, so only the letter on screen is looked up; the address is kept with its record.
+  $('l-list').children[li]?.scrollIntoView({ block: 'nearest' });
+  fillAddrs();
+}
+
+// Street addresses fill in one by one (Nominatim allows ~1 request/s); each is kept with its record.
+function fillAddrs() {
+  clearTimeout(addrT);
+  if ($('letter').hidden) return;
+  const c = letters.find((x) => !offerRec(x).addr && !offerRec(x).noAddr);
+  if (!c) return;
+  const r = offerRec(c), at = mid(c.f.geometry.coordinates[0]);
   fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=${at[1]}&lon=${at[0]}`).then((x) => x.json()).then((j) => {
     const a = j.address ?? {}, street = [a.house_number, a.road].filter(Boolean).join(' ');
-    if (!street) return;
-    r.addr = [street, a.suburb || a.city_district || a.city].filter(Boolean).join(', ');
-    saveProg();
-    if (letters[li] === c) $('l-to').textContent = r.addr;
-  }).catch(() => {});
+    if (street) r.addr = [street, a.suburb || a.city_district || a.city].filter(Boolean).join(', ');
+    else r.noAddr = true;
+  }).catch(() => (r.noAddr = true)).finally(() => {
+    if (prog[pk(c.f.id)]) saveProg();
+    if (!$('letter').hidden) renderLetters();
+    addrT = setTimeout(fillAddrs, 1100);
+  });
 }
 
 $('o-send').onclick = sendOffers;
 $('l-prev').onclick = () => showLetter(li - 1);
 $('l-next').onclick = () => showLetter(li + 1);
-$('l-close').onclick = () => ($('letter').hidden = true);
-$('l-print').onclick = () => {
-  document.body.classList.add('printing-letter');
+const closeLetters = () => ($('letter').hidden = true);
+$('l-close').onclick = closeLetters;
+$('letter').onclick = (e) => { if (e.target === $('letter')) closeLetters(); };
+$('l-list').onclick = (e) => { const i = e.target.closest('li')?.dataset.i; if (i) showLetter(+i); };
+$('l-send').onclick = sendAll;
+const printAs = (cls) => {
+  document.body.classList.add(cls);
   window.print();
-  document.body.classList.remove('printing-letter');
+  document.body.classList.remove(cls);
 };
+$('l-print').onclick = () => printAs('printing-letter');
+$('l-print-all').onclick = () => {
+  $('l-all').innerHTML = letters.map((c) => `<article class="letter">${letterHtml(c)}</article>`).join('');
+  printAs('printing-all');
+};
+document.addEventListener('keydown', (e) => {
+  if ($('letter').hidden || e.target.closest('input')) return;
+  if (e.key === 'Escape') closeLetters();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') e.preventDefault(), showLetter(li - 1);
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') e.preventDefault(), showLetter(li + 1);
+});
 
 function setView(v) {
   view = v;

@@ -58,13 +58,12 @@ h1, h2, h3, p, ol { margin: 0; }
 .tl svg { width: 15px; height: 15px; }
 
 /* ---- workflow rail ---- */
-.rail { position: fixed; left: 0; top: 56px; bottom: 0; width: 76px; z-index: 5; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff; border-right: 1px solid var(--line); }
+.rail { position: fixed; left: 0; top: 56px; bottom: 0; width: 76px; z-index: 5; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; background: #fff; border-right: 1px solid var(--line); }
 .step { position: relative; width: 64px; padding: 10px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 5px; border-radius: 8px; color: var(--muted); font-size: 12px; font-weight: 500; }
 .step:hover { color: var(--ink); background: var(--surf); }
 .step .n { position: absolute; top: 6px; right: 10px; font-size: 10px; font-weight: 600; color: var(--faint); }
 .step.active { color: var(--teal); background: var(--teal-l); font-weight: 600; }
 .step.active .n { color: var(--teal); }
-.rail .link { width: 1px; height: 8px; background: var(--line2); }
 .public .rail { display: none; }
 
 /* ---- map stage + floating panels ---- */
@@ -99,15 +98,16 @@ body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) 
 .btn svg { width: 15px; height: 15px; }
 
 /* ---- assess: area panel ---- */
-.now { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.big { font-size: 44px; line-height: 1; font-weight: 600; letter-spacing: -.03em; margin-top: 8px; }
+.now { display: flex; flex-direction: column; align-items: flex-start; }
+.big { font-size: 44px; line-height: 1; font-weight: 600; letter-spacing: -.03em; margin: 8px 0 6px; }
 .live { display: flex; align-items: center; gap: 8px; }
 .live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #22a05a; }
-.delta { font-size: 12.5px; font-weight: 600; color: var(--heat); background: var(--heat-l); border-radius: 4px; padding: 3px 8px; text-align: right; max-width: 170px; line-height: 1.35; margin-bottom: 4px; }
+.delta { font-size: 13px; font-weight: 600; color: var(--heat); }
 .delta.cool { color: var(--teal); background: var(--teal-l); }
-.s-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: -8px; }
+.s-line { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.s-line[hidden] { display: none; }
 .s-line b { color: var(--ink); }
-.s-line i { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); animation: ping 1.6s ease-out infinite; }
+.s-line i { margin-right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); animation: ping 1.6s ease-out infinite; }
 .cost { border-color: #f1d3d1; background: var(--heat-l); }
 .cost-v { font-size: 24px; line-height: 1.15; font-weight: 700; color: var(--heat); letter-spacing: -.02em; }
 .cost-v:empty::before { content: '--'; }
@@ -235,20 +235,18 @@ body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) 
 .ramp { height: 5px; border-radius: 3px; flex: 1; }
 
 /* ---- map controls (sensor, 2D/3D, maplibre zoom) ---- */
-.ctrls { position: absolute; right: 12px; bottom: 120px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.ctrls { position: absolute; right: 12px; bottom: 40px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .scenario .ctrls { right: 372px; }
 .cg { display: flex; flex-direction: column; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
-.cg button { width: 40px; height: 36px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cg button { width: 40px; height: 36px; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cg button:hover { background: var(--surf); color: var(--ink); }
+.cg svg { width: 16px; height: 16px; }
 .cg button + button { border-top: 1px solid var(--line); }
 .cg button.on { color: var(--teal); background: var(--teal-l); }
 .sensor { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 8px; background: #fff; box-shadow: var(--shadow); font-size: 12.5px; font-weight: 600; color: var(--muted); }
 .sensor svg { width: 16px; height: 16px; }
 .sensor.on { color: var(--teal); }
 .sensor.on::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #22a05a; animation: ping 1.6s ease-out infinite; }
-.maplibregl-ctrl-bottom-right { right: 2px; }
-.scenario .maplibregl-ctrl-bottom-right { right: 362px; }
-.maplibregl-ctrl-group { border-radius: 8px !important; box-shadow: var(--shadow) !important; }
-.maplibregl-ctrl-group button { width: 40px !important; height: 36px !important; }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(15, 118, 110, .6); } 100% { box-shadow: 0 0 0 10px rgba(15, 118, 110, 0); } }
 
 /* ---- map pins (POIs, area label, address, sensor) ---- */
@@ -314,31 +312,46 @@ body:not(.compare):not(.scenario) .area, .compare .cmp, .scenario:not(.deliver) 
 .bp-err { font-size: 12px; color: var(--heat); }
 .bp-err:empty { display: none; }
 
-/* ---- offer letters ---- */
+/* ---- offer letters: review dialog (recipient list + letter), print one / all, send all ---- */
 .letter-wrap { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(11, 18, 32, .5); padding: 24px; }
 .letter-wrap[hidden] { display: none; }
-.letter { width: min(580px, 100%); max-height: 100%; overflow-y: auto; background: #fff; border-radius: 4px; padding: 40px 44px 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); }
-.l-top { display: flex; justify-content: space-between; align-items: baseline; }
-.l-date { font-size: 13px; color: var(--muted); }
-.l-to { margin-top: 22px; font-size: 13px; color: var(--muted); }
+.ldlg { width: min(1040px, 100%); height: min(760px, 100%); display: flex; flex-direction: column; background: #fff; border-radius: 10px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); overflow: hidden; }
+.l-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 14px 22px; border-bottom: 1px solid var(--line); }
+.l-head .h2 { font-size: 17px; }
+.l-body { flex: 1; min-height: 0; display: flex; }
+.l-list { width: 300px; flex: none; list-style: none; padding: 8px; overflow-y: auto; border-right: 1px solid var(--line); }
+.l-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.l-list li:hover { background: var(--surf); }
+.l-list li.on { background: var(--teal-l); }
+.l-list li > div { flex: 1; min-width: 0; }
+.l-list b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.l-list small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.l-i { width: 22px; flex: none; font-size: 12px; color: var(--faint); text-align: right; }
+.l-st { flex: none; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--surf2); color: var(--muted); }
+.l-st.sent { background: var(--teal-l); color: var(--teal); }
+.l-view { flex: 1; min-width: 0; overflow-y: auto; background: var(--surf2); padding: 28px; display: flex; justify-content: center; align-items: flex-start; }
+.letter { width: 100%; max-width: 600px; background: #fff; border-radius: 2px; padding: 44px 52px 36px; box-shadow: 0 1px 3px rgba(16, 24, 40, .12), 0 12px 32px rgba(16, 24, 40, .1); }
+.l-top { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+.l-to { margin-top: 26px; font-size: 13px; color: var(--muted); }
 .l-to b { display: block; font-size: 16px; color: var(--ink); margin-top: 2px; }
-.letter h2 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 22px 0 10px; }
+.letter h3 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; margin: 24px 0 10px; }
 .letter p { font-family: "Source Serif 4", Georgia, serif; font-size: 15px; line-height: 1.6; margin: 10px 0; }
-.l-code { margin: 18px 0; padding: 14px 16px; border-radius: 6px; background: var(--teal-l); font-size: 13px; color: var(--muted); }
+.l-code { margin-top: 22px; padding: 14px 16px; border-radius: 6px; background: var(--teal-l); font-size: 13px; color: var(--muted); }
 .l-code b { font-size: 22px; letter-spacing: .06em; color: var(--teal); margin-left: 8px; }
 .l-code span { display: block; margin-top: 6px; }
-.l-nav { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; font-size: 13px; color: var(--muted); }
-.l-nav #l-print { margin-left: auto; }
+.l-nav { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.l-keys { margin-left: 12px; margin-right: auto; font-size: 12px; color: var(--faint); }
+#l-send:disabled { background: var(--surf2); border-color: var(--surf2); color: var(--muted); cursor: default; }
+.l-all { display: none; }
 
 @media print {
   .top, .rail, #map, .layers, .ctrls, .left, .pf, #s-export, #o-send { display: none !important; }
   body { overflow: visible; background: #fff; }
   .stage, .right { position: static; display: block !important; box-shadow: none; border: 0; width: auto; max-width: 680px; }
-  .printing-letter .stage, .printing-letter .l-nav { display: none !important; }
-  .printing-letter .letter-wrap { position: static; background: none; padding: 0; }
-  .printing-letter .letter { box-shadow: none; max-height: none; }
+  /* One letter, or every letter one per page: only the letters print */
+  .printing-letter .stage, .printing-all .stage, .printing-all .letter-wrap, .printing-letter .l-head, .printing-letter .l-list, .printing-letter .l-nav { display: none !important; }
+  .printing-letter .letter-wrap, .printing-letter .ldlg, .printing-letter .l-body, .printing-letter .l-view { position: static; display: block; background: none; padding: 0; box-shadow: none; height: auto; width: auto; overflow: visible; }
+  .printing-all .l-all { display: block; }
+  .printing-letter .letter, .printing-all .letter { box-shadow: none; max-width: none; padding: 0; }
+  .printing-all .letter { page-break-after: always; }
 }
-.cost-v small { font-size: 14px; font-weight: 500; color: var(--muted); }
-.card.cost { padding: 10px 14px; }
-.targets .conf { flex-wrap: nowrap; }
-.briefed #res .hd { display: none; }
